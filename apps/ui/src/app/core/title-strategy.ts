@@ -1,27 +1,29 @@
-import { Injectable } from '@angular/core';
+import { Injectable, inject } from '@angular/core';
 import { Title } from '@angular/platform-browser';
-import { RouterStateSnapshot, TitleStrategy } from '@angular/router';
+import {
+  ActivatedRouteSnapshot,
+  RouterStateSnapshot,
+  TitleStrategy,
+} from '@angular/router';
 
 const APP_NAME = 'Ats Racing';
 
 @Injectable({ providedIn: 'root' })
 export class BrandTitleStrategy extends TitleStrategy {
-  constructor(private readonly title: Title) {
-    super();
-  }
+  private readonly title = inject(Title);
 
   override updateTitle(state: RouterStateSnapshot): void {
-    const fromData = this.firstTitle(state);
+    const fromData = this.firstTitle(state.root);
     this.title.setTitle(fromData ? `${fromData} · ${APP_NAME}` : APP_NAME);
   }
 
-  private firstTitle(state: RouterStateSnapshot): string | undefined {
-    let route = state.root;
+  private firstTitle(route: ActivatedRouteSnapshot | null): string | undefined {
+    let current: ActivatedRouteSnapshot | null = route;
     let title: string | undefined;
-    while (route) {
-      const t = route.data?.['title'];
+    while (current) {
+      const t = current.data['title'];
       if (typeof t === 'string') title = t;
-      route = route.firstChild!;
+      current = current.firstChild;
     }
     return title;
   }
