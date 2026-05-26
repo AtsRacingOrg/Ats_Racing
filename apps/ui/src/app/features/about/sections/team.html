@@ -1,0 +1,35 @@
+<section class="team section">
+  <div class="container-page">
+    <app-section-heading
+      align="center"
+      eyebrow="Ekibimiz"
+      title="İşin Arkasındaki İnsanlar"
+      lead="Otomotiv tutkusunu disiplinle birleştiren, deneyimli ve sertifikalı bir ekip."
+    ></app-section-heading>
+
+    <ul class="team__grid" role="list">
+      @for (m of team; track m.name) {
+        <li class="member">
+          <figure class="member__media">
+            <img [src]="m.photo" [alt]="m.name" loading="lazy" decoding="async" />
+            <div class="member__overlay">
+              <ul class="member__socials" role="list">
+                @for (s of m.socials; track s.icon) {
+                  <li>
+                    <a [href]="s.href" [attr.aria-label]="s.label" rel="noopener" target="_blank">
+                      <i [class]="s.icon"></i>
+                    </a>
+                  </li>
+                }
+              </ul>
+            </div>
+          </figure>
+          <div class="member__body">
+            <h3 class="member__name">{{ m.name }}</h3>
+            <p class="member__role">{{ m.role }}</p>
+          </div>
+        </li>
+      }
+    </ul>
+  </div>
+</section>
