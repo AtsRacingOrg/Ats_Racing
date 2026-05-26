@@ -11,31 +11,35 @@ permissions:
   contents: read
 
 jobs:
-  main:
+  build:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
         with:
-          filter: tree:0
           fetch-depth: 0
 
-      # This enables task distribution via Nx Cloud
-      # Run this command as early as possible, before dependencies are installed
-      # Learn more at https://nx.dev/ci/reference/nx-cloud-cli#npx-nxcloud-startcirun
-      - run: npx nx start-ci-run --distribute-on="3 linux-medium-js" --stop-agents-after="e2e"
-
-      # Cache node_modules
       - uses: actions/setup-node@v4
         with:
           node-version: 20
           cache: 'npm'
 
       - run: npm ci
-      - run: npx playwright install --only-shell
 
-      # Prepend any command with "nx record --" to record its logs to Nx Cloud
-      - run: npx nx record -- echo Hello World
-      - run: npx nx run-many -t lint test build typecheck e2e
-      # Nx Cloud recommends fixes for failures to help you get CI green faster. Learn more: https://nx.dev/ci/features/self-healing-ci
-      - run: npx nx fix-ci
-        if: always()
+      - name: Determine affected base
+        id: nx-base
+        run: |
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            echo "base=origin/${{ github.base_ref }}" >> "$GITHUB_OUTPUT"
+            git fetch origin ${{ github.base_ref }} --depth=1
+          else
+            echo "base=HEAD~1" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Lint
+        run: npx nx affected -t lint --base=${{ steps.nx-base.outputs.base }} --head=HEAD --parallel=3
+
+      - name: Test
+        run: npx nx affected -t test --base=${{ steps.nx-base.outputs.base }} --head=HEAD --parallel=3 --passWithNoTests
+
+      - name: Build
+        run: npx nx affected -t build --base=${{ steps.nx-base.outputs.base }} --head=HEAD --parallel=3
