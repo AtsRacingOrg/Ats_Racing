@@ -1,0 +1,23 @@
+<section class="services section">
+  <div class="container-page">
+    <app-section-heading
+      align="center"
+      eyebrow="Ne Yapıyoruz"
+      title="Hizmetlerimiz"
+      lead="Aracınızın her dokunuşunu kendi atölyemizde, kendi ekibimizle tamamlıyoruz. Garantili, izlenebilir, ölçülebilir."
+    ></app-section-heading>
+
+    <ul class="services__grid" role="list">
+      @for (svc of services; track svc.title) {
+        <li class="service-card">
+          <span class="service-card__icon" aria-hidden="true"><i [class]="svc.icon"></i></span>
+          <h3 class="service-card__title">{{ svc.title }}</h3>
+          <p class="service-card__desc">{{ svc.description }}</p>
+          <a [routerLink]="svc.link" class="service-card__link">
+            İncele <i class="pi pi-arrow-right"></i>
+          </a>
+        </li>
+      }
+    </ul>
+  </div>
+</section>

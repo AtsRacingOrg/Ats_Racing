@@ -1,0 +1,31 @@
+<section class="news section">
+  <div class="container-page">
+    <app-section-heading
+      align="center"
+      eyebrow="Atölye Notları"
+      title="Son Yazılarımız"
+      lead="Otomobil tutkunları için pratik rehberler, sektör notları ve modifiye günlükleri."
+    ></app-section-heading>
+
+    <ul class="news__grid" role="list">
+      @for (article of articles; track article.title) {
+        <li class="article-card">
+          <figure class="article-card__media">
+            <img [src]="article.image" [alt]="article.title" loading="lazy" decoding="async" />
+          </figure>
+          <div class="article-card__body">
+            <div class="article-card__meta">
+              <span class="article-card__cat">{{ article.category }}</span>
+              <span class="article-card__date">{{ article.date }}</span>
+            </div>
+            <h3 class="article-card__title">{{ article.title }}</h3>
+            <p class="article-card__excerpt">{{ article.excerpt }}</p>
+            <a href="#" class="article-card__link">
+              Devamını Oku <i class="pi pi-arrow-right"></i>
+            </a>
+          </div>
+        </li>
+      }
+    </ul>
+  </div>
+</section>

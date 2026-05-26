@@ -1,0 +1,24 @@
+<section class="features section" aria-labelledby="features-title">
+  <div class="features__bg" aria-hidden="true"></div>
+  <div class="features__overlay" aria-hidden="true"></div>
+
+  <div class="container-page features__inner">
+    <app-section-heading
+      align="center"
+      [onDark]="true"
+      eyebrow="Neden Biz"
+      title="Aracının En İyi Bakımını Hak Ettiğine İnanıyoruz"
+      lead="Sektörde 12 yılı aşkın deneyim, ölçülebilir sonuçlar ve şeffaf bir süreç."
+    ></app-section-heading>
+
+    <ul class="features__grid" role="list">
+      @for (f of features; track f.title) {
+        <li class="feature-item">
+          <span class="feature-item__icon" aria-hidden="true"><i [class]="f.icon"></i></span>
+          <h3 class="feature-item__title">{{ f.title }}</h3>
+          <p class="feature-item__text">{{ f.text }}</p>
+        </li>
+      }
+    </ul>
+  </div>
+</section>
