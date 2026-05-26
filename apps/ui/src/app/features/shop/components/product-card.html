@@ -1,0 +1,27 @@
+<article class="card">
+  <figure class="card__media">
+    <img [src]="product().image" [alt]="product().title" loading="lazy" decoding="async" />
+    @if (badgeLabel(); as label) {
+      <span class="card__badge" [attr.data-kind]="product().badge">{{ label }}</span>
+    }
+  </figure>
+
+  <div class="card__body">
+    <ul class="card__rating" aria-label="Değerlendirme">
+      @for (filled of stars(); track $index) {
+        <li><i [class]="filled ? 'pi pi-star-fill' : 'pi pi-star'"></i></li>
+      }
+    </ul>
+
+    <h3 class="card__title">{{ product().title }}</h3>
+
+    <div class="card__price">
+      <span class="card__price-current">{{ product().price | currency:'TRY':'symbol':'1.0-0':'tr' }}</span>
+      @if (product().originalPrice; as orig) {
+        <span class="card__price-old">{{ orig | currency:'TRY':'symbol':'1.0-0':'tr' }}</span>
+      }
+    </div>
+
+    <p-button label="Sepete Ekle" styleClass="p-button-sm w-full"></p-button>
+  </div>
+</article>

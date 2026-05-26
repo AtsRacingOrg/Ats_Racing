@@ -1,0 +1,43 @@
+<aside class="sidebar" aria-label="Ürün filtreleri">
+  <section class="sidebar__group">
+    <h3 class="sidebar__title">Kategoriler</h3>
+    <ul class="sidebar__list" role="list">
+      <li>
+        <button
+          type="button"
+          class="sidebar__chip"
+          [class.is-active]="selected() === null"
+          (click)="pick(null)"
+        >Tümü</button>
+      </li>
+      @for (cat of categories; track cat.value) {
+        <li>
+          <button
+            type="button"
+            class="sidebar__chip"
+            [class.is-active]="selected() === cat.value"
+            (click)="pick(cat.value)"
+          >{{ cat.label }}</button>
+        </li>
+      }
+    </ul>
+  </section>
+
+  <section class="sidebar__group">
+    <h3 class="sidebar__title">Maks. Fiyat</h3>
+    <input
+      type="range"
+      min="2000"
+      max="100000"
+      step="500"
+      [value]="maxPrice()"
+      (input)="onPriceInput($event)"
+      aria-label="Maksimum fiyat"
+    />
+    <p class="sidebar__value">{{ maxPrice() | number:'1.0-0':'tr' }} ₺ ve altı</p>
+  </section>
+
+  <button type="button" class="sidebar__clear" (click)="clear()">
+    <i class="pi pi-refresh"></i> Filtreleri Sıfırla
+  </button>
+</aside>

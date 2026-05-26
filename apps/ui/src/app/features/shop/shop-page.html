@@ -1,0 +1,47 @@
+<app-page-hero
+  eyebrow="Mağaza"
+  title="Shop"
+  lead="ECU tuning, performans parçaları, jant-lastik ve detayl ürünleri — hepsi tek vitrinde."
+  image="https://images.unsplash.com/photo-1605559424843-9e4c228bf1c2?auto=format&fit=crop&w=2400&q=80"
+></app-page-hero>
+
+<section class="shop section">
+  <div class="container-page shop__layout">
+    <app-filter-sidebar
+      [(selected)]="category"
+      [(maxPrice)]="maxPrice"
+    ></app-filter-sidebar>
+
+    <div class="shop__main">
+      <header class="shop__toolbar">
+        <p class="shop__count">
+          <strong>{{ filtered().length }}</strong> ürün bulundu
+        </p>
+      </header>
+
+      @if (visible().length > 0) {
+        <ul class="shop__grid" role="list">
+          @for (product of visible(); track product.id) {
+            <li>
+              <app-product-card [product]="product"></app-product-card>
+            </li>
+          }
+        </ul>
+
+        <p-paginator
+          [rows]="pageSize"
+          [totalRecords]="filtered().length"
+          [first]="first()"
+          (onPageChange)="onPage($event)"
+          styleClass="shop__paginator"
+        ></p-paginator>
+      } @else {
+        <div class="shop__empty">
+          <i class="pi pi-search"></i>
+          <h3>Bu filtre için ürün bulunamadı</h3>
+          <p>Kategori ve fiyat seçiminizi gevşeterek tekrar deneyin.</p>
+        </div>
+      }
+    </div>
+  </div>
+</section>
