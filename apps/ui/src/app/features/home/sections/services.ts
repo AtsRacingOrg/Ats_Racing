@@ -1,46 +1,45 @@
 import { ChangeDetectionStrategy, Component } from '@angular/core';
 import { RouterLink } from '@angular/router';
-import { SectionHeading } from '../../../shared/ui/section-heading/section-heading';
 
-interface Service {
-  readonly icon: string;
+interface ServiceTile {
   readonly title: string;
-  readonly description: string;
+  readonly tag: string;
+  readonly image: string;
   readonly link: string;
 }
 
 @Component({
   selector: 'app-home-services',
   standalone: true,
-  imports: [RouterLink, SectionHeading],
+  imports: [RouterLink],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './services.html',
   styleUrl: './services.scss',
 })
 export class HomeServices {
-  protected readonly services: readonly Service[] = [
+  protected readonly services: readonly ServiceTile[] = [
     {
-      icon: 'pi pi-cog',
-      title: 'ECU Yazılımı',
-      description: 'Stage 1–3 chip tuning, hassas dyno ayarları ve tepkisel haritalama.',
+      title: 'Interior Customization',
+      tag: 'Detayl Bakım',
+      image: 'https://images.unsplash.com/photo-1601362840469-51e4d8d58785?auto=format&fit=crop&w=1200&q=80',
       link: '/shop',
     },
     {
-      icon: 'pi pi-bolt',
-      title: 'Performans Modifiye',
-      description: 'Egzoz, turbo, intake ve şanzıman optimizasyonu — sahada test edilmiş.',
+      title: 'Aero Upgrades',
+      tag: 'Aerodinamik',
+      image: 'https://images.unsplash.com/photo-1542362567-b07e54358753?auto=format&fit=crop&w=1200&q=80',
       link: '/shop',
     },
     {
-      icon: 'pi pi-sparkles',
-      title: 'Detaylı Bakım',
-      description: 'Seramik kaplama, PPF, iç-dış detayl, motor temizliği, profesyonel cila.',
+      title: 'Performance Tuning',
+      tag: 'ECU Yazılımı',
+      image: 'https://images.unsplash.com/photo-1486006920555-c77dcf18193c?auto=format&fit=crop&w=1200&q=80',
       link: '/shop',
     },
     {
-      icon: 'pi pi-shield',
-      title: 'Güvenlik & Frenleme',
-      description: 'Brembo / AP Racing fren kitleri, kaliper boya, performans hortumları.',
+      title: 'Stance Setup',
+      tag: 'Jant & Süspansiyon',
+      image: 'https://images.unsplash.com/photo-1626668893632-6f3a4466d109?auto=format&fit=crop&w=1200&q=80',
       link: '/shop',
     },
   ];

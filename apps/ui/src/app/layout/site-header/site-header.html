@@ -1,76 +1,81 @@
 <header
-  class="site-header fixed inset-x-0 top-0 z-50 transition-colors duration-300"
+  class="site-header"
   [class.is-scrolled]="scrolled()"
+  [class.is-open]="mobileOpen()"
 >
-  <div class="container-page flex h-[88px] items-center justify-between gap-6">
-    <a routerLink="/" class="brand inline-flex items-center gap-2" (click)="closeMobile()">
-      <span class="brand-mark" aria-hidden="true">A</span>
-      <span class="brand-name">Ats Racing</span>
-    </a>
-
-    <nav class="hidden lg:block" aria-label="Ana menü">
-      <ul class="flex items-center gap-8">
+  <div class="site-header__bar">
+    <nav class="site-header__nav-left" aria-label="Ana menü">
+      <ul>
         @for (item of nav; track item.path) {
           <li>
             <a
               [routerLink]="item.path"
               routerLinkActive="is-active"
               [routerLinkActiveOptions]="{ exact: item.path === '/' }"
-              class="nav-link"
-            >
-              {{ item.label }}
-            </a>
+            >{{ item.label }}</a>
           </li>
         }
       </ul>
     </nav>
 
-    <div class="flex items-center gap-3">
+    <a
+      routerLink="/"
+      class="site-header__brand"
+      aria-label="Ats Racing — Anasayfa"
+      (click)="closeMobile()"
+    >
+      <span class="brand-word">Ats<span class="brand-word__accent">Racing</span></span>
+    </a>
+
+    <div class="site-header__actions">
+      <a
+        routerLink="/shop"
+        class="icon-btn icon-btn--cart"
+        aria-label="Sepet"
+      >
+        <i class="pi pi-shopping-bag" aria-hidden="true"></i>
+        <span class="icon-btn__count">{{ cartCount() }}</span>
+      </a>
+      <button type="button" class="icon-btn" aria-label="Ara">
+        <i class="pi pi-search" aria-hidden="true"></i>
+      </button>
       <a
         routerLink="/login"
-        class="hidden md:inline-flex nav-link tracking-cta uppercase text-sm"
+        class="icon-btn icon-btn--accent"
+        aria-label="Hesabım"
       >
-        Giriş Yap
+        <i class="pi pi-th-large" aria-hidden="true"></i>
       </a>
-      <p-button
-        label="Teklif Al"
-        styleClass="p-button-sm"
-        routerLink="/contact"
-        class="hidden md:inline-flex"
-      ></p-button>
 
       <button
         type="button"
-        class="lg:hidden inline-flex h-10 w-10 items-center justify-center text-brand-text-on-dark"
+        class="icon-btn icon-btn--burger"
+        aria-label="Menü"
         [attr.aria-expanded]="mobileOpen()"
-        aria-label="Menüyü aç/kapat"
         (click)="toggleMobile()"
       >
-        <i [class]="mobileOpen() ? 'pi pi-times' : 'pi pi-bars'" class="text-xl"></i>
+        <i [class]="mobileOpen() ? 'pi pi-times' : 'pi pi-bars'" aria-hidden="true"></i>
       </button>
     </div>
   </div>
 
   @if (mobileOpen()) {
-    <div class="mobile-panel lg:hidden">
-      <ul class="container-page flex flex-col gap-1 py-4">
+    <nav class="site-header__mobile" aria-label="Mobil menü">
+      <ul>
         @for (item of nav; track item.path) {
           <li>
             <a
               [routerLink]="item.path"
               routerLinkActive="is-active"
               [routerLinkActiveOptions]="{ exact: item.path === '/' }"
-              class="block py-3 nav-link"
               (click)="closeMobile()"
-            >
-              {{ item.label }}
-            </a>
+            >{{ item.label }}</a>
           </li>
         }
-        <li class="pt-2">
-          <a routerLink="/login" class="block py-3 nav-link" (click)="closeMobile()">Giriş Yap</a>
+        <li>
+          <a routerLink="/login" (click)="closeMobile()">Giriş Yap</a>
         </li>
       </ul>
-    </div>
+    </nav>
   }
 </header>

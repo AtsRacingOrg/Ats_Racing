@@ -1,6 +1,5 @@
 import { ChangeDetectionStrategy, Component, HostListener, signal } from '@angular/core';
 import { RouterLink, RouterLinkActive } from '@angular/router';
-import { ButtonModule } from 'primeng/button';
 
 interface NavItem {
   readonly label: string;
@@ -10,7 +9,7 @@ interface NavItem {
 @Component({
   selector: 'app-site-header',
   standalone: true,
-  imports: [RouterLink, RouterLinkActive, ButtonModule],
+  imports: [RouterLink, RouterLinkActive],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './site-header.html',
   styleUrl: './site-header.scss',
@@ -25,6 +24,7 @@ export class SiteHeader {
 
   protected readonly scrolled = signal(false);
   protected readonly mobileOpen = signal(false);
+  protected readonly cartCount = signal(0);
 
   @HostListener('window:scroll')
   protected onScroll(): void {

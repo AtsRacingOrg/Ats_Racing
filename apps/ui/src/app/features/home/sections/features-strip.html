@@ -1,24 +1,43 @@
-<section class="features section" aria-labelledby="features-title">
-  <div class="features__bg" aria-hidden="true"></div>
-  <div class="features__overlay" aria-hidden="true"></div>
+<section class="care">
+  <div class="care__top">
+    <div class="care__copy">
+      <h2 class="care__title">Aracının en iyi bakımını biz üstleniyoruz</h2>
+      <p class="care__lead">
+        Sed ut perspiciatis unde omnis. Garantili işçilik, ölçülebilir sonuçlar ve şeffaf süreç —
+        her aracın dosyası bizde tutulur, her ayar belgelenir.
+      </p>
+      <a routerLink="/about" class="care__more">
+        <span>Devamını oku</span>
+        <span class="care__more-bar" aria-hidden="true"></span>
+      </a>
+    </div>
 
-  <div class="container-page features__inner">
-    <app-section-heading
-      align="center"
-      [onDark]="true"
-      eyebrow="Neden Biz"
-      title="Aracının En İyi Bakımını Hak Ettiğine İnanıyoruz"
-      lead="Sektörde 12 yılı aşkın deneyim, ölçülebilir sonuçlar ve şeffaf bir süreç."
-    ></app-section-heading>
+    <div class="care__hero" aria-hidden="true">
+      <img
+        src="https://images.unsplash.com/photo-1492144534655-ae79c964c9d7?auto=format&fit=crop&w=1400&q=80"
+        alt=""
+        loading="lazy"
+        decoding="async"
+      />
+    </div>
+  </div>
 
-    <ul class="features__grid" role="list">
-      @for (f of features; track f.title) {
-        <li class="feature-item">
-          <span class="feature-item__icon" aria-hidden="true"><i [class]="f.icon"></i></span>
-          <h3 class="feature-item__title">{{ f.title }}</h3>
-          <p class="feature-item__text">{{ f.text }}</p>
-        </li>
+  <div class="care__bottom">
+    <div class="care__photo" aria-hidden="true">
+      <img
+        src="https://images.unsplash.com/photo-1605559424843-9e4c228bf1c2?auto=format&fit=crop&w=1200&q=80"
+        alt=""
+        loading="lazy"
+        decoding="async"
+      />
+    </div>
+    <div class="care__pillars">
+      @for (p of pillars; track p.title) {
+        <section class="pillar">
+          <h3>{{ p.title }}</h3>
+          <p>{{ p.text }}</p>
+        </section>
       }
-    </ul>
+    </div>
   </div>
 </section>

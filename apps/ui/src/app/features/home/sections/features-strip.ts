@@ -1,8 +1,7 @@
 import { ChangeDetectionStrategy, Component } from '@angular/core';
-import { SectionHeading } from '../../../shared/ui/section-heading/section-heading';
+import { RouterLink } from '@angular/router';
 
-interface Feature {
-  readonly icon: string;
+interface Pillar {
   readonly title: string;
   readonly text: string;
 }
@@ -10,16 +9,20 @@ interface Feature {
 @Component({
   selector: 'app-home-features',
   standalone: true,
-  imports: [SectionHeading],
+  imports: [RouterLink],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './features-strip.html',
   styleUrl: './features-strip.scss',
 })
 export class HomeFeatures {
-  protected readonly features: readonly Feature[] = [
-    { icon: 'pi pi-wrench', title: 'Sertifikalı Ekip', text: 'OEM eğitimli, deneyimli teknisyenler.' },
-    { icon: 'pi pi-stopwatch', title: 'Zamanında Teslim', text: 'Söz verdiğimiz tarihte, gerçek randevu yönetimi.' },
-    { icon: 'pi pi-verified', title: 'Garantili İş', text: 'Tüm modifiyeler 24 ay servis garantisi ile.' },
-    { icon: 'pi pi-comments', title: 'Şeffaf İletişim', text: 'Her aşamada fotoğraf, video ve dyno raporu.' },
+  protected readonly pillars: readonly Pillar[] = [
+    {
+      title: 'What we do',
+      text: 'ECU yazılımı, performans modifiyesi, frenleme ve detayl bakım. Her iş kendi atölyemizde, izlenebilir ve garantili.',
+    },
+    {
+      title: 'The opportunities',
+      text: 'Pist hazırlığı, günlük performans, klasik restorasyon veya estetik kişiselleştirme — her hedefe göre bir plan kurarız.',
+    },
   ];
 }

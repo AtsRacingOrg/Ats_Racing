@@ -1,10 +1,12 @@
 import { ChangeDetectionStrategy, Component } from '@angular/core';
+import { HomeCustomize } from './sections/customize';
 import { HomeFeatures } from './sections/features-strip';
 import { HomeHero } from './sections/hero';
 import { HomeNews } from './sections/news';
 import { HomeNewsletter } from './sections/newsletter';
 import { HomePortfolio } from './sections/portfolio';
 import { HomeServices } from './sections/services';
+import { HomeStats } from './sections/stats-band';
 import { HomeTestimonials } from './sections/testimonials';
 
 @Component({
@@ -12,9 +14,11 @@ import { HomeTestimonials } from './sections/testimonials';
   standalone: true,
   imports: [
     HomeHero,
+    HomeStats,
     HomeServices,
-    HomePortfolio,
+    HomeCustomize,
     HomeFeatures,
+    HomePortfolio,
     HomeTestimonials,
     HomeNews,
     HomeNewsletter,
@@ -22,9 +26,11 @@ import { HomeTestimonials } from './sections/testimonials';
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <app-home-hero></app-home-hero>
+    <app-home-stats></app-home-stats>
+    <app-home-customize></app-home-customize>
     <app-home-services></app-home-services>
-    <app-home-portfolio></app-home-portfolio>
     <app-home-features></app-home-features>
+    <app-home-portfolio></app-home-portfolio>
 
     @defer (on viewport; prefetch on idle) {
       <app-home-testimonials></app-home-testimonials>
