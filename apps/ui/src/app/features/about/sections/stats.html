@@ -1,0 +1,12 @@
+<section class="stats" aria-label="Rakamlarla Ats Racing">
+  <div class="container-page">
+    <ul class="stats__grid" role="list">
+      @for (stat of stats; track stat.label) {
+        <li class="stat">
+          <span class="stat__value">{{ stat.value }}</span>
+          <span class="stat__label">{{ stat.label }}</span>
+        </li>
+      }
+    </ul>
+  </div>
+</section>
