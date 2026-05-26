@@ -1,0 +1,115 @@
+.news {
+  background: #f4f4f4;
+}
+
+.news__grid {
+  list-style: none;
+  padding: 0;
+  margin: 3rem 0 0;
+  display: grid;
+  gap: 1.5rem;
+  grid-template-columns: 1fr;
+
+  @media (min-width: 768px) {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  @media (min-width: 1024px) {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+.article-card {
+  background: #ffffff;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  transition: transform 240ms ease, box-shadow 240ms ease;
+
+  &:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 18px 40px -22px rgba(0, 0, 0, 0.4);
+  }
+
+  &:hover img {
+    transform: scale(1.05);
+  }
+}
+
+.article-card__media {
+  margin: 0;
+  overflow: hidden;
+  aspect-ratio: 16 / 10;
+
+  img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    transition: transform 500ms ease;
+  }
+}
+
+.article-card__body {
+  padding: 1.5rem 1.5rem 1.75rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  flex: 1;
+}
+
+.article-card__meta {
+  display: flex;
+  gap: 0.75rem;
+  align-items: center;
+  font-family: 'DM Sans', sans-serif;
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+}
+
+.article-card__cat {
+  color: #ea0a0b;
+  font-weight: 600;
+}
+
+.article-card__date {
+  color: #949087;
+}
+
+.article-card__title {
+  font-family: 'Barlow Condensed', sans-serif;
+  font-weight: 600;
+  text-transform: uppercase;
+  font-size: 1.3125rem;
+  color: #18171a;
+  line-height: 1.2;
+  margin: 0;
+}
+
+.article-card__excerpt {
+  color: #615f5c;
+  font-size: 0.9375rem;
+  line-height: 1.6;
+  margin: 0;
+  flex: 1;
+}
+
+.article-card__link {
+  font-family: 'DM Sans', sans-serif;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  font-size: 0.75rem;
+  color: #ea0a0b;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  margin-top: auto;
+
+  i {
+    transition: transform 200ms ease;
+  }
+
+  &:hover i {
+    transform: translateX(4px);
+  }
+}

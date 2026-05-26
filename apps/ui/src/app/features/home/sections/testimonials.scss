@@ -1,0 +1,61 @@
+.testimonials {
+  background: #ffffff;
+}
+
+.quote-card {
+  background: #ffffff;
+  border: 1px solid #ececec;
+  padding: 2.5rem 2rem 2rem;
+  margin-inline: 0.75rem;
+  position: relative;
+  min-height: 280px;
+  display: flex;
+  flex-direction: column;
+}
+
+.quote-card__mark {
+  font-family: 'Barlow Condensed', sans-serif;
+  font-size: 5rem;
+  line-height: 0.7;
+  color: #ea0a0b;
+  font-weight: 700;
+  position: absolute;
+  top: 0.5rem;
+  right: 1.25rem;
+}
+
+.quote-card__text {
+  font-size: 1.0625rem;
+  line-height: 1.65;
+  color: #18171a;
+  margin: 0 0 1.5rem;
+  flex: 1;
+}
+
+.quote-card__meta {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  font-family: 'DM Sans', sans-serif;
+}
+
+.quote-card__name {
+  font-weight: 600;
+  color: #18171a;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-size: 0.875rem;
+}
+
+.quote-card__car {
+  font-size: 0.8125rem;
+  color: #949087;
+}
+
+.quote-card__rating {
+  margin-top: 0.75rem;
+  color: #ea0a0b;
+  display: flex;
+  gap: 0.2rem;
+  font-size: 0.875rem;
+}

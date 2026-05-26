@@ -1,0 +1,30 @@
+<section class="newsletter" aria-labelledby="newsletter-title">
+  <div class="container-page newsletter__grid">
+    <div>
+      <p class="newsletter__eyebrow">Bültene Katıl</p>
+      <h2 id="newsletter-title" class="newsletter__title">
+        Yeni projeler ve özel teklifler için <span class="accent">e-posta listemize</span> katıl
+      </h2>
+    </div>
+
+    <form class="newsletter__form" (ngSubmit)="submit()">
+      <div class="newsletter__field">
+        <label for="newsletter-email" class="sr-only">E-posta</label>
+        <input
+          id="newsletter-email"
+          pInputText
+          type="email"
+          placeholder="E-posta adresin"
+          autocomplete="email"
+          [formControl]="email"
+        />
+      </div>
+      <p-button type="submit" label="Abone Ol"></p-button>
+      @if (submitted()) {
+        <p class="newsletter__ok" role="status">Teşekkürler! Listemize eklendin.</p>
+      } @else if (email.touched && email.invalid) {
+        <p class="newsletter__err" role="alert">Geçerli bir e-posta gir.</p>
+      }
+    </form>
+  </div>
+</section>

@@ -1,0 +1,30 @@
+<section class="portfolio section">
+  <div class="container-page">
+    <div class="portfolio__head">
+      <app-section-heading
+        eyebrow="Çalışmalarımız"
+        title="Atölyemizden Son Projeler"
+        lead="Her aracın hikayesi farklı. Bizimle çalışmış ekiplerin ve süper-otomobil tutkunlarının projelerinden bir seçki."
+      ></app-section-heading>
+      <p-button
+        label="Tümünü Gör"
+        styleClass="p-button-outlined"
+        routerLink="/shop"
+      ></p-button>
+    </div>
+
+    <ul class="portfolio__grid" role="list">
+      @for (work of works; track work.title) {
+        <li class="work-card">
+          <figure class="work-card__media">
+            <img [src]="work.image" [alt]="work.title" loading="lazy" decoding="async" />
+          </figure>
+          <div class="work-card__overlay">
+            <span class="work-card__cat">{{ work.category }}</span>
+            <h3 class="work-card__title">{{ work.title }}</h3>
+          </div>
+        </li>
+      }
+    </ul>
+  </div>
+</section>

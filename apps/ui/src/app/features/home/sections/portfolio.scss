@@ -1,0 +1,94 @@
+.portfolio {
+  background: #f4f4f4;
+}
+
+.portfolio__head {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+  align-items: flex-start;
+
+  @media (min-width: 1024px) {
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: end;
+    gap: 3rem;
+  }
+}
+
+.portfolio__grid {
+  list-style: none;
+  padding: 0;
+  margin: 3rem 0 0;
+  display: grid;
+  gap: 1rem;
+  grid-template-columns: 1fr;
+
+  @media (min-width: 640px) {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  @media (min-width: 1024px) {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+.work-card {
+  position: relative;
+  overflow: hidden;
+  aspect-ratio: 4 / 3;
+  background: #0d0c0f;
+  isolation: isolate;
+
+  &::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(180deg, transparent 35%, rgba(13, 12, 15, 0.85) 100%);
+    z-index: 1;
+    transition: opacity 240ms ease;
+  }
+
+  &:hover img {
+    transform: scale(1.08);
+  }
+}
+
+.work-card__media {
+  position: absolute;
+  inset: 0;
+  margin: 0;
+
+  img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    transition: transform 600ms ease;
+  }
+}
+
+.work-card__overlay {
+  position: absolute;
+  inset: auto 0 0 0;
+  z-index: 2;
+  padding: 1.5rem;
+  color: #ffffff;
+}
+
+.work-card__cat {
+  display: inline-block;
+  font-family: 'DM Sans', sans-serif;
+  text-transform: uppercase;
+  letter-spacing: 0.18em;
+  font-size: 0.6875rem;
+  color: #ea0a0b;
+  margin-bottom: 0.5rem;
+}
+
+.work-card__title {
+  font-family: 'Barlow Condensed', sans-serif;
+  font-weight: 600;
+  text-transform: uppercase;
+  font-size: 1.375rem;
+  margin: 0;
+  color: #ffffff;
+}
