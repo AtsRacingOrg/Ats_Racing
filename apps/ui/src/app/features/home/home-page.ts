@@ -6,6 +6,7 @@ import { HomeNews } from './sections/news';
 import { HomeNewsletter } from './sections/newsletter';
 import { HomePortfolio } from './sections/portfolio';
 import { HomeServices } from './sections/services';
+import { HomeShowcase } from './sections/showcase-slider';
 import { HomeStats } from './sections/stats-band';
 import { HomeTestimonials } from './sections/testimonials';
 
@@ -14,6 +15,7 @@ import { HomeTestimonials } from './sections/testimonials';
   standalone: true,
   imports: [
     HomeHero,
+    HomeShowcase,
     HomeStats,
     HomeServices,
     HomeCustomize,
@@ -26,6 +28,7 @@ import { HomeTestimonials } from './sections/testimonials';
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <app-home-hero></app-home-hero>
+    <app-home-showcase></app-home-showcase>
     <app-home-stats></app-home-stats>
     <app-home-customize></app-home-customize>
     <app-home-services></app-home-services>

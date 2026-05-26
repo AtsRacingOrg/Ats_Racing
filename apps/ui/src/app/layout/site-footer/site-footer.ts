@@ -15,7 +15,6 @@ export class SiteFooter {
   protected readonly sitemap: ReadonlyArray<{ label: string; path: string }> = [
     { label: 'Anasayfa', path: '/' },
     { label: 'Hakkımızda', path: '/about' },
-    { label: 'Shop', path: '/shop' },
     { label: 'İletişim', path: '/contact' },
     { label: 'Giriş Yap', path: '/login' },
   ];

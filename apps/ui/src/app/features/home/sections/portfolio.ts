@@ -47,13 +47,13 @@ export class HomePortfolio {
       title: 'Nissan GT-R R35',
       category: 'Stage 3 Tuning',
       image:
-        'https://images.unsplash.com/photo-1626668893632-6f3a4466d109?auto=format&fit=crop&w=900&q=80',
+        'https://images.unsplash.com/photo-1568605117036-5fe5e7bab0b7?auto=format&fit=crop&w=900&q=80',
     },
     {
       title: 'Tesla Model S Plaid',
       category: 'PPF + Wrap',
       image:
-        'https://images.unsplash.com/photo-1617469767053-d3b523a0b982?auto=format&fit=crop&w=900&q=80',
+        'https://images.unsplash.com/photo-1560958089-b8a1929cea89?auto=format&fit=crop&w=900&q=80',
     },
   ];
 }

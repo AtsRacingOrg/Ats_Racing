@@ -18,7 +18,6 @@ export class SiteHeader {
   protected readonly nav: readonly NavItem[] = [
     { label: 'Anasayfa', path: '/' },
     { label: 'Hakkımızda', path: '/about' },
-    { label: 'Shop', path: '/shop' },
     { label: 'İletişim', path: '/contact' },
   ];
 

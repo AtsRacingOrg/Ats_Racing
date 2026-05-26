@@ -1,0 +1,46 @@
+<section class="show" aria-label="Öne çıkan projeler">
+  <div class="show__stage">
+    @for (slide of slides; track slide.title; let i = $index) {
+      <article
+        class="show__slide"
+        [class.is-active]="active() === i"
+        [attr.aria-hidden]="active() !== i"
+      >
+        <img [src]="slide.image" [alt]="slide.title" loading="lazy" decoding="async" />
+        <div class="show__veil" aria-hidden="true"></div>
+        <div class="show__copy">
+          <p class="show__cat">{{ slide.category }}</p>
+          <h3 class="show__title">{{ slide.title }}</h3>
+        </div>
+      </article>
+    }
+
+    <button type="button" class="show__nav show__nav--prev" (click)="prev()" aria-label="Önceki slayt">
+      <i class="pi pi-arrow-left"></i>
+    </button>
+    <button type="button" class="show__nav show__nav--next" (click)="next()" aria-label="Sonraki slayt">
+      <i class="pi pi-arrow-right"></i>
+    </button>
+
+    <div class="show__counter" aria-hidden="true">
+      <span class="show__counter-curr">{{ (active() + 1).toString().padStart(2, '0') }}</span>
+      <span class="show__counter-sep">/</span>
+      <span class="show__counter-tot">{{ slides.length.toString().padStart(2, '0') }}</span>
+    </div>
+
+    <ul class="show__dots" role="tablist">
+      @for (slide of slides; track slide.title; let i = $index) {
+        <li>
+          <button
+            type="button"
+            role="tab"
+            [class.is-active]="active() === i"
+            [attr.aria-selected]="active() === i"
+            [attr.aria-label]="'Slayt ' + (i + 1)"
+            (click)="go(i)"
+          ></button>
+        </li>
+      }
+    </ul>
+  </div>
+</section>

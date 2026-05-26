@@ -18,11 +18,6 @@ export const appRoutes: Route[] = [
         data: { title: 'Hakkımızda' },
       },
       {
-        path: 'shop',
-        loadComponent: () => import('./features/shop/shop-page'),
-        data: { title: 'Shop' },
-      },
-      {
         path: 'contact',
         loadComponent: () => import('./features/contact/contact-page'),
         data: { title: 'İletişim' },

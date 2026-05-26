@@ -18,7 +18,7 @@ import { ButtonModule } from 'primeng/button';
         </div>
         <div class="cta__actions">
           <p-button label="Teklif Al" routerLink="/contact"></p-button>
-          <p-button label="Hizmetler" styleClass="p-button-outlined" routerLink="/shop"></p-button>
+          <p-button label="Anasayfa" styleClass="p-button-outlined" routerLink="/"></p-button>
         </div>
       </div>
     </section>

@@ -21,21 +21,14 @@
     <a
       routerLink="/"
       class="site-header__brand"
-      aria-label="Ats Racing — Anasayfa"
+      aria-label="ATS Racing — Anasayfa"
       (click)="closeMobile()"
     >
-      <span class="brand-word">Ats<span class="brand-word__accent">Racing</span></span>
+      <img src="/logo.png" alt="ATS Racing" class="brand-logo" onerror="this.style.display='none';this.nextElementSibling.style.display='inline'" />
+      <span class="brand-word" style="display:none">ATS<span class="brand-word__accent">racing</span></span>
     </a>
 
     <div class="site-header__actions">
-      <a
-        routerLink="/shop"
-        class="icon-btn icon-btn--cart"
-        aria-label="Sepet"
-      >
-        <i class="pi pi-shopping-bag" aria-hidden="true"></i>
-        <span class="icon-btn__count">{{ cartCount() }}</span>
-      </a>
       <button type="button" class="icon-btn" aria-label="Ara">
         <i class="pi pi-search" aria-hidden="true"></i>
       </button>
@@ -44,7 +37,7 @@
         class="icon-btn icon-btn--accent"
         aria-label="Hesabım"
       >
-        <i class="pi pi-th-large" aria-hidden="true"></i>
+        <i class="pi pi-user" aria-hidden="true"></i>
       </a>
 
       <button

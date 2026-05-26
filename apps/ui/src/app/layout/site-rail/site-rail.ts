@@ -70,8 +70,9 @@ interface RailItem {
 })
 export class SiteRail {
   protected readonly items: readonly RailItem[] = [
-    { icon: 'pi pi-shopping-cart', label: 'Sepet',     path: '/shop' },
-    { icon: 'pi pi-images',        label: 'Portfolyo', path: '/' },
-    { icon: 'pi pi-window-maximize', label: 'Login',  path: '/login' },
+    { icon: 'pi pi-images',  label: 'Portfolyo', path: '/' },
+    { icon: 'pi pi-info-circle', label: 'Hakkımızda', path: '/about' },
+    { icon: 'pi pi-envelope', label: 'İletişim', path: '/contact' },
+    { icon: 'pi pi-user',    label: 'Hesabım',    path: '/login' },
   ];
 }
