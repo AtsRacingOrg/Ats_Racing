@@ -35,14 +35,19 @@ interface TuningFile {
             <span class="fp__sum-lbl">Toplam Dosya</span>
           </div>
           <div class="fp__sum-sep"></div>
-          <div class="fp__sum-item">
-            <span class="fp__sum-val">₺{{ totalSpent() | number:'1.0-0' }}</span>
-            <span class="fp__sum-lbl">Toplam Harcama</span>
-          </div>
-          <div class="fp__sum-sep"></div>
-          <div class="fp__sum-item">
+          <div class="fp__sum-item fp__sum-item--green">
             <span class="fp__sum-val">{{ deliveredCount() }}</span>
             <span class="fp__sum-lbl">Teslim Edildi</span>
+          </div>
+          <div class="fp__sum-sep"></div>
+          <div class="fp__sum-item fp__sum-item--yellow">
+            <span class="fp__sum-val">{{ preparingCount() }}</span>
+            <span class="fp__sum-lbl">Hazırlanıyor</span>
+          </div>
+          <div class="fp__sum-sep"></div>
+          <div class="fp__sum-item fp__sum-item--blue">
+            <span class="fp__sum-val">{{ reviewCount() }}</span>
+            <span class="fp__sum-lbl">İncelemede</span>
           </div>
         </div>
       </div>
@@ -171,6 +176,9 @@ interface TuningFile {
     .fp__sum-val { font-size: 1.2rem; font-weight: 700; color: #fff; }
     .fp__sum-lbl { font-size: 0.7rem; color: rgba(255,255,255,0.4); white-space: nowrap; }
     .fp__sum-sep { width: 1px; height: 32px; background: rgba(255,255,255,0.08); }
+    .fp__sum-item--green .fp__sum-val { color: #4ade80; }
+    .fp__sum-item--yellow .fp__sum-val { color: #fbbf24; }
+    .fp__sum-item--blue  .fp__sum-val { color: #60a5fa; }
 
     /* FILTERS */
     .fp__filters {
@@ -342,7 +350,9 @@ export class FilesPage {
   });
 
   protected readonly totalSpent = computed(() => this.files.reduce((s, f) => s + f.amount, 0));
-  protected readonly deliveredCount = computed(() => this.files.filter(f => f.status === 'Teslim Edildi').length);
+  protected readonly deliveredCount  = computed(() => this.files.filter(f => f.status === 'Teslim Edildi').length);
+  protected readonly preparingCount  = computed(() => this.files.filter(f => f.status === 'Hazırlanıyor').length);
+  protected readonly reviewCount     = computed(() => this.files.filter(f => f.status === 'İncelemede').length);
 
   onSearch(): void {
     this.searchSignal.set(this.search);

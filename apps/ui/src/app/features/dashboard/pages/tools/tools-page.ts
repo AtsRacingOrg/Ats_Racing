@@ -484,7 +484,7 @@ const GROUPS = ['Emisyon', 'Motor', 'Performans', 'Konfor', 'Güvenlik'];
                   </div>
                 </div>
                 @if (chartData()) {
-                  <svg [attr.viewBox]="'0 0 ' + chartData()!.W + ' ' + chartData()!.H" class="lc-svg" aria-hidden="true" preserveAspectRatio="none">
+                  <svg [attr.viewBox]="'0 0 ' + chartData()!.W + ' ' + chartData()!.H" class="lc-svg" aria-hidden="true" preserveAspectRatio="xMidYMid meet">
                     <defs>
                       <linearGradient id="tunedGrad" x1="0" y1="0" x2="0" y2="1">
                         <stop offset="0%" stop-color="#e63946" stop-opacity="0.3"></stop>

@@ -1,5 +1,5 @@
 import { ChangeDetectionStrategy, Component } from '@angular/core';
-import { CurrencyPipe, DatePipe } from '@angular/common';
+import { DatePipe, DecimalPipe } from '@angular/common';
 import { RouterLink } from '@angular/router';
 
 interface TuningFile {
@@ -21,7 +21,7 @@ interface MonthStat {
 @Component({
   selector: 'app-overview-page',
   standalone: true,
-  imports: [CurrencyPipe, DatePipe, RouterLink],
+  imports: [DatePipe, DecimalPipe, RouterLink],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div class="ov">
@@ -68,8 +68,15 @@ interface MonthStat {
             </div>
           </div>
           <div class="chart-wrap">
-            <svg viewBox="0 0 600 200" preserveAspectRatio="none" class="bar-chart" aria-hidden="true">
-              <!-- Grid lines -->
+            <!-- Bars SVG — preserveAspectRatio="none" only on visual shapes, text is in HTML below -->
+            <svg viewBox="0 0 600 185" preserveAspectRatio="none" class="bar-chart" aria-hidden="true">
+              <defs>
+                <linearGradient id="barGrad" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stop-color="#e63946"></stop>
+                  <stop offset="100%" stop-color="#c1121f" stop-opacity="0.6"></stop>
+                </linearGradient>
+              </defs>
+              <!-- Grid lines + Y labels -->
               @for (line of gridLines; track line) {
                 <line
                   [attr.x1]="48" [attr.y1]="line.y"
@@ -80,7 +87,7 @@ interface MonthStat {
                   {{ line.label }}
                 </text>
               }
-              <!-- Bars -->
+              <!-- Bars only — no month labels here -->
               @for (m of monthStats; track m.month; let i = $index) {
                 <rect
                   [attr.x]="barX(i)"
@@ -91,23 +98,16 @@ interface MonthStat {
                   fill="url(#barGrad)"
                   class="chart-bar"
                 >
-                  <title>{{ m.month }}: {{ m.amount | currency:'TRY':'symbol':'1.0-0':'tr' }}</title>
+                  <title>{{ m.month }}: ₺{{ m.amount | number:'1.0-0' }}</title>
                 </rect>
-                <text
-                  [attr.x]="barX(i) + barW / 2"
-                  [attr.y]="192"
-                  text-anchor="middle"
-                  fill="rgba(255,255,255,0.4)"
-                  font-size="9"
-                >{{ m.month }}</text>
               }
-              <defs>
-                <linearGradient id="barGrad" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="0%" stop-color="#e63946"></stop>
-                  <stop offset="100%" stop-color="#c1121f" stop-opacity="0.6"></stop>
-                </linearGradient>
-              </defs>
             </svg>
+            <!-- Month labels as HTML — never distorted -->
+            <div class="bar-months">
+              @for (m of monthStats; track m.month) {
+                <span>{{ m.month }}</span>
+              }
+            </div>
           </div>
         </div>
 
@@ -128,7 +128,7 @@ interface MonthStat {
                   <span class="recent-item__meta">{{ f.fileName }}</span>
                 </div>
                 <div class="recent-item__right">
-                  <span class="recent-item__amount">{{ f.amount | currency:'TRY':'symbol':'1.0-0':'tr' }}</span>
+                  <span class="recent-item__amount">₺{{ f.amount | number:'1.0-0' }}</span>
                   <span class="status-chip" [class]="statusClass(f.status)">{{ f.status }}</span>
                 </div>
               </div>
@@ -167,12 +167,14 @@ interface MonthStat {
     .ov__sub { font-size: 0.9rem; color: rgba(255,255,255,0.45); margin: 0.25rem 0 0; }
     .ov__date { font-size: 0.8rem; color: rgba(255,255,255,0.35); padding-top: 0.5rem; }
 
-    /* STATS */
+    /* STATS — always 4 equal columns */
     .ov__stats {
       display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+      grid-template-columns: repeat(4, 1fr);
       gap: 1rem;
     }
+    @media (max-width: 900px) { .ov__stats { grid-template-columns: repeat(2, 1fr); } }
+    @media (max-width: 560px) { .ov__stats { grid-template-columns: 1fr; } }
     .stat-card {
       background: #1a1d27;
       border: 1px solid rgba(255,255,255,0.07);
@@ -186,7 +188,7 @@ interface MonthStat {
       display: flex; align-items: center; justify-content: space-between; gap: 0.75rem;
     }
     .stat-card__bottom {
-      display: flex; align-items: center; justify-content: space-between; gap: 0.5rem; flex-wrap: wrap;
+      display: flex; align-items: center; justify-content: space-between; gap: 0.5rem;
     }
     .stat-card__icon {
       width: 40px; height: 40px; border-radius: 10px;
@@ -231,9 +233,15 @@ interface MonthStat {
     .chart-legend { display: flex; align-items: center; gap: 0.4rem; font-size: 0.75rem; color: rgba(255,255,255,0.45); }
     .chart-legend__dot { width: 8px; height: 8px; border-radius: 50%; }
     .chart-wrap { width: 100%; overflow: hidden; }
-    .bar-chart { width: 100%; height: 200px; display: block; }
+    .bar-chart { width: 100%; height: 175px; display: block; }
     .chart-bar { transition: opacity 180ms; cursor: pointer; }
     .chart-bar:hover { opacity: 0.8; }
+    .bar-months {
+      display: flex; justify-content: space-around;
+      padding: 4px 0 0;
+      font-size: 0.68rem; color: rgba(255,255,255,0.38);
+    }
+    .bar-months span { flex: 1; text-align: center; }
 
     /* RECENT LIST */
     .recent-list { display: flex; flex-direction: column; gap: 0.75rem; }

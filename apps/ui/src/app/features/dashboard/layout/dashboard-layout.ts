@@ -252,7 +252,7 @@ interface NavItem {
       position: sticky; top: 0;
       z-index: 50;
     }
-    .dash-topbar__right { display: flex; align-items: center; gap: 0.75rem; }
+    .dash-topbar__right { display: flex; align-items: center; gap: 0.75rem; margin-left: auto; }
     .dash-topbar__icon-btn {
       position: relative;
       background: rgba(255,255,255,0.06); border: none; cursor: pointer;
