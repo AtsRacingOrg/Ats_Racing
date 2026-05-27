@@ -474,27 +474,51 @@ const GROUPS = ['Emisyon', 'Motor', 'Performans', 'Konfor', 'Güvenlik'];
                 </div>
               </div>
 
-              <!-- GAUGE BARS -->
-              <div class="gauge-card">
-                <h3 class="gauge-card__title">Güç Karşılaştırması</h3>
-                <div class="gauge-list">
-                  <div class="gauge-item">
-                    <span class="gauge-item__lbl">Orjinal HP</span>
-                    <div class="gauge-track"><div class="gauge-bar gauge-bar--base" style="width:100%"><span>{{ tuningResult()!.stock.hp }}</span></div></div>
-                  </div>
-                  <div class="gauge-item">
-                    <span class="gauge-item__lbl" style="color:#e63946">Tuned HP</span>
-                    <div class="gauge-track"><div class="gauge-bar gauge-bar--tuned" [style.width]="hpBarPct() + '%'"><span>{{ tunedHp() }}</span></div></div>
-                  </div>
-                  <div class="gauge-item" style="margin-top:0.625rem">
-                    <span class="gauge-item__lbl">Orjinal Nm</span>
-                    <div class="gauge-track"><div class="gauge-bar gauge-bar--base" style="width:100%"><span>{{ tuningResult()!.stock.torque }}</span></div></div>
-                  </div>
-                  <div class="gauge-item">
-                    <span class="gauge-item__lbl" style="color:#e63946">Tuned Nm</span>
-                    <div class="gauge-track"><div class="gauge-bar gauge-bar--tuned" [style.width]="torqueBarPct() + '%'"><span>{{ tunedTorque() }}</span></div></div>
+              <!-- SVG LINE CHART -->
+              <div class="line-chart-card">
+                <div class="line-chart-card__head">
+                  <h3 class="gauge-card__title" style="margin:0">Güç Karşılaştırması</h3>
+                  <div class="line-chart-legend">
+                    <span class="lc-dot lc-dot--grey"></span><span>Orjinal</span>
+                    <span class="lc-dot lc-dot--red"></span><span>{{ selTune() === 'stage1' ? 'Stage 1' : 'Stage 2' }}</span>
                   </div>
                 </div>
+                @if (chartData()) {
+                  <svg [attr.viewBox]="'0 0 ' + chartData()!.W + ' ' + chartData()!.H" class="lc-svg" aria-hidden="true" preserveAspectRatio="none">
+                    <defs>
+                      <linearGradient id="tunedGrad" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="0%" stop-color="#e63946" stop-opacity="0.3"></stop>
+                        <stop offset="100%" stop-color="#e63946" stop-opacity="0.02"></stop>
+                      </linearGradient>
+                      <linearGradient id="stockGrad" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="0%" stop-color="#ffffff" stop-opacity="0.07"></stop>
+                        <stop offset="100%" stop-color="#ffffff" stop-opacity="0.01"></stop>
+                      </linearGradient>
+                    </defs>
+                    <!-- Grid -->
+                    @for (g of chartData()!.gridY; track g.y) {
+                      <line [attr.x1]="chartData()!.padX" [attr.y1]="g.y" [attr.x2]="chartData()!.W - 8" [attr.y2]="g.y" stroke="rgba(255,255,255,0.06)" stroke-width="1"></line>
+                      <text [attr.x]="chartData()!.padX - 6" [attr.y]="g.y + 4" text-anchor="end" fill="rgba(255,255,255,0.3)" font-size="10">{{ g.label }}</text>
+                    }
+                    <!-- X labels -->
+                    @for (xl of chartData()!.xLabels; track xl.label) {
+                      <text [attr.x]="xl.x" [attr.y]="chartData()!.H - 4" text-anchor="middle" fill="rgba(255,255,255,0.3)" font-size="10">{{ xl.label }}</text>
+                    }
+                    <!-- Stock area fill -->
+                    <path [attr.d]="chartData()!.stockArea" fill="url(#stockGrad)"></path>
+                    <!-- Tuned area fill -->
+                    <path [attr.d]="chartData()!.tunedArea" fill="url(#tunedGrad)"></path>
+                    <!-- Stock line -->
+                    <path [attr.d]="chartData()!.stockPath" fill="none" stroke="rgba(255,255,255,0.3)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path>
+                    <!-- Tuned line -->
+                    <path [attr.d]="chartData()!.tunedPath" fill="none" stroke="#e63946" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"></path>
+                    <!-- Peak dots -->
+                    <circle [attr.cx]="chartData()!.stockPeak.x" [attr.cy]="chartData()!.stockPeak.y" r="4" fill="#fff" fill-opacity="0.5"></circle>
+                    <circle [attr.cx]="chartData()!.tunedPeak.x" [attr.cy]="chartData()!.tunedPeak.y" r="4.5" fill="#e63946"></circle>
+                    <text [attr.x]="chartData()!.tunedPeak.x + 8" [attr.y]="chartData()!.tunedPeak.y + 4" fill="#e63946" font-size="11" font-weight="700">{{ tunedHp() }} HP</text>
+                    <text [attr.x]="chartData()!.stockPeak.x + 8" [attr.y]="chartData()!.stockPeak.y + 4" fill="rgba(255,255,255,0.5)" font-size="11">{{ tuningResult()!.stock.hp }} HP</text>
+                  </svg>
+                }
               </div>
 
               <!-- DETAIL GRID -->
@@ -662,6 +686,55 @@ export class ToolsPage {
     const e = this.tuningResult();
     if (!e) { return 0; }
     return Math.round(((this.tunedHp() - e.stock.hp) / e.stock.hp) * 100);
+  });
+
+  protected readonly chartData = computed(() => {
+    const e = this.tuningResult();
+    if (!e) { return null; }
+    const stockMax = e.stock.hp;
+    const tunedMax = this.tunedHp();
+    const W = 560; const H = 180; const padX = 40; const padY = 18; const botY = 20;
+    const chartH = H - padY - botY;
+    const chartW = W - padX - 8;
+    // Shape fractions: typical turbo power curve (rise, plateau, peak, slight drop)
+    const xs   = [0, 0.15, 0.32, 0.5, 0.68, 0.82, 1.0];
+    const sF   = [0.20, 0.45, 0.70, 0.88, 0.97, 1.00, 0.96]; // stock fractions
+    const tF   = [0.22, 0.49, 0.74, 0.92, 1.02, 1.07, 1.03]; // tuned fractions (can exceed 1 for visual)
+    const yMax = tunedMax * 1.10;
+    const toX  = (x: number) => padX + x * chartW;
+    const toY  = (v: number) => padY + chartH - (v / yMax) * chartH;
+    const makeBez = (pts: {x:number;y:number}[]) => {
+      let d = `M ${pts[0].x.toFixed(1)} ${pts[0].y.toFixed(1)}`;
+      for (let i = 1; i < pts.length; i++) {
+        const cp1x = pts[i-1].x + (pts[i].x - pts[i-1].x) * 0.45;
+        const cp2x = pts[i].x   - (pts[i].x - pts[i-1].x) * 0.45;
+        d += ` C ${cp1x.toFixed(1)} ${pts[i-1].y.toFixed(1)} ${cp2x.toFixed(1)} ${pts[i].y.toFixed(1)} ${pts[i].x.toFixed(1)} ${pts[i].y.toFixed(1)}`;
+      }
+      return d;
+    };
+    const stockPts = xs.map((x, i) => ({ x: toX(x), y: toY(sF[i] * stockMax) }));
+    const tunedPts = xs.map((x, i) => ({ x: toX(x), y: toY(tF[i] * tunedMax) }));
+    const botLine  = `L ${toX(1).toFixed(1)} ${(H - botY).toFixed(1)} L ${toX(0).toFixed(1)} ${(H - botY).toFixed(1)} Z`;
+    const stockPath = makeBez(stockPts);
+    const tunedPath = makeBez(tunedPts);
+    // Grid
+    const gridSteps = [0, 0.25, 0.5, 0.75, 1.0];
+    const gridY = gridSteps.map(p => ({ y: toY(p * yMax), label: p === 0 ? '' : `${Math.round(p * yMax)}` }));
+    // X labels (RPM)
+    const rpmLabels = ['1500', '2500', '3500', '4500', '5500', '6500', '7200'];
+    const xLabels = xs.map((x, i) => ({ x: toX(x), label: rpmLabels[i] }));
+    // Peak dots
+    const peakStockIdx = sF.indexOf(Math.max(...sF));
+    const peakTunedIdx = tF.indexOf(Math.max(...tF));
+    return {
+      W, H, padX,
+      stockPath, tunedPath,
+      stockArea: stockPath + botLine,
+      tunedArea: tunedPath + botLine,
+      gridY, xLabels,
+      stockPeak: stockPts[peakStockIdx],
+      tunedPeak: tunedPts[peakTunedIdx],
+    };
   });
 
   onBrand(ev: Event): void {

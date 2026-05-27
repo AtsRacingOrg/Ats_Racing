@@ -39,16 +39,18 @@ interface MonthStat {
       <div class="ov__stats">
         @for (s of stats; track s.label) {
           <div class="stat-card">
-            <div class="stat-card__icon" [style.background]="s.color + '1a'" [style.color]="s.color">
-              <i [class]="'pi ' + s.icon"></i>
-            </div>
-            <div class="stat-card__body">
+            <div class="stat-card__top">
+              <div class="stat-card__icon" [style.background]="s.color + '1a'" [style.color]="s.color">
+                <i [class]="'pi ' + s.icon"></i>
+              </div>
               <span class="stat-card__value">{{ s.value }}</span>
-              <span class="stat-card__label">{{ s.label }}</span>
             </div>
-            <div class="stat-card__trend" [class.stat-card__trend--up]="s.trendUp" [class.stat-card__trend--down]="!s.trendUp">
-              <i [class]="'pi ' + (s.trendUp ? 'pi-arrow-up-right' : 'pi-arrow-down-right')"></i>
-              {{ s.trend }}
+            <div class="stat-card__bottom">
+              <span class="stat-card__label">{{ s.label }}</span>
+              <div class="stat-card__trend" [class.stat-card__trend--up]="s.trendUp" [class.stat-card__trend--down]="!s.trendUp">
+                <i [class]="'pi ' + (s.trendUp ? 'pi-arrow-up-right' : 'pi-arrow-down-right')"></i>
+                {{ s.trend }}
+              </div>
             </div>
           </div>
         }
@@ -175,26 +177,30 @@ interface MonthStat {
       background: #1a1d27;
       border: 1px solid rgba(255,255,255,0.07);
       border-radius: 16px;
-      padding: 1.25rem;
-      display: flex; align-items: flex-start; gap: 1rem;
-      position: relative;
+      padding: 1.25rem 1.25rem 1rem;
+      display: flex; flex-direction: column; gap: 0.875rem;
       transition: border-color 200ms;
     }
     .stat-card:hover { border-color: rgba(255,255,255,0.15); }
-    .stat-card__icon {
-      width: 44px; height: 44px; border-radius: 12px;
-      display: flex; align-items: center; justify-content: center;
-      font-size: 1.1rem; flex-shrink: 0;
+    .stat-card__top {
+      display: flex; align-items: center; justify-content: space-between; gap: 0.75rem;
     }
-    .stat-card__body { flex: 1; display: flex; flex-direction: column; gap: 2px; }
-    .stat-card__value { font-size: 1.4rem; font-weight: 700; color: #fff; line-height: 1; }
+    .stat-card__bottom {
+      display: flex; align-items: center; justify-content: space-between; gap: 0.5rem; flex-wrap: wrap;
+    }
+    .stat-card__icon {
+      width: 40px; height: 40px; border-radius: 10px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 1rem; flex-shrink: 0;
+    }
+    .stat-card__value { font-size: 1.5rem; font-weight: 800; color: #fff; line-height: 1; }
     .stat-card__label { font-size: 0.78rem; color: rgba(255,255,255,0.45); }
     .stat-card__trend {
-      position: absolute; top: 1rem; right: 1rem;
-      font-size: 0.7rem; font-weight: 600;
-      display: flex; align-items: center; gap: 2px;
+      font-size: 0.68rem; font-weight: 700;
+      display: flex; align-items: center; gap: 3px;
       background: rgba(255,255,255,0.06);
-      padding: 2px 8px; border-radius: 20px;
+      padding: 3px 8px; border-radius: 20px;
+      white-space: nowrap;
     }
     .stat-card__trend--up { color: #4ade80; }
     .stat-card__trend--down { color: #f87171; }

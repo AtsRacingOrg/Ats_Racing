@@ -1,5 +1,5 @@
 import { ChangeDetectionStrategy, Component, computed, signal } from '@angular/core';
-import { CurrencyPipe, DatePipe } from '@angular/common';
+import { DatePipe, DecimalPipe } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 
 interface TuningFile {
@@ -18,7 +18,7 @@ interface TuningFile {
 @Component({
   selector: 'app-files-page',
   standalone: true,
-  imports: [CurrencyPipe, DatePipe, FormsModule],
+  imports: [DecimalPipe, DatePipe, FormsModule],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div class="fp">
@@ -36,7 +36,7 @@ interface TuningFile {
           </div>
           <div class="fp__sum-sep"></div>
           <div class="fp__sum-item">
-            <span class="fp__sum-val">{{ totalSpent() | currency:'TRY':'symbol':'1.0-0':'tr' }}</span>
+            <span class="fp__sum-val">₺{{ totalSpent() | number:'1.0-0' }}</span>
             <span class="fp__sum-lbl">Toplam Harcama</span>
           </div>
           <div class="fp__sum-sep"></div>
@@ -109,7 +109,7 @@ interface TuningFile {
                 </td>
                 <td class="fp__ecu">{{ f.ecu }}</td>
                 <td class="fp__date">{{ f.date | date:'d MMM yyyy' : '' : 'tr' }}</td>
-                <td class="fp__amount">{{ f.amount | currency:'TRY':'symbol':'1.0-0':'tr' }}</td>
+                <td class="fp__amount">₺{{ f.amount | number:'1.0-0' }}</td>
                 <td>
                   <span class="status-chip" [class]="statusClass(f.status)">
                     <span class="status-dot"></span>
