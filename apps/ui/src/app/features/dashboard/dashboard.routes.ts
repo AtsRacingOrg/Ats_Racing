@@ -1,5 +1,7 @@
 import { Route } from '@angular/router';
 import { DashboardLayout } from './layout/dashboard-layout';
+import { OverviewPage } from './pages/overview/overview-page';
+import { FilesPage } from './pages/files/files-page';
 
 export const dashboardRoutes: Route[] = [
   {
@@ -13,14 +15,12 @@ export const dashboardRoutes: Route[] = [
       },
       {
         path: 'overview',
-        loadComponent: () =>
-          import('./pages/overview/overview-page').then(m => m.OverviewPage),
+        component: OverviewPage,
         data: { title: 'Genel Bakış' },
       },
       {
         path: 'files',
-        loadComponent: () =>
-          import('./pages/files/files-page').then(m => m.FilesPage),
+        component: FilesPage,
         data: { title: 'Dosyalarım' },
       },
       {

@@ -113,7 +113,7 @@ interface TuningFile {
                   <span class="type-chip">{{ f.type }}</span>
                 </td>
                 <td class="fp__ecu">{{ f.ecu }}</td>
-                <td class="fp__date">{{ f.date | date:'d MMM yyyy' : '' : 'tr' }}</td>
+                <td class="fp__date">{{ f.date | date:'d MMM yyyy' }}</td>
                 <td class="fp__amount">₺{{ f.amount | number:'1.0-0' }}</td>
                 <td>
                   <span class="status-chip" [class]="statusClass(f.status)">

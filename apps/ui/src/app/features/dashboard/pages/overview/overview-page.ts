@@ -32,7 +32,7 @@ interface MonthStat {
           <h1 class="ov__title">Genel Bakış</h1>
           <p class="ov__sub">Hoş geldin, Ahmet 👋</p>
         </div>
-        <span class="ov__date">{{ today | date:'d MMMM yyyy' : '' : 'tr' }}</span>
+        <span class="ov__date">{{ today | date:'d MMMM yyyy' }}</span>
       </div>
 
       <!-- STAT CARDS -->
