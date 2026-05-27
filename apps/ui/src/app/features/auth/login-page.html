@@ -2,7 +2,7 @@
   <div class="auth__visual" aria-hidden="true">
     <div class="auth__visual-overlay"></div>
     <div class="auth__visual-copy">
-      <p class="auth__visual-eyebrow">Ats Racing</p>
+      <p class="auth__visual-eyebrow">ATS Racing</p>
       <h2>Aracın için doğru ekibe tek tıkla ulaş</h2>
       <p>
         Hesabınla siparişlerini, randevularını ve dyno raporlarını tek panelden yönet.
@@ -14,64 +14,149 @@
     <div class="auth__panel-inner">
       <header class="auth__head">
         <p class="auth__eyebrow">Hesabım</p>
-        <h1>Giriş Yap</h1>
-        <p class="auth__lead">
-          Hesabın yok mu?
-          <a routerLink="/contact" class="auth__link">Bize ulaş</a>, sana açalım.
-        </p>
+        <h1>{{ tab() === 'login' ? 'Giriş Yap' : 'Kayıt Ol' }}</h1>
       </header>
 
-      <form class="auth__form" [formGroup]="form" (ngSubmit)="submit()" novalidate>
-        <div class="auth__field" [class.is-invalid]="hasError('email')">
-          <label for="login-email">E-posta</label>
-          <input
-            id="login-email"
-            pInputText
-            type="email"
-            formControlName="email"
-            autocomplete="email"
-          />
-          @if (errorOf('email'); as msg) { <small role="alert">{{ msg }}</small> }
-        </div>
+      <div class="auth__tabs" role="tablist" aria-label="Hesap işlemleri">
+        <button
+          type="button"
+          role="tab"
+          class="auth__tab"
+          [class.is-active]="tab() === 'login'"
+          [attr.aria-selected]="tab() === 'login'"
+          (click)="setTab('login')"
+        >Giriş Yap</button>
+        <button
+          type="button"
+          role="tab"
+          class="auth__tab"
+          [class.is-active]="tab() === 'register'"
+          [attr.aria-selected]="tab() === 'register'"
+          (click)="setTab('register')"
+        >Kayıt Ol</button>
+      </div>
 
-        <div class="auth__field" [class.is-invalid]="hasError('password')">
-          <label for="login-password">Şifre</label>
-          <p-password
-            inputId="login-password"
-            formControlName="password"
-            [toggleMask]="true"
-            [feedback]="false"
-            styleClass="auth__password"
-            inputStyleClass="auth__password-input"
-            autocomplete="current-password"
-          ></p-password>
-          @if (errorOf('password'); as msg) { <small role="alert">{{ msg }}</small> }
-        </div>
+      @if (tab() === 'login') {
+        <form class="auth__form" [formGroup]="loginForm" (ngSubmit)="submit()" novalidate>
+          <div class="auth__field" [class.is-invalid]="hasError('email')">
+            <label for="login-email">E-posta</label>
+            <input id="login-email" pInputText type="email" formControlName="email" autocomplete="email" />
+            @if (errorOf('email'); as msg) { <small role="alert">{{ msg }}</small> }
+          </div>
 
-        <div class="auth__row">
-          <span class="auth__remember">
-            <p-checkbox inputId="login-remember" formControlName="remember" [binary]="true"></p-checkbox>
-            <label for="login-remember">Beni hatırla</label>
-          </span>
-          <a href="#" class="auth__link">Şifremi unuttum</a>
-        </div>
+          <div class="auth__field" [class.is-invalid]="hasError('password')">
+            <label for="login-password">Şifre</label>
+            <p-password
+              inputId="login-password"
+              formControlName="password"
+              [toggleMask]="true"
+              [feedback]="false"
+              styleClass="auth__password"
+              inputStyleClass="auth__password-input"
+              autocomplete="current-password"
+            ></p-password>
+            @if (errorOf('password'); as msg) { <small role="alert">{{ msg }}</small> }
+          </div>
 
-        <p-button
-          type="submit"
-          [label]="submitting() ? 'Giriş yapılıyor…' : 'Giriş Yap'"
-          [disabled]="submitting()"
-          styleClass="w-full"
-        ></p-button>
+          <div class="auth__row">
+            <span class="auth__remember">
+              <p-checkbox inputId="login-remember" formControlName="remember" [binary]="true"></p-checkbox>
+              <label for="login-remember">Beni hatırla</label>
+            </span>
+            <a href="#" class="auth__link">Şifremi unuttum</a>
+          </div>
 
-        @if (serverError(); as err) {
-          <p class="auth__err" role="alert"><i class="pi pi-exclamation-triangle"></i> {{ err }}</p>
-        }
+          <p-button
+            type="submit"
+            [label]="submitting() ? 'Giriş yapılıyor…' : 'Giriş Yap'"
+            [disabled]="submitting()"
+            styleClass="w-full"
+          ></p-button>
 
-        <p class="auth__legal">
-          Devam ederek <a href="#" class="auth__link">Kullanım Şartları</a> ve
-          <a href="#" class="auth__link">Gizlilik Politikası</a>’nı kabul etmiş olursun.
-        </p>
-      </form>
+          @if (serverError(); as err) {
+            <p class="auth__err" role="alert"><i class="pi pi-exclamation-triangle"></i> {{ err }}</p>
+          }
+          @if (success(); as msg) {
+            <p class="auth__ok" role="status"><i class="pi pi-check-circle"></i> {{ msg }}</p>
+          }
+
+          <p class="auth__switch">
+            Hesabın yok mu?
+            <button type="button" class="auth__link" (click)="setTab('register')">Kayıt ol</button>
+          </p>
+        </form>
+      } @else {
+        <form class="auth__form" [formGroup]="registerForm" (ngSubmit)="submit()" novalidate>
+          <div class="auth__field" [class.is-invalid]="hasError('name')">
+            <label for="reg-name">Ad Soyad</label>
+            <input id="reg-name" pInputText formControlName="name" autocomplete="name" />
+            @if (errorOf('name'); as msg) { <small role="alert">{{ msg }}</small> }
+          </div>
+
+          <div class="auth__field" [class.is-invalid]="hasError('email')">
+            <label for="reg-email">E-posta</label>
+            <input id="reg-email" pInputText type="email" formControlName="email" autocomplete="email" />
+            @if (errorOf('email'); as msg) { <small role="alert">{{ msg }}</small> }
+          </div>
+
+          <div class="auth__field" [class.is-invalid]="hasError('password')">
+            <label for="reg-password">Şifre</label>
+            <p-password
+              inputId="reg-password"
+              formControlName="password"
+              [toggleMask]="true"
+              [feedback]="true"
+              styleClass="auth__password"
+              inputStyleClass="auth__password-input"
+              autocomplete="new-password"
+            ></p-password>
+            @if (errorOf('password'); as msg) { <small role="alert">{{ msg }}</small> }
+          </div>
+
+          <div class="auth__field" [class.is-invalid]="hasError('confirm')">
+            <label for="reg-confirm">Şifre (Tekrar)</label>
+            <p-password
+              inputId="reg-confirm"
+              formControlName="confirm"
+              [toggleMask]="true"
+              [feedback]="false"
+              styleClass="auth__password"
+              inputStyleClass="auth__password-input"
+              autocomplete="new-password"
+            ></p-password>
+            @if (errorOf('confirm'); as msg) { <small role="alert">{{ msg }}</small> }
+            @if (formError(); as msg) { <small role="alert">{{ msg }}</small> }
+          </div>
+
+          <div class="auth__row auth__row--terms">
+            <span class="auth__remember">
+              <p-checkbox inputId="reg-terms" formControlName="terms" [binary]="true"></p-checkbox>
+              <label for="reg-terms">
+                <a href="#" class="auth__link">Kullanım Şartları</a>
+                &amp;
+                <a href="#" class="auth__link">Gizlilik</a>
+                metnini okudum, kabul ediyorum.
+              </label>
+            </span>
+          </div>
+
+          <p-button
+            type="submit"
+            [label]="submitting() ? 'Hesap oluşturuluyor…' : 'Hesap Oluştur'"
+            [disabled]="submitting()"
+            styleClass="w-full"
+          ></p-button>
+
+          @if (serverError(); as err) {
+            <p class="auth__err" role="alert"><i class="pi pi-exclamation-triangle"></i> {{ err }}</p>
+          }
+
+          <p class="auth__switch">
+            Zaten hesabın var mı?
+            <button type="button" class="auth__link" (click)="setTab('login')">Giriş yap</button>
+          </p>
+        </form>
+      }
     </div>
   </div>
 </section>
