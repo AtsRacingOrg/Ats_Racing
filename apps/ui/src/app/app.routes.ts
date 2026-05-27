@@ -3,6 +3,11 @@ import { MainLayout } from './layout/main-layout/main-layout';
 
 export const appRoutes: Route[] = [
   {
+    path: 'dashboard',
+    loadChildren: () =>
+      import('./features/dashboard/dashboard.routes').then(m => m.dashboardRoutes),
+  },
+  {
     path: '',
     component: MainLayout,
     children: [
