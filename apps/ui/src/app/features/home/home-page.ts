@@ -1,4 +1,6 @@
 import { ChangeDetectionStrategy, Component } from '@angular/core';
+import { MarqueeBand } from '../../shared/ui/marquee-band/marquee-band';
+import { HomeChipCalculator } from './sections/chip-calculator';
 import { HomeCustomize } from './sections/customize';
 import { HomeFeatures } from './sections/features-strip';
 import { HomeHero } from './sections/hero';
@@ -14,6 +16,7 @@ import { HomeTestimonials } from './sections/testimonials';
   standalone: true,
   imports: [
     HomeHero,
+    HomeChipCalculator,
     HomeStats,
     HomeServices,
     HomeCustomize,
@@ -22,13 +25,18 @@ import { HomeTestimonials } from './sections/testimonials';
     HomeTestimonials,
     HomeNews,
     HomeNewsletter,
+    MarqueeBand,
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <app-home-hero></app-home-hero>
+    <app-home-chip-calculator></app-home-chip-calculator>
     <app-home-stats></app-home-stats>
     <app-home-customize></app-home-customize>
     <app-home-services></app-home-services>
+
+    <app-marquee-band text="Performans · Modifiye · Detaylı Bakım"></app-marquee-band>
+
     <app-home-features></app-home-features>
     <app-home-portfolio></app-home-portfolio>
 
@@ -37,6 +45,12 @@ import { HomeTestimonials } from './sections/testimonials';
     } @placeholder {
       <div class="defer-placeholder"></div>
     }
+
+    <app-marquee-band
+      text="Ats Racing"
+      [outline]="true"
+      [speedSeconds]="65"
+    ></app-marquee-band>
 
     <app-home-news></app-home-news>
     <app-home-newsletter></app-home-newsletter>

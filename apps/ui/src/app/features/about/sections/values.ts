@@ -1,4 +1,5 @@
 import { ChangeDetectionStrategy, Component } from '@angular/core';
+import { RevealDirective } from '../../../shared/directives/reveal.directive';
 import { SectionHeading } from '../../../shared/ui/section-heading/section-heading';
 
 interface Value {
@@ -10,7 +11,7 @@ interface Value {
 @Component({
   selector: 'app-about-values',
   standalone: true,
-  imports: [SectionHeading],
+  imports: [SectionHeading, RevealDirective],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './values.html',
   styleUrl: './values.scss',

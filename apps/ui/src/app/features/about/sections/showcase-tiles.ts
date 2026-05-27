@@ -1,4 +1,5 @@
 import { ChangeDetectionStrategy, Component } from '@angular/core';
+import { RevealDirective } from '../../../shared/directives/reveal.directive';
 
 interface Tile {
   readonly title: string;
@@ -9,12 +10,13 @@ interface Tile {
 @Component({
   selector: 'app-about-showcase',
   standalone: true,
+  imports: [RevealDirective],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <section class="atiles" aria-label="Atölyemizden kareler">
       <ul role="list">
-        @for (t of tiles; track t.title) {
-          <li class="atile">
+        @for (t of tiles; track t.title; let i = $index) {
+          <li class="atile" appReveal="fade-up" [revealDelay]="i * 130">
             <img [src]="t.image" [alt]="t.title" loading="lazy" decoding="async" />
             <div class="atile__veil" aria-hidden="true"></div>
             <div class="atile__copy">
@@ -41,7 +43,7 @@ export class AboutShowcase {
       image: 'https://images.unsplash.com/photo-1492144534655-ae79c964c9d7?auto=format&fit=crop&w=1200&q=80',
     },
     {
-      title: 'Detayl Bölümü',
+      title: 'Detaylı Bölümü',
       tag: 'Bakım Hattı',
       image: 'https://images.unsplash.com/photo-1605559424843-9e4c228bf1c2?auto=format&fit=crop&w=1200&q=80',
     },

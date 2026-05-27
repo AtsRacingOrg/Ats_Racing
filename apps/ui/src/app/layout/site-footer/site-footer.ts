@@ -1,10 +1,11 @@
 import { ChangeDetectionStrategy, Component } from '@angular/core';
 import { RouterLink } from '@angular/router';
+import { EvcBadge } from '../../shared/ui/evc-badge/evc-badge';
 
 @Component({
   selector: 'app-site-footer',
   standalone: true,
-  imports: [RouterLink],
+  imports: [RouterLink, EvcBadge],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './site-footer.html',
   styleUrl: './site-footer.scss',

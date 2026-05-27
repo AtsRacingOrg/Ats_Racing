@@ -1,9 +1,15 @@
 <section class="stats" aria-label="Rakamlarla Ats Racing">
   <div class="container-page">
     <ul class="stats__grid" role="list">
-      @for (stat of stats; track stat.label) {
-        <li class="stat">
-          <span class="stat__value">{{ stat.value }}</span>
+      @for (stat of stats; track stat.label; let i = $index) {
+        <li class="stat" appReveal="fade-up" [revealDelay]="i * 120">
+          <span class="stat__value">
+            @if (stat.display) {
+              {{ stat.display }}
+            } @else {
+              <span [appCountUp]="stat.value" [suffix]="stat.suffix"></span>
+            }
+          </span>
           <span class="stat__label">{{ stat.label }}</span>
         </li>
       }

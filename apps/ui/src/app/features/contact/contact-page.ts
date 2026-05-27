@@ -1,4 +1,6 @@
 import { ChangeDetectionStrategy, Component } from '@angular/core';
+import { RevealDirective } from '../../shared/directives/reveal.directive';
+import { MarqueeBand } from '../../shared/ui/marquee-band/marquee-band';
 import { ContactForm } from './sections/contact-form';
 import { ContactHero } from './sections/contact-hero';
 import { ContactHoursFaq } from './sections/hours-faq';
@@ -8,17 +10,19 @@ import { ContactMap } from './sections/contact-map';
 @Component({
   selector: 'app-contact-page',
   standalone: true,
-  imports: [ContactHero, ContactForm, ContactInfo, ContactHoursFaq, ContactMap],
+  imports: [ContactHero, ContactForm, ContactInfo, ContactHoursFaq, ContactMap, MarqueeBand, RevealDirective],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <app-contact-hero></app-contact-hero>
 
     <section class="cwrap">
       <div class="cwrap__inner">
-        <app-contact-form class="cwrap__form"></app-contact-form>
-        <app-contact-info class="cwrap__info"></app-contact-info>
+        <app-contact-form class="cwrap__form" appReveal="fade-right"></app-contact-form>
+        <app-contact-info class="cwrap__info" appReveal="fade-left" [revealDelay]="120"></app-contact-info>
       </div>
     </section>
+
+    <app-marquee-band text="Teklif Al · Randevu Oluştur · Konuş"></app-marquee-band>
 
     <app-contact-hours-faq></app-contact-hours-faq>
     <app-contact-map></app-contact-map>

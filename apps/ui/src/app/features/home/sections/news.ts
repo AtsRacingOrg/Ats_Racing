@@ -1,4 +1,5 @@
 import { ChangeDetectionStrategy, Component } from '@angular/core';
+import { RevealDirective } from '../../../shared/directives/reveal.directive';
 import { SectionHeading } from '../../../shared/ui/section-heading/section-heading';
 
 interface Article {
@@ -12,7 +13,7 @@ interface Article {
 @Component({
   selector: 'app-home-news',
   standalone: true,
-  imports: [SectionHeading],
+  imports: [SectionHeading, RevealDirective],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './news.html',
   styleUrl: './news.scss',
@@ -29,7 +30,7 @@ export class HomeNews {
     },
     {
       title: 'Seramik kaplama mı yoksa PPF mi tercih edilmeli?',
-      category: 'Detayl',
+      category: 'Detaylı',
       date: '03 Nisan 2026',
       image: 'https://images.unsplash.com/photo-1583121274602-3e2820c69888?auto=format&fit=crop&w=900&q=80',
       excerpt:

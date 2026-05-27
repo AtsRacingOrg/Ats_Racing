@@ -1,4 +1,11 @@
 import { ChangeDetectionStrategy, Component } from '@angular/core';
+import { DomSanitizer, SafeResourceUrl } from '@angular/platform-browser';
+import { inject } from '@angular/core';
+
+const MAP_QUERY = 'Kadıköy, İstanbul';
+const MAP_EMBED_URL = `https://www.google.com/maps?q=${encodeURIComponent(MAP_QUERY)}&output=embed&z=15`;
+const MAP_SEARCH_URL = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(MAP_QUERY)}`;
+const MAP_DIRECTIONS_URL = `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(MAP_QUERY)}`;
 
 @Component({
   selector: 'app-contact-map',
@@ -6,29 +13,35 @@ import { ChangeDetectionStrategy, Component } from '@angular/core';
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <section class="map-band" aria-label="Atölye konumu">
-      <a
-        class="map-band__frame"
-        href="https://www.google.com/maps/search/?api=1&query=Atat%C3%BCrk+Mahallesi+%C4%B0stanbul"
-        target="_blank"
-        rel="noopener"
-        aria-label="Google Haritalar'da aç"
-      >
-        <img
-          src="https://staticmap.openstreetmap.de/staticmap.php?center=41.0367,28.9850&zoom=13&size=1600x420&maptype=mapnik&markers=41.0367,28.9850,red-pushpin"
-          alt="Atölye konum haritası"
+      <div class="map-band__frame">
+        <iframe
+          [src]="mapUrl"
+          title="ATS Racing — atölye konumu (Google Haritalar)"
           loading="lazy"
-          decoding="async"
-        />
-        <div class="map-band__veil" aria-hidden="true"></div>
-        <div class="map-band__pin" aria-hidden="true">
-          <i class="pi pi-map-marker"></i>
+          referrerpolicy="no-referrer-when-downgrade"
+          allowfullscreen
+        ></iframe>
+      </div>
+
+      <div class="map-band__footer">
+        <div class="map-band__inner">
+          <div class="map-band__copy">
+            <p class="map-band__eyebrow">Bizi Ziyaret Et</p>
+            <h2 class="map-band__title">Atatürk Mah. Performans Cad. No:42</h2>
+            <p class="map-band__sub">Kadıköy · İstanbul · Pzt–Cum 09:00–19:00</p>
+          </div>
+          <div class="map-band__actions">
+            <a class="mb-btn mb-btn--ghost" [href]="searchUrl" target="_blank" rel="noopener">
+              <i class="pi pi-map"></i>
+              <span>Haritada Aç</span>
+            </a>
+            <a class="mb-btn mb-btn--primary" [href]="directionsUrl" target="_blank" rel="noopener">
+              <i class="pi pi-compass"></i>
+              <span>Yol Tarifi Al</span>
+            </a>
+          </div>
         </div>
-        <div class="map-band__cta">
-          <span class="map-band__cta-eyebrow">Bizi Ziyaret Et</span>
-          <span class="map-band__cta-title">Atatürk Mah. Performans Cad. No:42 · İstanbul</span>
-          <span class="map-band__cta-link">Google Haritalar'da aç <i class="pi pi-arrow-up-right"></i></span>
-        </div>
-      </a>
+      </div>
     </section>
   `,
   styles: [
@@ -36,99 +49,118 @@ import { ChangeDetectionStrategy, Component } from '@angular/core';
       .map-band {
         background: #0d0c0f;
       }
+
       .map-band__frame {
         position: relative;
-        display: block;
-        height: clamp(320px, 50vh, 480px);
         width: 100%;
+        height: clamp(360px, 55vh, 520px);
         overflow: hidden;
-        text-decoration: none;
-        color: #ffffff;
       }
-      img {
-        width: 100%;
-        height: 100%;
-        object-fit: cover;
-        display: block;
-        filter: grayscale(0.6) contrast(1.05) brightness(0.9);
-      }
-      .map-band__veil {
+
+      iframe {
         position: absolute;
         inset: 0;
-        background: linear-gradient(180deg, rgba(13, 12, 15, 0.25) 0%, rgba(13, 12, 15, 0.85) 100%);
+        width: 100%;
+        height: 100%;
+        border: 0;
+        display: block;
+        filter: grayscale(0.25) contrast(1.02);
       }
-      .map-band__pin {
-        position: absolute;
-        inset: 50% auto auto 50%;
-        transform: translate(-50%, -120%);
-        background: #ea0a0b;
+
+      .map-band__footer {
+        background: #0d0c0f;
         color: #ffffff;
-        width: 52px;
-        height: 52px;
-        display: grid;
-        place-items: center;
-        border-radius: 999px;
-        box-shadow: 0 12px 28px rgba(234, 10, 11, 0.5), 0 0 0 6px rgba(234, 10, 11, 0.2);
-        font-size: 1.35rem;
-        pointer-events: none;
-        animation: pin-pulse 2.6s ease-in-out infinite;
+        border-top: 1px solid rgba(255, 255, 255, 0.06);
       }
-      @keyframes pin-pulse {
-        0%, 100% { box-shadow: 0 12px 28px rgba(234, 10, 11, 0.5), 0 0 0 6px rgba(234, 10, 11, 0.2); }
-        50%      { box-shadow: 0 12px 28px rgba(234, 10, 11, 0.55), 0 0 0 14px rgba(234, 10, 11, 0); }
-      }
-      .map-band__cta {
-        position: absolute;
-        left: 1.5rem;
-        right: 1.5rem;
-        bottom: 1.5rem;
+
+      .map-band__inner {
         max-width: 1600px;
         margin-inline: auto;
-        display: flex;
-        flex-direction: column;
-        gap: 0.35rem;
+        padding: 2rem 1.5rem;
+        display: grid;
+        gap: 1.5rem;
+        align-items: center;
+
+        @media (min-width: 768px) {
+          padding: 2rem 3rem;
+          grid-template-columns: 1.6fr 1fr;
+        }
+
+        @media (min-width: 1280px) { padding: 2rem 70px; }
       }
-      @media (min-width: 768px) {
-        .map-band__cta { left: 3rem; right: 3rem; bottom: 2rem; }
-      }
-      @media (min-width: 1280px) {
-        .map-band__cta { left: 70px; right: 70px; }
-      }
-      .map-band__cta-eyebrow {
+
+      .map-band__eyebrow {
         font-family: 'DM Sans', sans-serif;
         text-transform: uppercase;
         letter-spacing: 0.22em;
         font-size: 0.75rem;
         font-weight: 600;
         color: #ea0a0b;
+        margin: 0 0 0.5rem;
       }
-      .map-band__cta-title {
+
+      .map-band__title {
         font-family: 'Barlow Condensed', sans-serif;
-        font-weight: 600;
+        font-weight: 700;
         text-transform: uppercase;
-        font-size: clamp(1.25rem, 2.5vw, 1.875rem);
+        font-size: clamp(1.375rem, 2.4vw, 1.875rem);
         line-height: 1.1;
         color: #ffffff;
+        margin: 0 0 0.4rem;
       }
-      .map-band__cta-link {
+
+      .map-band__sub {
+        margin: 0;
+        color: rgba(255, 255, 255, 0.65);
+        font-size: 0.875rem;
+        line-height: 1.5;
+      }
+
+      .map-band__actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.6rem;
+
+        @media (min-width: 768px) {
+          justify-content: flex-end;
+        }
+      }
+
+      .mb-btn {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+        padding: 0.7rem 1.1rem;
         font-family: 'DM Sans', sans-serif;
         font-weight: 600;
         text-transform: uppercase;
-        letter-spacing: 0.16em;
-        font-size: 0.8125rem;
-        color: rgba(255, 255, 255, 0.8);
-        display: inline-flex;
-        align-items: center;
-        gap: 0.35rem;
-        margin-top: 0.4rem;
+        letter-spacing: 0.14em;
+        font-size: 0.75rem;
+        text-decoration: none;
+        transition: background-color 200ms ease, border-color 200ms ease, color 200ms ease;
       }
-      .map-band__frame:hover .map-band__cta-link {
-        color: #ea0a0b;
+
+      .mb-btn--primary {
+        background: #ea0a0b;
+        color: #ffffff;
+        border: 1px solid #ea0a0b;
+
+        &:hover { background: #ff2020; border-color: #ff2020; }
       }
-      @media (prefers-reduced-motion: reduce) {
-        .map-band__pin { animation: none; }
+
+      .mb-btn--ghost {
+        background: transparent;
+        color: #ffffff;
+        border: 1px solid rgba(255, 255, 255, 0.2);
+
+        &:hover { background: rgba(255, 255, 255, 0.08); border-color: #ffffff; }
       }
     `,
   ],
 })
-export class ContactMap {}
+export class ContactMap {
+  private readonly sanitizer = inject(DomSanitizer);
+  protected readonly mapUrl: SafeResourceUrl = this.sanitizer.bypassSecurityTrustResourceUrl(MAP_EMBED_URL);
+  protected readonly searchUrl = MAP_SEARCH_URL;
+  protected readonly directionsUrl = MAP_DIRECTIONS_URL;
+}

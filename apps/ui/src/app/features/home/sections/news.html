@@ -8,8 +8,8 @@
     ></app-section-heading>
 
     <ul class="news__grid" role="list">
-      @for (article of articles; track article.title) {
-        <li class="article-card">
+      @for (article of articles; track article.title; let i = $index) {
+        <li class="article-card" appReveal="fade-up" [revealDelay]="i * 120">
           <figure class="article-card__media">
             <img [src]="article.image" [alt]="article.title" loading="lazy" decoding="async" />
           </figure>

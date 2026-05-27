@@ -1,5 +1,6 @@
 import { ChangeDetectionStrategy, Component } from '@angular/core';
 import { RouterLink } from '@angular/router';
+import { RevealDirective } from '../../../shared/directives/reveal.directive';
 
 interface ServiceTile {
   readonly title: string;
@@ -11,7 +12,7 @@ interface ServiceTile {
 @Component({
   selector: 'app-home-services',
   standalone: true,
-  imports: [RouterLink],
+  imports: [RouterLink, RevealDirective],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './services.html',
   styleUrl: './services.scss',
@@ -20,7 +21,7 @@ export class HomeServices {
   protected readonly services: readonly ServiceTile[] = [
     {
       title: 'Interior Customization',
-      tag: 'Detayl Bakım',
+      tag: 'Detaylı Bakım',
       image: 'https://images.unsplash.com/photo-1601362840469-51e4d8d58785?auto=format&fit=crop&w=1200&q=80',
       link: '/contact',
     },

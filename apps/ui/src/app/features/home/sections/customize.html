@@ -1,6 +1,6 @@
 <section class="customize">
   <div class="customize__inner">
-    <div class="customize__media" aria-hidden="true">
+    <div class="customize__media" aria-hidden="true" appReveal="fade-left">
       <img
         class="customize__img customize__img--main"
         src="https://images.unsplash.com/photo-1494976388531-d1058494cdd8?auto=format&fit=crop&w=1100&q=80"
@@ -17,7 +17,7 @@
       />
     </div>
 
-    <div class="customize__copy">
+    <div class="customize__copy" appReveal="fade-right" [revealDelay]="100">
       <h2 class="customize__title">
         Aracını uzman ekibimizle <span class="accent">özelleştir</span>
       </h2>

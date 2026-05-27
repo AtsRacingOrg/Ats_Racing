@@ -1,5 +1,6 @@
 import { ChangeDetectionStrategy, Component } from '@angular/core';
 import { RouterLink } from '@angular/router';
+import { RevealDirective } from '../../../shared/directives/reveal.directive';
 
 interface Pillar {
   readonly title: string;
@@ -9,7 +10,7 @@ interface Pillar {
 @Component({
   selector: 'app-home-features',
   standalone: true,
-  imports: [RouterLink],
+  imports: [RouterLink, RevealDirective],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './features-strip.html',
   styleUrl: './features-strip.scss',
@@ -18,7 +19,7 @@ export class HomeFeatures {
   protected readonly pillars: readonly Pillar[] = [
     {
       title: 'What we do',
-      text: 'ECU yazılımı, performans modifiyesi, frenleme ve detayl bakım. Her iş kendi atölyemizde, izlenebilir ve garantili.',
+      text: 'ECU yazılımı, performans modifiyesi, frenleme ve detaylı bakım. Her iş kendi atölyemizde, izlenebilir ve garantili.',
     },
     {
       title: 'The opportunities',
