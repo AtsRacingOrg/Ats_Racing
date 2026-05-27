@@ -1,0 +1,141 @@
+<section class="chip" aria-labelledby="chip-title">
+  <div class="chip__bg" aria-hidden="true"></div>
+  <div class="chip__veil" aria-hidden="true"></div>
+
+  <div class="chip__inner">
+    <form class="chip__bar" (ngSubmit)="calculate()">
+      <div class="chip__cell">
+        <label for="chip-brand">Marka</label>
+        <div class="chip__control">
+          <select
+            id="chip-brand"
+            [value]="brand()"
+            (change)="onBrand($any($event.target).value)"
+          >
+            <option value="">Seçiniz</option>
+            @for (b of catalog; track b.name) {
+              <option [value]="b.name">{{ b.name }}</option>
+            }
+          </select>
+          <i class="pi pi-chevron-down chip__chev" aria-hidden="true"></i>
+        </div>
+      </div>
+
+      <div class="chip__cell" [class.is-disabled]="!brand()">
+        <label for="chip-model">Model</label>
+        <div class="chip__control">
+          <select
+            id="chip-model"
+            [value]="model()"
+            (change)="onModel($any($event.target).value)"
+            [disabled]="!brand()"
+          >
+            <option value="">Seçiniz</option>
+            @for (m of models(); track m.name) {
+              <option [value]="m.name">{{ m.name }}</option>
+            }
+          </select>
+          <i class="pi pi-chevron-down chip__chev" aria-hidden="true"></i>
+        </div>
+      </div>
+
+      <div class="chip__cell" [class.is-disabled]="!model()">
+        <label for="chip-series">Seri</label>
+        <div class="chip__control">
+          <select
+            id="chip-series"
+            [value]="series()"
+            (change)="onSeries($any($event.target).value)"
+            [disabled]="!model()"
+          >
+            <option value="">Seçiniz</option>
+            @for (s of seriesList(); track s.name) {
+              <option [value]="s.name">{{ s.name }}</option>
+            }
+          </select>
+          <i class="pi pi-chevron-down chip__chev" aria-hidden="true"></i>
+        </div>
+      </div>
+
+      <div class="chip__cell" [class.is-disabled]="!series()">
+        <label for="chip-engine">Motor</label>
+        <div class="chip__control">
+          <select
+            id="chip-engine"
+            [value]="engine()"
+            (change)="onEngine($any($event.target).value)"
+            [disabled]="!series()"
+          >
+            <option value="">Seçiniz</option>
+            @for (e of engines(); track e.engine) {
+              <option [value]="e.engine">{{ e.engine }}</option>
+            }
+          </select>
+          <i class="pi pi-chevron-down chip__chev" aria-hidden="true"></i>
+        </div>
+      </div>
+
+      <button
+        type="submit"
+        class="chip__go"
+        [disabled]="!canSubmit()"
+        aria-label="Hesapla"
+      >
+        <span>Hesapla</span>
+        <i class="pi pi-arrow-right" aria-hidden="true"></i>
+      </button>
+    </form>
+
+    <header class="chip__head">
+      <span class="chip__accent" aria-hidden="true"></span>
+      <p class="chip__eyebrow">1120+ Marka ve Modelde Hesaplayın</p>
+      <h2 id="chip-title" class="chip__title">
+        Chip Tuning <span class="chip__title-accent">Yazılımı</span>
+      </h2>
+    </header>
+
+    @if (submitted() && !canSubmit()) {
+      <p class="chip__hint" role="alert">
+        <i class="pi pi-info-circle"></i> Lütfen tüm alanları seç.
+      </p>
+    }
+
+    @if (result(); as r) {
+      <article class="chip__result" aria-live="polite">
+        <header class="chip__result-head">
+          <p class="chip__result-eyebrow">Stage 1 Tahmini Kazanım</p>
+          <h3 class="chip__result-title">{{ brand() }} {{ model() }} · {{ r.engine }}</h3>
+        </header>
+
+        <div class="chip__result-grid">
+          <div class="chip__metric">
+            <span class="chip__metric-lbl">Beygir</span>
+            <span class="chip__metric-row">
+              <span class="chip__metric-num">{{ r.stockHp }}</span>
+              <i class="pi pi-arrow-right chip__metric-arrow"></i>
+              <span class="chip__metric-num chip__metric-num--up">{{ r.tunedHp }}</span>
+              <span class="chip__metric-delta">+{{ hpGain(r) }} HP</span>
+            </span>
+          </div>
+
+          <div class="chip__metric">
+            <span class="chip__metric-lbl">Tork</span>
+            <span class="chip__metric-row">
+              <span class="chip__metric-num">{{ r.stockTq }}</span>
+              <i class="pi pi-arrow-right chip__metric-arrow"></i>
+              <span class="chip__metric-num chip__metric-num--up">{{ r.tunedTq }}</span>
+              <span class="chip__metric-delta">+{{ tqGain(r) }} Nm</span>
+            </span>
+          </div>
+        </div>
+
+        <footer class="chip__result-foot">
+          <p>Net rakamlar dyno testi sonrası belirlenir. Detaylı teklif için iletişime geç.</p>
+          <button type="button" class="chip__reset" (click)="reset()">
+            <i class="pi pi-refresh"></i> Yeniden Hesapla
+          </button>
+        </footer>
+      </article>
+    }
+  </div>
+</section>

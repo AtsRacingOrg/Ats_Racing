@@ -8,8 +8,8 @@
     ></app-section-heading>
 
     <ul class="team__grid" role="list">
-      @for (m of team; track m.name) {
-        <li class="member">
+      @for (m of team; track m.name; let i = $index) {
+        <li class="member" appReveal="fade-up" [revealDelay]="i * 130">
           <figure class="member__media">
             <img [src]="m.photo" [alt]="m.name" loading="lazy" decoding="async" />
             <div class="member__overlay">

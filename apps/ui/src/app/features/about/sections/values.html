@@ -8,8 +8,8 @@
     ></app-section-heading>
 
     <ul class="values__grid" role="list">
-      @for (v of values; track v.title) {
-        <li class="value-card">
+      @for (v of values; track v.title; let i = $index) {
+        <li class="value-card" appReveal="fade-up" [revealDelay]="i * 120">
           <span class="value-card__icon" aria-hidden="true"><i [class]="v.icon"></i></span>
           <h3 class="value-card__title">{{ v.title }}</h3>
           <p class="value-card__text">{{ v.text }}</p>

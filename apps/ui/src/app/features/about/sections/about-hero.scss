@@ -28,30 +28,6 @@
   z-index: -1;
 }
 
-.ahero__marquee {
-  position: absolute;
-  left: 0;
-  right: 0;
-  top: 30%;
-  overflow: hidden;
-  pointer-events: none;
-  opacity: 0.06;
-  z-index: 0;
-
-  span {
-    display: inline-block;
-    white-space: nowrap;
-    font-family: 'Barlow Condensed', sans-serif;
-    font-weight: 700;
-    text-transform: uppercase;
-    font-size: clamp(6rem, 18vw, 16rem);
-    line-height: 1;
-    color: #ffffff;
-    letter-spacing: -0.02em;
-    animation: ah-marq 28s linear infinite;
-  }
-}
-
 .ahero__inner {
   position: relative;
   width: 100%;
@@ -147,13 +123,8 @@
   to   { transform: scale(1); }
 }
 
-@keyframes ah-marq {
-  from { transform: translateX(0); }
-  to   { transform: translateX(-50%); }
-}
-
 @media (prefers-reduced-motion: reduce) {
-  .ahero__bg, .ahero__marquee span { animation: none; transform: none; }
+  .ahero__bg { animation: none; transform: none; }
 }
 
 @media (max-width: 640px) {

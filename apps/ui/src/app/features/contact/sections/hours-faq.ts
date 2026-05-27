@@ -35,7 +35,7 @@ export class ContactHoursFaq {
     },
     {
       q: 'Yaptığınız işleri garanti ediyor musunuz?',
-      a: 'Evet — tüm modifiye ve detayl işlerimiz 24 ay servis garantisi ile teslim edilir.',
+      a: 'Evet — tüm modifiye ve detaylı işlerimiz 24 ay servis garantisi ile teslim edilir.',
     },
   ];
 }

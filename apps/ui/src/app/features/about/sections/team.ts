@@ -1,4 +1,5 @@
 import { ChangeDetectionStrategy, Component } from '@angular/core';
+import { RevealDirective } from '../../../shared/directives/reveal.directive';
 import { SectionHeading } from '../../../shared/ui/section-heading/section-heading';
 
 interface Member {
@@ -11,7 +12,7 @@ interface Member {
 @Component({
   selector: 'app-about-team',
   standalone: true,
-  imports: [SectionHeading],
+  imports: [SectionHeading, RevealDirective],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './team.html',
   styleUrl: './team.scss',
@@ -29,7 +30,7 @@ export class AboutTeam {
     },
     {
       name: 'Selin Demir',
-      role: 'Detayl Şefi',
+      role: 'Detaylı Şefi',
       photo: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=600&q=80',
       socials: [
         { icon: 'pi pi-instagram', href: '#', label: 'Instagram' },

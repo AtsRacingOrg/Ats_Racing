@@ -1,6 +1,7 @@
 import { ChangeDetectionStrategy, Component } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { ButtonModule } from 'primeng/button';
+import { RevealDirective } from '../../../shared/directives/reveal.directive';
 import { SectionHeading } from '../../../shared/ui/section-heading/section-heading';
 
 interface Work {
@@ -12,7 +13,7 @@ interface Work {
 @Component({
   selector: 'app-home-portfolio',
   standalone: true,
-  imports: [RouterLink, ButtonModule, SectionHeading],
+  imports: [RouterLink, ButtonModule, SectionHeading, RevealDirective],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './portfolio.html',
   styleUrl: './portfolio.scss',
@@ -26,7 +27,7 @@ export class HomePortfolio {
         'https://images.unsplash.com/photo-1555215695-3004980ad54e?auto=format&fit=crop&w=900&q=80',
     },
     {
-      title: 'Audi RS6 Detayl',
+      title: 'Audi RS6 Detaylı',
       category: 'Seramik Kaplama',
       image:
         'https://images.unsplash.com/photo-1583121274602-3e2820c69888?auto=format&fit=crop&w=900&q=80',

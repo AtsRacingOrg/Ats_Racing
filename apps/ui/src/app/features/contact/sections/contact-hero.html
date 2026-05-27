@@ -2,10 +2,6 @@
   <div class="chero__bg" aria-hidden="true"></div>
   <div class="chero__overlay" aria-hidden="true"></div>
 
-  <div class="chero__marquee" aria-hidden="true">
-    <span>İLETİŞİM · TEKLİF · RANDEVU · İLETİŞİM · TEKLİF · RANDEVU ·</span>
-  </div>
-
   <div class="chero__inner">
     <p class="chero__eyebrow">Bize Ulaş · Teklif Al · Randevu Oluştur</p>
     <h1 id="chero-title" class="chero__title">
@@ -18,7 +14,7 @@
     </p>
 
     <ul class="chero__quick" aria-label="Hızlı erişim">
-      <li>
+      <li appReveal="fade-up" [revealDelay]="200">
         <a href="tel:+902120000000" class="chero__quick-card">
           <span class="chero__quick-icon"><i class="pi pi-phone"></i></span>
           <span class="chero__quick-body">
@@ -27,7 +23,7 @@
           </span>
         </a>
       </li>
-      <li>
+      <li appReveal="fade-up" [revealDelay]="320">
         <a href="https://wa.me/902120000000" target="_blank" rel="noopener" class="chero__quick-card">
           <span class="chero__quick-icon chero__quick-icon--accent"><i class="pi pi-whatsapp"></i></span>
           <span class="chero__quick-body">
@@ -36,7 +32,7 @@
           </span>
         </a>
       </li>
-      <li>
+      <li appReveal="fade-up" [revealDelay]="440">
         <a href="mailto:info@atsracing.com" class="chero__quick-card">
           <span class="chero__quick-icon"><i class="pi pi-envelope"></i></span>
           <span class="chero__quick-body">

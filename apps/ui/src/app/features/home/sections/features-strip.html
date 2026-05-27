@@ -1,6 +1,6 @@
 <section class="care">
   <div class="care__top">
-    <div class="care__copy">
+    <div class="care__copy" appReveal="fade-right">
       <h2 class="care__title">Aracının en iyi bakımını biz üstleniyoruz</h2>
       <p class="care__lead">
         Sed ut perspiciatis unde omnis. Garantili işçilik, ölçülebilir sonuçlar ve şeffaf süreç —
@@ -12,7 +12,7 @@
       </a>
     </div>
 
-    <div class="care__hero" aria-hidden="true">
+    <div class="care__hero" aria-hidden="true" appReveal="fade-left" [revealDelay]="100">
       <img
         src="https://images.unsplash.com/photo-1492144534655-ae79c964c9d7?auto=format&fit=crop&w=1400&q=80"
         alt=""
@@ -23,7 +23,7 @@
   </div>
 
   <div class="care__bottom">
-    <div class="care__photo" aria-hidden="true">
+    <div class="care__photo" aria-hidden="true" appReveal="fade-right">
       <img
         src="https://images.unsplash.com/photo-1605559424843-9e4c228bf1c2?auto=format&fit=crop&w=1200&q=80"
         alt=""
@@ -31,7 +31,7 @@
         decoding="async"
       />
     </div>
-    <div class="care__pillars">
+    <div class="care__pillars" appReveal="fade-left" [revealDelay]="120">
       @for (p of pillars; track p.title) {
         <section class="pillar">
           <h3>{{ p.title }}</h3>

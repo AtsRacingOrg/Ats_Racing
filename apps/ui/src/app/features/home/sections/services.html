@@ -1,7 +1,7 @@
 <section class="srv-tiles" aria-label="Hizmetlerimiz">
   <ul role="list">
-    @for (svc of services; track svc.title) {
-      <li class="srv-tile">
+    @for (svc of services; track svc.title; let i = $index) {
+      <li class="srv-tile" appReveal="fade-up" [revealDelay]="i * 120">
         <a [routerLink]="svc.link" class="srv-tile__link">
           <img [src]="svc.image" [alt]="svc.title" loading="lazy" decoding="async" />
           <div class="srv-tile__overlay" aria-hidden="true"></div>
