@@ -1,0 +1,9 @@
+{
+  "buildCommand": "npx nx build ui --configuration=production",
+  "outputDirectory": "dist/apps/ui/browser",
+  "installCommand": "npm ci",
+  "framework": null,
+  "rewrites": [
+    { "source": "/(.*)", "destination": "/index.html" }
+  ]
+}
