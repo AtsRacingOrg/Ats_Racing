@@ -3,15 +3,19 @@ import { ChangeDetectionStrategy, Component, computed, input } from '@angular/co
 type Variant = 'wave' | 'wave-soft' | 'curve' | 'tilt';
 type Position = 'top' | 'bottom';
 
+// All paths form a "smile" curve (∪): the wave's peaks point DOWN into
+// the next section. The fill stays at the bottom — it's the next
+// section's color rising at the edges and dipping in the middle, so the
+// hero appears to drop down into the next section in the middle.
 const PATHS: Record<Variant, string> = {
-  // Multi-layered animated-ready wave
-  wave: 'M0,64 C240,128 480,0 720,48 C960,96 1200,32 1440,64 L1440,120 L0,120 Z',
-  // Soft single curve
-  'wave-soft': 'M0,80 C360,0 1080,160 1440,40 L1440,120 L0,120 Z',
-  // Symmetric upward curve
-  curve: 'M0,120 Q720,0 1440,120 Z',
-  // Diagonal tilt
-  tilt: 'M0,120 L1440,0 L1440,120 Z',
+  // Multi-peak wave with downward dips
+  wave: 'M0,30 C200,30 320,100 540,90 C720,82 900,30 1080,30 C1240,30 1360,100 1440,90 L1440,120 L0,120 Z',
+  // Soft single smile
+  'wave-soft': 'M0,30 Q720,110 1440,30 L1440,120 L0,120 Z',
+  // Strong symmetric smile
+  curve: 'M0,20 Q720,120 1440,20 L1440,120 L0,120 Z',
+  // Diagonal — top-left high, bottom-right low
+  tilt: 'M0,30 L1440,90 L1440,120 L0,120 Z',
 };
 
 @Component({
