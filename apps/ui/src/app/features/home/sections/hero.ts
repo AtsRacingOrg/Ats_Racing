@@ -1,4 +1,5 @@
 import { ChangeDetectionStrategy, Component, DestroyRef, OnInit, inject, signal } from '@angular/core';
+import { ShapeDivider } from '../../../shared/ui/shape-divider/shape-divider';
 
 interface HeroSlide {
   readonly line1: string;
@@ -12,6 +13,7 @@ const AUTOPLAY_MS = 6000;
 @Component({
   selector: 'app-home-hero',
   standalone: true,
+  imports: [ShapeDivider],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './hero.html',
   styleUrl: './hero.scss',
