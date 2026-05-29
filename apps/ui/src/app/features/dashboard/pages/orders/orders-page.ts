@@ -1,483 +1,722 @@
 import { ChangeDetectionStrategy, Component, signal, computed } from '@angular/core';
 import { FormsModule } from '@angular/forms';
+import { DecimalPipe } from '@angular/common';
 
 type OrderStatus = 'pending' | 'processing' | 'completed' | 'cancelled';
+type FuelType = 'Dizel' | 'Benzin' | 'Hibrit';
+type ReadMethod = 'OBD' | 'Bench' | 'Bootloader';
 
 interface UserOrder {
-  id: string;
-  vehicle: string;
-  stage: string;
-  ecu: string;
-  date: string;
+  id: string; date: string;
+  make: string; model: string; year: number;
+  engine: string; fuelType: FuelType; transmission: string;
+  vin: string; km: string;
+  stage: string; ecu: string; readMethod: ReadMethod;
+  extraServices: string[];
   price: string;
   status: OrderStatus;
-  vin?: string;
-  km?: string;
-  transmission?: string;
   notes?: string;
-  fileAvailable: boolean;
-  fileName?: string;
+  originalFileUploaded: boolean; originalFileName?: string;
+  fileAvailable: boolean; fileName?: string;
 }
 
-const MOCK_ORDERS: UserOrder[] = [
-  { id: 'ORD-048', vehicle: 'BMW M3 G80',         stage: 'Stage 1', ecu: 'Bosch MG1',      status: 'pending',    date: '29 May 2026', price: '₺2.500', vin: 'WBA7E2103MCH52841', km: '12.000', transmission: 'Manuel',   notes: 'Decat paketi de isteniyor.', fileAvailable: false },
-  { id: 'ORD-003', vehicle: 'BMW M3 G80',         stage: 'Stage 1', ecu: 'Bosch MG1',      status: 'completed',  date: '18 Mar 2026', price: '₺2.500', vin: 'WBA7E2103MCH52841', km: '10.000', transmission: 'Manuel',   notes: '',                           fileAvailable: true,  fileName: 'bmw_m3_g80_stage1_ORD003.bin' },
-  { id: 'ORD-001', vehicle: 'Audi S3 8Y',         stage: 'Stage 2', ecu: 'Bosch MED17',    status: 'completed',  date: '12 May 2026', price: '₺2.750', vin: 'WAUZZZ8YXMA012345', km: '6.000',  transmission: 'DSG',      notes: '',                           fileAvailable: true,  fileName: 'audi_s3_8y_stage2_ORD001.bin' },
+interface ExtraService { label: string; desc: string; price: number; group: string; }
+
+const EXTRA_SERVICES: ExtraService[] = [
+  { label: 'DPF Silme',         desc: 'Partikül filtre devre dışı',         price: 350, group: 'Emisyon'    },
+  { label: 'EGR Silme',         desc: 'Egzoz gazı geri devir iptali',       price: 250, group: 'Emisyon'    },
+  { label: 'OPF Silme',         desc: 'Otto partikül filtre iptali',        price: 350, group: 'Emisyon'    },
+  { label: 'AdBlue Silme',      desc: 'Üre sistemi devre dışı',             price: 400, group: 'Emisyon'    },
+  { label: 'Lambda Silme',      desc: 'O2 sensör iptali',                   price: 200, group: 'Emisyon'    },
+  { label: 'NOX Silme',         desc: 'NOx sensör devre dışı',              price: 200, group: 'Emisyon'    },
+  { label: 'Decat',             desc: 'Katalizör devre dışı bırakma',       price: 300, group: 'Egzoz'      },
+  { label: 'Flaps / Swirl',     desc: 'Emme kapak aktüatör iptali',         price: 180, group: 'Motor'      },
+  { label: 'TVA Silme',         desc: 'Gaz kelebeği aktüatör iptali',       price: 180, group: 'Motor'      },
+  { label: 'Immo Off',          desc: 'İmmobilizer flash ile kaldırma',     price: 500, group: 'Güvenlik'   },
+  { label: 'Vmax Kaldırma',     desc: 'Hız sınırı kaldırma',               price: 250, group: 'Performans' },
+  { label: 'Launch Control',    desc: 'Fırlatma kontrolü aktivasyonu',      price: 300, group: 'Performans' },
+  { label: 'RPM Limiter',       desc: 'Yumuşak devir sınırı kaldırma',     price: 200, group: 'Performans' },
+  { label: 'Torque Monitor',    desc: 'Tork monitör devre dışı',            price: 120, group: 'Performans' },
+  { label: 'Start-Stop İptal',  desc: 'Otomatik stop sistemi iptali',       price: 150, group: 'Konfor'     },
+  { label: 'Water Pump',        desc: 'Su pompası PWM kontrolü',            price: 120, group: 'Motor'      },
+  { label: 'Readiness Cal.',    desc: 'OBD hazırlık kalibrasyonu',          price: 150, group: 'Motor'      },
 ];
 
-const STATUS_LABEL: Record<OrderStatus, string> = { pending: 'Beklemede', processing: 'İşlemde', completed: 'Tamamlandı', cancelled: 'İptal' };
+const EXTRA_MAP: Record<string, ExtraService> = Object.fromEntries(EXTRA_SERVICES.map(s => [s.label, s]));
+
+const MOCK: UserOrder[] = [
+  {
+    id: 'ORD-048', date: '29 May 2026',
+    make: 'BMW', model: 'M3 G80', year: 2022,
+    engine: '3.0L S58 510HP', fuelType: 'Benzin', transmission: 'Manuel',
+    vin: 'WBA7E2103MCH52841', km: '12.000',
+    stage: 'Stage 1', ecu: 'Bosch MG1CS002', readMethod: 'OBD',
+    extraServices: ['Decat'],
+    price: '₺2.500', status: 'pending', notes: 'Decat paketi de isteniyor.',
+    originalFileUploaded: false, fileAvailable: false,
+  },
+  {
+    id: 'ORD-047', date: '28 May 2026',
+    make: 'Audi', model: 'RS6 C8', year: 2021,
+    engine: '4.0L TFSI 600HP', fuelType: 'Benzin', transmission: 'Otomatik',
+    vin: 'WAUZZZ4G8KN012345', km: '8.500',
+    stage: 'Stage 2', ecu: 'Bosch MED17.1.62', readMethod: 'OBD',
+    extraServices: ['DPF Silme', 'EGR Silme'],
+    price: '₺4.000', status: 'processing',
+    originalFileUploaded: true, originalFileName: 'audi_rs6_original.ori',
+    fileAvailable: false,
+  },
+  {
+    id: 'ORD-003', date: '18 Mar 2026',
+    make: 'BMW', model: 'M3 G80', year: 2021,
+    engine: '3.0L S58 510HP', fuelType: 'Benzin', transmission: 'Manuel',
+    vin: 'WBA7E2103MCH52841', km: '10.000',
+    stage: 'Stage 1', ecu: 'Bosch MG1CS002', readMethod: 'OBD',
+    extraServices: [],
+    price: '₺2.500', status: 'completed',
+    originalFileUploaded: false, fileAvailable: true, fileName: 'bmw_m3_g80_stage1_ORD003.bin',
+  },
+  {
+    id: 'ORD-001', date: '12 May 2026',
+    make: 'Audi', model: 'S3 8Y', year: 2022,
+    engine: '2.0L TFSI 310HP', fuelType: 'Benzin', transmission: 'DSG',
+    vin: 'WAUZZZ8YXMA012345', km: '6.000',
+    stage: 'Stage 2', ecu: 'Bosch MED17', readMethod: 'OBD',
+    extraServices: ['Vmax Kaldırma'],
+    price: '₺2.750', status: 'completed',
+    originalFileUploaded: false, fileAvailable: true, fileName: 'audi_s3_8y_stage2_ORD001.bin',
+  },
+];
+
+const STATUS_LABEL: Record<OrderStatus, string> = {
+  pending: 'Beklemede', processing: 'İşlemde', completed: 'Tamamlandı', cancelled: 'İptal'
+};
 
 @Component({
   selector: 'app-orders-page',
   standalone: true,
-  imports: [FormsModule],
+  imports: [FormsModule, DecimalPipe],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
 <div class="op">
 
-  <!-- HEADER -->
+  @if (currentView() === 'list') {
+  <!-- ══ LIST ══ -->
   <div class="op__header">
     <div>
       <h1 class="op__title">Siparişlerim</h1>
-      <p class="op__sub">Oluşturduğunuz tüm chip tuning siparişleri</p>
+      <p class="op__sub">Chip tuning siparişleriniz</p>
     </div>
     <div class="op__summary">
-      <div class="op__sum-item">
-        <span class="op__sum-val">{{ orders.length }}</span>
-        <span class="op__sum-lbl">Toplam</span>
-      </div>
-      <div class="op__sum-sep"></div>
-      <div class="op__sum-item op__sum-item--green">
-        <span class="op__sum-val">{{ countBy('completed') }}</span>
-        <span class="op__sum-lbl">Tamamlandı</span>
-      </div>
-      <div class="op__sum-sep"></div>
-      <div class="op__sum-item op__sum-item--yellow">
-        <span class="op__sum-val">{{ countBy('pending') }}</span>
-        <span class="op__sum-lbl">Beklemede</span>
-      </div>
-      <div class="op__sum-sep"></div>
-      <div class="op__sum-item op__sum-item--blue">
-        <span class="op__sum-val">{{ countBy('processing') }}</span>
-        <span class="op__sum-lbl">İşlemde</span>
-      </div>
+      <div class="op__si"><span class="op__sv">{{ orders.length }}</span><span class="op__sl">Toplam</span></div>
+      <div class="op__ss"></div>
+      <div class="op__si op__si--green"><span class="op__sv">{{ countBy('completed') }}</span><span class="op__sl">Tamamlandı</span></div>
+      <div class="op__ss"></div>
+      <div class="op__si op__si--yellow"><span class="op__sv">{{ countBy('pending') }}</span><span class="op__sl">Beklemede</span></div>
+      <div class="op__ss"></div>
+      <div class="op__si op__si--blue"><span class="op__sv">{{ countBy('processing') }}</span><span class="op__sl">İşlemde</span></div>
     </div>
   </div>
 
-  <!-- FILTERS -->
   <div class="op__filters">
     <div class="op__search">
       <i class="pi pi-search"></i>
-      <input type="text" placeholder="Sipariş veya araç ara…" [(ngModel)]="search" />
+      <input type="text" placeholder="Sipariş veya araç ara…"
+        [ngModel]="search()" (ngModelChange)="search.set($event)" />
     </div>
-    <div class="op__filter-chips">
+    <div class="op__chips">
       @for (f of filterOptions; track f.value) {
-        <button class="filter-chip"
-          [class.filter-chip--active]="activeFilter() === f.value"
-          type="button"
-          (click)="activeFilter.set(f.value)">{{ f.label }}</button>
+        <button class="op__chip" [class.op__chip--active]="activeFilter() === f.value"
+          type="button" (click)="activeFilter.set(f.value)">{{ f.label }}</button>
       }
     </div>
   </div>
 
-  <!-- LAYOUT -->
-  <div class="op__layout" [class.op__layout--detail]="selectedOrder()">
-
-    <!-- TABLE -->
-    <div class="op__table-wrap">
-      <table class="op__table">
-        <thead>
-          <tr>
-            <th>Araç</th>
-            <th>Stage</th>
-            <th>ECU</th>
-            <th>Tarih</th>
-            <th>Tutar</th>
-            <th>Durum</th>
-            <th>İşlem</th>
+  <div class="op__table-wrap">
+    <table class="op__table">
+      <thead><tr>
+        <th>Araç</th><th>Servis</th><th>Tarih</th><th>Tutar</th><th>Durum</th><th>Dosya</th><th></th>
+      </tr></thead>
+      <tbody>
+        @if (filtered().length === 0) {
+          <tr><td colspan="7" class="op__empty"><i class="pi pi-inbox"></i><span>Sipariş bulunamadı</span></td></tr>
+        }
+        @for (o of filtered(); track o.id) {
+          <tr class="op__row" (click)="openDetail(o)">
+            <td>
+              <div class="op__veh">
+                <div class="op__veh-icon"><i class="pi pi-car"></i></div>
+                <div>
+                  <p class="op__veh-name">{{ o.make }} {{ o.model }}</p>
+                  <p class="op__veh-id">{{ o.id }} · {{ o.year }}</p>
+                </div>
+              </div>
+            </td>
+            <td>
+              <span class="s-chip s-chip--{{ stageKey(o.stage) }}">{{ o.stage }}</span>
+              <p class="op__ecu">{{ o.ecu }}</p>
+            </td>
+            <td class="op__muted">{{ o.date }}</td>
+            <td class="op__price">{{ o.price }}</td>
+            <td><span class="st-chip st-chip--{{o.status}}"><span class="st-dot"></span>{{ statusLabel(o.status) }}</span></td>
+            <td>
+              @if (o.fileAvailable) {
+                <button class="op__btn op__btn--dl" title="İndir" type="button" (click)="$event.stopPropagation()">
+                  <i class="pi pi-download"></i>
+                </button>
+              } @else {
+                <button class="op__btn op__btn--off" disabled><i class="pi pi-clock"></i></button>
+              }
+            </td>
+            <td>
+              <button class="op__btn" type="button" (click)="$event.stopPropagation(); openDetail(o)">
+                <i class="pi pi-chevron-right"></i>
+              </button>
+            </td>
           </tr>
-        </thead>
-        <tbody>
-          @if (filtered().length === 0) {
-            <tr>
-              <td colspan="7" class="op__empty">
-                <i class="pi pi-inbox"></i>
-                <span>Sipariş bulunamadı</span>
-              </td>
-            </tr>
-          }
-          @for (o of filtered(); track o.id) {
-            <tr class="op__row" [class.op__row--active]="selectedOrder()?.id === o.id" (click)="selectOrder(o)">
-              <td>
-                <div class="op__vehicle">
-                  <div class="op__vehicle-icon"><i class="pi pi-car"></i></div>
-                  <div>
-                    <p class="op__vehicle-name">{{ o.vehicle }}</p>
-                    <p class="op__order-id">{{ o.id }}</p>
-                  </div>
-                </div>
-              </td>
-              <td><span class="stage-chip stage-chip--{{ o.stage === 'Stage 1' ? 's1' : o.stage === 'Stage 2' ? 's2' : 's3' }}">{{ o.stage }}</span></td>
-              <td class="op__ecu">{{ o.ecu }}</td>
-              <td class="op__date">{{ o.date }}</td>
-              <td class="op__amount">{{ o.price }}</td>
-              <td>
-                <span class="status-chip status--{{ o.status }}">
-                  <span class="status-dot"></span>{{ statusLabel(o.status) }}
-                </span>
-              </td>
-              <td>
-                <div class="op__actions">
-                  @if (o.fileAvailable) {
-                    <button class="op__btn op__btn--dl" title="Dosyayı İndir" type="button" (click)="$event.stopPropagation()">
-                      <i class="pi pi-download"></i>
-                    </button>
-                  } @else {
-                    <button class="op__btn op__btn--disabled" title="Dosya Hazır Değil" type="button" disabled>
-                      <i class="pi pi-clock"></i>
-                    </button>
-                  }
-                  <button class="op__btn" title="Detay" type="button" (click)="$event.stopPropagation(); selectOrder(o)">
-                    <i class="pi pi-chevron-right"></i>
-                  </button>
-                </div>
-              </td>
-            </tr>
-          }
-        </tbody>
-      </table>
+        }
+      </tbody>
+    </table>
+  </div>
+
+  } @else {
+  <!-- ══ DETAIL ══ -->
+  @if (selectedOrder(); as o) {
+  <div class="od">
+
+    <!-- Topbar -->
+    <div class="od__topbar">
+      <button class="od__back" type="button" (click)="goBack()">
+        <i class="pi pi-arrow-left"></i> Siparişlerim
+      </button>
+      <span class="od__bc">/ {{ o.id }}</span>
+      <div class="od__topbar-right">
+        <span class="st-chip st-chip--{{o.status}}"><span class="st-dot"></span>{{ statusLabel(o.status) }}</span>
+        <span class="od__price-hero">{{ o.price }}</span>
+      </div>
     </div>
 
-    <!-- DETAIL PANEL -->
-    @if (selectedOrder(); as o) {
-      <div class="op-detail">
-
-        <div class="op-detail__head">
-          <div>
-            <p class="op-detail__id">{{ o.id }}</p>
-            <h3 class="op-detail__vehicle">{{ o.vehicle }}</h3>
-          </div>
-          <button class="op-close-btn" type="button" (click)="selectedOrder.set(null)"><i class="pi pi-times"></i></button>
-        </div>
-
-        <!-- Status -->
-        <div class="op-detail__status-bar">
-          <span class="status-chip status--{{ o.status }}"><span class="status-dot"></span>{{ statusLabel(o.status) }}</span>
-          @if (o.status === 'pending') {
-            <span class="op-detail__hint"><i class="pi pi-info-circle"></i> Siparişiniz inceleniyor, kısa süre içinde hazırlanacak.</span>
-          }
-          @if (o.status === 'processing') {
-            <span class="op-detail__hint"><i class="pi pi-cog"></i> Yazılım dosyanız hazırlanıyor…</span>
-          }
-        </div>
-
-        <!-- Info grid -->
-        <div class="op-detail__section">
-          <p class="op-detail__section-title">Sipariş Bilgileri</p>
-          <div class="op-info-grid">
-            <div class="op-info-item"><span class="op-info-item__lbl">Stage</span>
-              <span class="stage-chip stage-chip--{{ o.stage === 'Stage 1' ? 's1' : o.stage === 'Stage 2' ? 's2' : 's3' }}">{{ o.stage }}</span>
+    <!-- Progress stepper -->
+    @if (o.status !== 'cancelled') {
+      <div class="od__progress">
+        @for (step of progressSteps; track step.rank; let last = $last) {
+          <div class="od-ps"
+            [class.od-ps--done]="progressRank(o.status) > step.rank"
+            [class.od-ps--active]="progressRank(o.status) === step.rank">
+            <div class="od-ps__circle">
+              @if (progressRank(o.status) > step.rank) {
+                <i class="pi pi-check"></i>
+              } @else {
+                <i [class]="'pi ' + step.icon"></i>
+              }
             </div>
-            <div class="op-info-item"><span class="op-info-item__lbl">ECU</span><span class="op-info-item__val">{{ o.ecu }}</span></div>
-            <div class="op-info-item"><span class="op-info-item__lbl">Tarih</span><span class="op-info-item__val">{{ o.date }}</span></div>
-            <div class="op-info-item"><span class="op-info-item__lbl">Ücret</span><span class="op-info-item__val op-info-item__val--price">{{ o.price }}</span></div>
-            @if (o.transmission) { <div class="op-info-item"><span class="op-info-item__lbl">Şanzıman</span><span class="op-info-item__val">{{ o.transmission }}</span></div> }
-            @if (o.km) { <div class="op-info-item"><span class="op-info-item__lbl">Kilometre</span><span class="op-info-item__val">{{ o.km }} km</span></div> }
-            @if (o.vin) { <div class="op-info-item op-info-item--full"><span class="op-info-item__lbl">VIN</span><span class="op-info-item__val op-info-item__val--mono">{{ o.vin }}</span></div> }
+            <div class="od-ps__text">
+              <span class="od-ps__label">{{ step.label }}</span>
+              @if (progressRank(o.status) === step.rank && step.hint) {
+                <span class="od-ps__hint">{{ step.hint }}</span>
+              }
+            </div>
           </div>
-          @if (o.notes) {
-            <div class="op-notes"><i class="pi pi-comment"></i> {{ o.notes }}</div>
+          @if (!last) {
+            <div class="od-ps__line" [class.od-ps__line--done]="progressRank(o.status) > step.rank"></div>
+          }
+        }
+      </div>
+    } @else {
+      <div class="od__cancelled"><i class="pi pi-times-circle"></i> Bu sipariş iptal edilmiştir.</div>
+    }
+
+    <!-- Checkout layout -->
+    <div class="od__layout">
+
+      <!-- STEPS (left) -->
+      <div class="od__steps">
+
+        <!-- STEP 1: Araç Bilgileri -->
+        <div class="step-card">
+          <div class="step-card__head">
+            <div class="step-num">1</div>
+            <div>
+              <h2 class="step-card__title">Araç Bilgileri</h2>
+              <p class="step-card__sub">{{ o.make }} {{ o.model }} &middot; {{ o.year }}</p>
+            </div>
+          </div>
+
+          <div class="engine-strip">
+            <div class="es__item"><span class="es__k">Marka</span><span class="es__v">{{ o.make }}</span></div>
+            <div class="es__sep"></div>
+            <div class="es__item"><span class="es__k">Model</span><span class="es__v">{{ o.model }}</span></div>
+            <div class="es__sep"></div>
+            <div class="es__item"><span class="es__k">Yıl</span><span class="es__v">{{ o.year }}</span></div>
+            <div class="es__sep"></div>
+            <div class="es__item"><span class="es__k">Motor</span><span class="es__v">{{ o.engine }}</span></div>
+            <div class="es__sep"></div>
+            <div class="es__item"><span class="es__k">Yakıt</span>
+              <span class="fuel-badge fuel-badge--{{ o.fuelType === 'Benzin' ? 'petrol' : o.fuelType === 'Dizel' ? 'diesel' : 'hybrid' }}">{{ o.fuelType }}</span>
+            </div>
+          </div>
+
+          <div class="od__detail-row">
+            <div class="od__di"><span class="od__dk">Şanzıman</span><span class="od__dv">{{ o.transmission }}</span></div>
+            <div class="od__di"><span class="od__dk">Kilometre</span><span class="od__dv">{{ o.km }} km</span></div>
+          </div>
+
+          @if (o.vin) {
+            <div class="od__vin-row">
+              <span class="od__dk">VIN / Şasi No</span>
+              <span class="od__vin">{{ o.vin }}</span>
+            </div>
           }
         </div>
 
-        <!-- File section -->
-        <div class="op-detail__section">
-          <p class="op-detail__section-title">Yazılım Dosyası</p>
-          @if (o.fileAvailable && o.fileName) {
-            <div class="op-file-ready">
-              <i class="pi pi-file"></i>
-              <div class="op-file-ready__info">
-                <p class="op-file-ready__name">{{ o.fileName }}</p>
-                <p class="op-file-ready__sub">Dosyanız hazır, indirebilirsiniz.</p>
+        <!-- STEP 2: Servis Detayları -->
+        <div class="step-card">
+          <div class="step-card__head">
+            <div class="step-num">2</div>
+            <div>
+              <h2 class="step-card__title">Servis Detayları</h2>
+              <p class="step-card__sub">{{ o.stage }} &middot; {{ o.ecu }} &middot; {{ o.readMethod }}</p>
+            </div>
+          </div>
+
+          <div class="od-tune-card od-tune-card--{{ stageKey(o.stage) }}">
+            <div class="od-tune-card__left">
+              <span class="od-tune-card__badge od-tune-card__badge--{{ stageKey(o.stage) }}">{{ o.stage }}</span>
+              <div class="od-tune-card__info">
+                <div class="od-tune-card__row"><i class="pi pi-microchip"></i>{{ o.ecu }}</div>
+                <div class="od-tune-card__row"><i class="pi pi-database"></i>{{ o.readMethod }} Okuma</div>
               </div>
-              <button class="op-dl-btn" type="button">
-                <i class="pi pi-download"></i> İndir
-              </button>
             </div>
-          } @else if (o.status === 'completed') {
-            <div class="op-file-missing"><i class="pi pi-clock"></i><p>Dosya yükleniyor, lütfen bekleyin.</p></div>
-          } @else {
-            <div class="op-file-missing"><i class="pi pi-hourglass"></i><p>Sipariş tamamlandıktan sonra dosyanız burada görünecek.</p></div>
+            <div class="od-tune-card__price">{{ o.price }}</div>
+          </div>
+
+          @if (o.extraServices.length > 0) {
+            <div class="od__extras">
+              <span class="od__dk">Ek Servisler</span>
+              <div class="od__extras-grid">
+                @for (s of o.extraServices; track s) {
+                  <div class="od-mod-tile">
+                    <div class="od-mod-tile__left">
+                      <span class="od-mod-tile__icon"><i class="pi pi-check-circle"></i></span>
+                      <div>
+                        <p class="od-mod-tile__name">{{ s }}</p>
+                        <p class="od-mod-tile__desc">{{ extraDesc(s) }}</p>
+                      </div>
+                    </div>
+                    <span class="od-mod-tile__price">+{{ extraPrice(s) | number }}₺</span>
+                  </div>
+                }
+              </div>
+              <div class="od__extras-total">
+                <span>Ek Servis Toplamı</span>
+                <span class="od__extras-total__val">+{{ extrasTotal(o.extraServices) | number }}₺</span>
+              </div>
+            </div>
           }
         </div>
 
-        <!-- Upload original file -->
-        <div class="op-detail__section">
-          <p class="op-detail__section-title">Orijinal Dosya Yükle <span class="op-detail__optional">(opsiyonel)</span></p>
-          <p class="op-detail__hint-text">Mevcut araç yazılım dosyanız varsa yükleyebilirsiniz.</p>
-          <div class="op-upload-zone" [class.op-upload-zone--filled]="uploadedFile()"
+        <!-- STEP 3: Notlar -->
+        @if (o.notes) {
+          <div class="step-card">
+            <div class="step-card__head">
+              <div class="step-num">3</div>
+              <div>
+                <h2 class="step-card__title">Notlar</h2>
+                <p class="step-card__sub">Siparişe eklediğiniz özel istekler</p>
+              </div>
+            </div>
+            <div class="od__note-box"><i class="pi pi-comment"></i><p>{{ o.notes }}</p></div>
+          </div>
+        }
+
+      </div><!-- /steps -->
+
+      <!-- SIDEBAR (right) -->
+      <div class="od__sidebar">
+
+        <!-- File download card -->
+        <div class="od__file-card">
+          <div class="od__file-card-head">
+            <i class="pi pi-file-check od__file-card-icon"
+              [class.od__file-card-icon--green]="o.fileAvailable"
+              [class.od__file-card-icon--blue]="o.status === 'processing' && !o.fileAvailable"
+              [class.od__file-card-icon--amber]="o.status === 'pending'"></i>
+            <div>
+              <p class="od__file-card-title">Yazılım Dosyası</p>
+              @if (o.fileAvailable) {
+                <p class="od__file-card-sub od__file-card-sub--green">Hazır — İndirebilirsiniz</p>
+              } @else if (o.status === 'processing') {
+                <p class="od__file-card-sub od__file-card-sub--blue">Hazırlanıyor…</p>
+              } @else {
+                <p class="od__file-card-sub">İnceleniyor</p>
+              }
+            </div>
+          </div>
+
+          @if (o.fileAvailable && o.fileName) {
+            <div class="od__file-name-row">
+              <i class="pi pi-file"></i>
+              <span>{{ o.fileName }}</span>
+            </div>
+            <button class="od__dl-btn" type="button">
+              <i class="pi pi-download"></i> Dosyayı İndir
+            </button>
+          } @else if (o.status === 'processing') {
+            <div class="od__progress-hint">
+              <div class="od__progress-bar"><div class="od__progress-bar__fill"></div></div>
+              <p>Yazılım dosyanız hazırlanıyor, tamamlandığında burada görünecek.</p>
+            </div>
+          } @else if (o.status === 'pending') {
+            <p class="od__file-wait">Ekibimiz siparişinizi inceliyor. Onaylandıktan sonra hazırlanmaya başlanacak.</p>
+          }
+        </div>
+
+        <!-- Upload original -->
+        <div class="step-card" style="padding:1.25rem">
+          <div class="step-card__head" style="margin-bottom:0.75rem">
+            <div class="step-num step-num--sm">4</div>
+            <div>
+              <h2 class="step-card__title" style="font-size:0.85rem">Orijinal Dosya <span class="od__opt">(opsiyonel)</span></h2>
+              <p class="step-card__sub">Mevcut ECU yazılımınızı yükleyin</p>
+            </div>
+          </div>
+
+          @if (o.originalFileUploaded && o.originalFileName && !uploadedFile()) {
+            <div class="od__orig-chip">
+              <i class="pi pi-file-export"></i>
+              <span>{{ o.originalFileName }}</span>
+              <span class="od__orig-chip-badge">Yüklendi</span>
+            </div>
+          }
+
+          <div class="od__upload-zone" [class.od__upload-zone--filled]="uploadedFile()"
             (dragover)="$event.preventDefault()" (drop)="onDrop($event)">
             @if (!uploadedFile()) {
               <i class="pi pi-cloud-upload"></i>
-              <p>Dosyayı sürükle veya seç</p>
-              <label class="op-upload-btn">
+              <p>.bin · .ori · .hex</p>
+              <label class="od__upload-btn">
                 <i class="pi pi-folder-open"></i> Dosya Seç
                 <input type="file" accept=".bin,.ori,.hex,.mod" (change)="onFileSelect($event)" style="display:none" />
               </label>
             } @else {
-              <i class="pi pi-file" style="color:#4ade80"></i>
-              <span class="op-upload-fname">{{ uploadedFile()!.name }}</span>
-              <div class="op-upload-actions">
-                <button type="button" class="op-upload-send-btn" (click)="sendOriginalFile()">
-                  <i class="pi pi-send"></i> Gönder
-                </button>
-                <button type="button" class="op-upload-remove" (click)="uploadedFile.set(null)"><i class="pi pi-times"></i></button>
+              <i class="pi pi-file" style="color:#4ade80;font-size:1.2rem;flex-shrink:0"></i>
+              <span class="od__upload-fname">{{ uploadedFile()!.name }}</span>
+              <div class="od__upload-acts">
+                <button type="button" class="od__send-btn" (click)="sendOriginalFile()"><i class="pi pi-send"></i> Gönder</button>
+                <button type="button" class="od__rm-btn" (click)="uploadedFile.set(null)"><i class="pi pi-times"></i></button>
               </div>
             }
           </div>
+
           @if (fileSent()) {
-            <div class="op-sent-note"><i class="pi pi-check-circle"></i> Dosyanız başarıyla gönderildi.</div>
+            <div class="od__sent"><i class="pi pi-check-circle"></i> Dosyanız başarıyla gönderildi.</div>
           }
         </div>
 
-      </div>
-    }
-
+      </div><!-- /sidebar -->
+    </div><!-- /layout -->
   </div>
-
-  <!-- Pagination -->
-  <div class="op__pagination">
-    <span class="op__page-info">{{ filtered().length }} / {{ orders.length }} sipariş gösteriliyor</span>
-    <div class="op__page-btns">
-      <button class="op__page-btn" disabled><i class="pi pi-chevron-left"></i></button>
-      <button class="op__page-btn op__page-btn--active">1</button>
-      <button class="op__page-btn"><i class="pi pi-chevron-right"></i></button>
-    </div>
-  </div>
+  }
+  }
 
 </div>
   `,
   styles: [`
     .op { display: flex; flex-direction: column; gap: 1.5rem; }
 
-    /* ── Header ── */
+    /* ── LIST ── */
     .op__header { display: flex; align-items: flex-start; justify-content: space-between; flex-wrap: wrap; gap: 1rem; }
-    .op__title { font-size: 1.6rem; font-weight: 700; color: #fff; margin: 0; }
-    .op__sub   { font-size: 0.875rem; color: rgba(255,255,255,0.4); margin: 0.25rem 0 0; }
-
+    .op__title  { font-size: 1.6rem; font-weight: 700; color: #fff; margin: 0; }
+    .op__sub    { font-size: 0.875rem; color: rgba(255,255,255,0.4); margin: 0.25rem 0 0; }
     .op__summary {
       display: flex; align-items: center; gap: 1.25rem;
-      background: #1a1d27; border: 1px solid rgba(255,255,255,0.08); border-radius: 14px; padding: 1rem 1.5rem;
+      background: #1a1d27; border: 1px solid rgba(255,255,255,0.08); border-radius: 14px; padding: 0.875rem 1.4rem;
     }
-    .op__sum-item { display: flex; flex-direction: column; align-items: center; gap: 2px; }
-    .op__sum-val  { font-size: 1.2rem; font-weight: 700; color: #fff; }
-    .op__sum-lbl  { font-size: 0.7rem; color: rgba(255,255,255,0.4); white-space: nowrap; }
-    .op__sum-sep  { width: 1px; height: 32px; background: rgba(255,255,255,0.08); }
-    .op__sum-item--green .op__sum-val { color: #4ade80; }
-    .op__sum-item--yellow .op__sum-val { color: #fbbf24; }
-    .op__sum-item--blue  .op__sum-val { color: #60a5fa; }
+    .op__si  { display: flex; flex-direction: column; align-items: center; gap: 2px; }
+    .op__sv  { font-size: 1.15rem; font-weight: 700; color: #fff; }
+    .op__sl  { font-size: 0.68rem; color: rgba(255,255,255,0.4); white-space: nowrap; }
+    .op__ss  { width: 1px; height: 30px; background: rgba(255,255,255,0.08); }
+    .op__si--green  .op__sv { color: #4ade80; }
+    .op__si--yellow .op__sv { color: #fbbf24; }
+    .op__si--blue   .op__sv { color: #60a5fa; }
 
-    /* ── Filters ── */
     .op__filters { display: flex; align-items: center; gap: 1rem; flex-wrap: wrap; }
     .op__search {
       display: flex; align-items: center; gap: 0.625rem;
       background: #1a1d27; border: 1px solid rgba(255,255,255,0.08); border-radius: 10px; padding: 0.625rem 1rem;
-      flex: 1; min-width: 200px; transition: border-color 200ms;
-      &:focus-within { border-color: rgba(230,57,70,0.5); }
+      flex: 1; min-width: 200px;
       i { color: rgba(255,255,255,0.35); font-size: 0.875rem; }
       input { background: transparent; border: none; outline: none; color: rgba(255,255,255,0.85); font-size: 0.875rem; width: 100%; &::placeholder { color: rgba(255,255,255,0.3); } }
     }
-    .op__filter-chips { display: flex; gap: 0.5rem; flex-wrap: wrap; }
-    .filter-chip {
+    .op__chips { display: flex; gap: 0.5rem; flex-wrap: wrap; }
+    .op__chip {
       padding: 0.5rem 1rem; border-radius: 8px; border: 1px solid rgba(255,255,255,0.08);
       background: #1a1d27; color: rgba(255,255,255,0.5); font-size: 0.8rem; cursor: pointer; transition: all 180ms;
       &:hover { border-color: rgba(255,255,255,0.2); color: rgba(255,255,255,0.85); }
       &--active { background: rgba(230,57,70,0.15); border-color: rgba(230,57,70,0.4); color: #e63946; }
     }
 
-    /* ── Layout ── */
-    .op__layout {
-      display: grid; grid-template-columns: 1fr; gap: 1.25rem; align-items: start;
-      &--detail { grid-template-columns: 1fr 380px; }
-      @media(max-width:1100px) { &--detail { grid-template-columns: 1fr; } }
+    .op__table-wrap { background: #1a1d27; border: 1px solid rgba(255,255,255,0.07); border-radius: 16px; overflow: auto; }
+    .op__table { width: 100%; border-collapse: collapse; min-width: 700px;
+      thead th { padding: 1rem 1.1rem; font-size: 0.72rem; font-weight: 600; color: rgba(255,255,255,0.35); text-transform: uppercase; letter-spacing: 0.06em; text-align: left; border-bottom: 1px solid rgba(255,255,255,0.06); white-space: nowrap; }
     }
-
-    /* ── Table ── */
-    .op__table-wrap { background: #1a1d27; border: 1px solid rgba(255,255,255,0.07); border-radius: 16px; overflow: hidden; }
-    .op__table { width: 100%; border-collapse: collapse; }
-    .op__table thead th {
-      padding: 1rem 1.25rem; font-size: 0.72rem; font-weight: 600; color: rgba(255,255,255,0.35);
-      text-transform: uppercase; letter-spacing: 0.06em; text-align: left;
-      border-bottom: 1px solid rgba(255,255,255,0.06); white-space: nowrap;
-    }
-    .op__row { border-bottom: 1px solid rgba(255,255,255,0.04); transition: background 160ms; cursor: pointer;
+    .op__row { border-bottom: 1px solid rgba(255,255,255,0.04); cursor: pointer; transition: background 160ms;
       &:last-child { border-bottom: none; }
       &:hover { background: rgba(255,255,255,0.025); }
-      &--active { background: rgba(230,57,70,0.05) !important; }
-      td { padding: 1rem 1.25rem; font-size: 0.82rem; color: rgba(255,255,255,0.7); vertical-align: middle; }
+      td { padding: 0.9rem 1.1rem; font-size: 0.82rem; color: rgba(255,255,255,0.7); vertical-align: middle; }
     }
-    .op__vehicle { display: flex; align-items: center; gap: 0.625rem; }
-    .op__vehicle-icon { width: 32px; height: 32px; border-radius: 8px; background: rgba(230,57,70,0.12); color: #e63946; display: flex; align-items: center; justify-content: center; font-size: 0.85rem; flex-shrink: 0; }
-    .op__vehicle-name { font-weight: 600; color: rgba(255,255,255,0.9); margin: 0 0 2px; white-space: nowrap; }
-    .op__order-id { font-size: 0.68rem; color: rgba(255,255,255,0.3); margin: 0; font-family: monospace; }
-    .op__ecu   { font-size: 0.75rem; color: rgba(255,255,255,0.45); }
-    .op__date  { white-space: nowrap; }
-    .op__amount { font-weight: 700; color: #fff; white-space: nowrap; }
-
-    .stage-chip {
-      display: inline-flex; padding: 0.13rem 0.5rem; border-radius: 5px; font-size: 0.65rem; font-weight: 700;
-      &--s1 { background: rgba(96,165,250,0.12);  color: #60a5fa; border: 1px solid rgba(96,165,250,0.25);  }
-      &--s2 { background: rgba(230,57,70,0.12);   color: #e63946; border: 1px solid rgba(230,57,70,0.25);   }
-      &--s3 { background: rgba(167,139,250,0.12); color: #a78bfa; border: 1px solid rgba(167,139,250,0.25); }
-    }
-    .status-chip { display: inline-flex; align-items: center; gap: 5px; font-size: 0.72rem; font-weight: 600; padding: 4px 10px; border-radius: 20px; white-space: nowrap; }
-    .status-dot  { width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
-    .status--pending    { background: rgba(251,191,36,0.12);  color: #fbbf24; }
-    .status--processing { background: rgba(96,165,250,0.12);  color: #60a5fa; }
-    .status--completed  { background: rgba(74,222,128,0.12);  color: #4ade80; }
-    .status--cancelled  { background: rgba(255,255,255,0.06); color: rgba(255,255,255,0.4); }
-
-    .op__actions { display: flex; gap: 0.5rem; }
+    .op__veh { display: flex; align-items: center; gap: 0.625rem; }
+    .op__veh-icon { width: 34px; height: 34px; border-radius: 8px; background: rgba(230,57,70,0.1); color: #e63946; display: flex; align-items: center; justify-content: center; font-size: 0.85rem; flex-shrink: 0; }
+    .op__veh-name { font-weight: 600; color: rgba(255,255,255,0.9); margin: 0 0 2px; white-space: nowrap; }
+    .op__veh-id   { font-size: 0.68rem; color: rgba(255,255,255,0.3); margin: 0; font-family: monospace; }
+    .op__ecu  { font-size: 0.7rem; color: rgba(255,255,255,0.4); margin: 3px 0 0; }
+    .op__muted { color: rgba(255,255,255,0.4) !important; white-space: nowrap; }
+    .op__price { font-weight: 700; color: #fff !important; white-space: nowrap; }
+    .op__empty { text-align: center; padding: 3rem !important; color: rgba(255,255,255,0.3); i { font-size: 2rem; display: block; margin-bottom: 0.5rem; } }
     .op__btn {
       width: 32px; height: 32px; border-radius: 8px; border: none; cursor: pointer;
       display: flex; align-items: center; justify-content: center;
-      background: rgba(255,255,255,0.06); color: rgba(255,255,255,0.5);
-      transition: background 180ms, color 180ms;
+      background: rgba(255,255,255,0.06); color: rgba(255,255,255,0.5); transition: all 180ms;
       &:hover { background: rgba(255,255,255,0.12); color: #fff; }
       &--dl { background: rgba(74,222,128,0.12); color: #4ade80; &:hover { background: rgba(74,222,128,0.2); } }
-      &--disabled { opacity: 0.4; cursor: not-allowed; }
+      &--off { opacity: 0.35; cursor: not-allowed; }
     }
-    .op__empty { text-align: center; padding: 3rem !important; color: rgba(255,255,255,0.3); i { font-size: 2rem; display: block; margin-bottom: 0.5rem; } }
 
-    /* ── Detail Panel ── */
-    .op-detail {
-      background: #1a1d27; border: 1px solid rgba(255,255,255,0.07); border-radius: 16px; overflow: hidden;
-      display: flex; flex-direction: column;
-      animation: slideIn 260ms cubic-bezier(0.22,1,0.36,1) both;
+    /* Shared chips */
+    .s-chip {
+      display: inline-flex; padding: 0.13rem 0.5rem; border-radius: 5px; font-size: 0.67rem; font-weight: 700;
+      &--s1 { background: rgba(96,165,250,0.12); color: #60a5fa; border: 1px solid rgba(96,165,250,0.25); }
+      &--s2 { background: rgba(230,57,70,0.12);  color: #e63946; border: 1px solid rgba(230,57,70,0.25); }
+      &--s3 { background: rgba(167,139,250,0.12);color: #a78bfa; border: 1px solid rgba(167,139,250,0.25); }
     }
-    @keyframes slideIn { from { opacity: 0; transform: translateX(16px); } to { opacity: 1; transform: translateX(0); } }
+    .st-chip { display: inline-flex; align-items: center; gap: 5px; font-size: 0.72rem; font-weight: 600; padding: 4px 10px; border-radius: 20px; white-space: nowrap; }
+    .st-dot  { width: 6px; height: 6px; border-radius: 50%; background: currentColor; flex-shrink: 0; }
+    .st-chip--pending    { background: rgba(251,191,36,0.12);  color: #fbbf24; }
+    .st-chip--processing { background: rgba(96,165,250,0.12);  color: #60a5fa; }
+    .st-chip--completed  { background: rgba(74,222,128,0.12);  color: #4ade80; }
+    .st-chip--cancelled  { background: rgba(255,255,255,0.06); color: rgba(255,255,255,0.4); }
 
-    .op-detail__head {
-      display: flex; align-items: flex-start; justify-content: space-between;
-      padding: 1.25rem; border-bottom: 1px solid rgba(255,255,255,0.07); gap: 0.75rem;
+    /* Fuel badges */
+    .fuel-badge { display: inline-flex; padding: 0.15rem 0.55rem; border-radius: 6px; font-size: 0.72rem; font-weight: 700;
+      &--petrol  { background: rgba(251,191,36,0.12); color: #fbbf24; border: 1px solid rgba(251,191,36,0.25); }
+      &--diesel  { background: rgba(96,165,250,0.12); color: #60a5fa; border: 1px solid rgba(96,165,250,0.25); }
+      &--hybrid  { background: rgba(74,222,128,0.12); color: #4ade80; border: 1px solid rgba(74,222,128,0.25); }
     }
-    .op-detail__id      { font-family: monospace; font-size: 0.75rem; font-weight: 700; color: #e63946; margin: 0 0 3px; }
-    .op-detail__vehicle { font-size: 1.05rem; font-weight: 700; color: #fff; margin: 0; }
-    .op-close-btn { width: 30px; height: 30px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.1); background: transparent; color: rgba(255,255,255,0.4); cursor: pointer; display: flex; align-items: center; justify-content: center; flex-shrink: 0; &:hover { color: #fff; background: rgba(255,255,255,0.08); } }
 
-    .op-detail__status-bar { padding: 0.75rem 1.25rem; border-bottom: 1px solid rgba(255,255,255,0.06); display: flex; align-items: center; gap: 0.75rem; flex-wrap: wrap; }
-    .op-detail__hint { font-size: 0.75rem; color: rgba(255,255,255,0.4); display: flex; align-items: center; gap: 0.35rem; i { font-size: 0.75rem; color: #fbbf24; } }
+    /* ══ DETAIL ══ */
+    .od { display: flex; flex-direction: column; gap: 1.5rem; animation: fadeIn 220ms ease both; }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
 
-    .op-detail__section { padding: 1rem 1.25rem; border-bottom: 1px solid rgba(255,255,255,0.06); &:last-child { border-bottom: none; } }
-    .op-detail__section-title { font-size: 0.68rem; font-weight: 700; color: rgba(255,255,255,0.3); text-transform: uppercase; letter-spacing: .07em; margin: 0 0 0.75rem; }
-    .op-detail__optional { font-size: 0.6rem; color: rgba(255,255,255,0.2); text-transform: none; letter-spacing: 0; font-weight: 400; }
-    .op-detail__hint-text { font-size: 0.75rem; color: rgba(255,255,255,0.3); margin: -0.25rem 0 0.75rem; }
-
-    .op-info-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0.65rem; }
-    .op-info-item {
-      display: flex; flex-direction: column; gap: 2px;
-      &--full { grid-column: 1 / -1; }
-      &__lbl { font-size: 0.65rem; color: rgba(255,255,255,0.3); text-transform: uppercase; letter-spacing: .04em; }
-      &__val { font-size: 0.82rem; color: rgba(255,255,255,0.85); font-weight: 500; &--price { color: #fff; font-weight: 700; } &--mono { font-family: monospace; font-size: 0.72rem; } }
+    .od__topbar { display: flex; align-items: center; gap: 0.75rem; }
+    .od__back {
+      display: flex; align-items: center; gap: 0.5rem; padding: 0.5rem 1rem; border-radius: 10px;
+      border: 1px solid rgba(255,255,255,0.1); background: transparent; color: rgba(255,255,255,0.6); font-size: 0.82rem; cursor: pointer; transition: all 160ms;
+      &:hover { background: rgba(255,255,255,0.07); color: #fff; } i { font-size: 0.75rem; }
     }
-    .op-notes { margin-top: 0.75rem; display: flex; align-items: flex-start; gap: 0.5rem; font-size: 0.8rem; color: rgba(255,255,255,0.5); background: rgba(255,255,255,0.03); border-radius: 8px; padding: 0.6rem 0.75rem; i { color: rgba(230,57,70,0.6); flex-shrink: 0; margin-top: 1px; } }
+    .od__bc { font-size: 0.82rem; color: rgba(255,255,255,0.3); }
+    .od__topbar-right { margin-left: auto; display: flex; align-items: center; gap: 0.85rem; }
+    .od__price-hero { font-size: 1.1rem; font-weight: 800; color: #fff; }
 
-    /* File section */
-    .op-file-ready {
-      display: flex; align-items: center; gap: 0.75rem; padding: 0.85rem 1rem; border-radius: 12px;
-      background: rgba(74,222,128,0.07); border: 1px solid rgba(74,222,128,0.18);
-      i { font-size: 1.4rem; color: #4ade80; flex-shrink: 0; }
-      &__info { flex: 1; min-width: 0; }
-      &__name { font-size: 0.78rem; font-weight: 600; color: #fff; margin: 0 0 2px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-family: monospace; }
-      &__sub  { font-size: 0.7rem; color: rgba(74,222,128,0.7); margin: 0; }
+    /* Progress stepper */
+    .od__progress {
+      display: flex; align-items: flex-start;
+      background: #1a1d27; border: 1px solid rgba(255,255,255,0.07); border-radius: 18px; padding: 1.25rem 2rem;
+      gap: 0;
     }
-    .op-dl-btn { display: flex; align-items: center; gap: 0.4rem; flex-shrink: 0; padding: 0.45rem 0.85rem; border-radius: 8px; border: 1px solid rgba(74,222,128,0.3); background: rgba(74,222,128,0.12); color: #4ade80; font-size: 0.78rem; font-weight: 600; cursor: pointer; &:hover { background: rgba(74,222,128,0.2); } }
-    .op-file-missing { display: flex; align-items: center; gap: 0.5rem; font-size: 0.8rem; color: rgba(255,255,255,0.3); i { flex-shrink: 0; } }
+    .od-ps {
+      display: flex; align-items: center; gap: 0.7rem; flex-shrink: 0;
+      &__circle {
+        width: 36px; height: 36px; border-radius: 50%; border: 2px solid rgba(255,255,255,0.1);
+        background: rgba(255,255,255,0.04); display: flex; align-items: center; justify-content: center;
+        color: rgba(255,255,255,0.3); font-size: 0.8rem; flex-shrink: 0; transition: all 280ms;
+      }
+      &__text { display: flex; flex-direction: column; gap: 1px; }
+      &__label { font-size: 0.75rem; color: rgba(255,255,255,0.4); font-weight: 500; white-space: nowrap; }
+      &__hint  { font-size: 0.65rem; color: rgba(255,255,255,0.25); white-space: nowrap; }
+      &__line  { flex: 1; height: 2px; background: rgba(255,255,255,0.08); min-width: 24px; margin: 0 0.75rem; margin-top: 17px; align-self: flex-start; transition: background 280ms; &--done { background: rgba(74,222,128,0.5); } }
+      &--done .od-ps__circle { border-color: #4ade80; background: rgba(74,222,128,0.12); color: #4ade80; }
+      &--done .od-ps__label  { color: rgba(255,255,255,0.6); }
+      &--active .od-ps__circle { border-color: #60a5fa; background: rgba(96,165,250,0.15); color: #60a5fa; box-shadow: 0 0 16px rgba(96,165,250,0.3); }
+      &--active .od-ps__label  { color: #60a5fa; font-weight: 700; }
+    }
+    .od__cancelled { display: flex; align-items: center; gap: 0.6rem; padding: 0.85rem 1.25rem; border-radius: 12px; background: rgba(248,113,113,0.08); border: 1px solid rgba(248,113,113,0.2); color: #f87171; font-size: 0.85rem; i { font-size: 1rem; } }
+
+    /* Checkout layout */
+    .od__layout { display: grid; grid-template-columns: 1fr 340px; gap: 1.5rem; align-items: start; @media(max-width:1100px) { grid-template-columns: 1fr; } }
+    .od__steps  { display: flex; flex-direction: column; gap: 1.25rem; }
+    .od__sidebar { display: flex; flex-direction: column; gap: 1.25rem; }
+
+    /* Step card — matches tools-page */
+    .step-card {
+      background: #1a1d27; border: 1px solid rgba(255,255,255,0.07); border-radius: 20px; padding: 1.75rem;
+      &__head { display: flex; align-items: flex-start; gap: 1rem; margin-bottom: 1.5rem; }
+      &__title { font-size: 1rem; font-weight: 700; color: #fff; margin: 0 0 2px; }
+      &__sub   { font-size: 0.78rem; color: rgba(255,255,255,0.4); margin: 0; }
+    }
+    .step-num {
+      width: 32px; height: 32px; border-radius: 10px; flex-shrink: 0;
+      background: linear-gradient(135deg, #e63946, #c1121f);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 0.85rem; font-weight: 800; color: #fff;
+      &--sm { width: 26px; height: 26px; border-radius: 8px; font-size: 0.75rem; }
+    }
+    .od__opt { font-size: 0.62rem; color: rgba(255,255,255,0.2); font-weight: 400; }
+
+    /* Engine info strip */
+    .engine-strip {
+      display: flex; flex-wrap: wrap;
+      background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.07);
+      border-radius: 12px; overflow: hidden; margin-bottom: 1rem;
+    }
+    .es__item { flex: 1; min-width: 110px; display: flex; flex-direction: column; gap: 4px; padding: 0.875rem 1.1rem; }
+    .es__sep  { width: 1px; align-self: stretch; background: rgba(255,255,255,0.06); flex-shrink: 0; }
+    .es__k { font-size: 0.6rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: rgba(255,255,255,0.3); }
+    .es__v { font-size: 0.82rem; font-weight: 700; color: rgba(255,255,255,0.85); }
+
+    /* Detail row */
+    .od__detail-row { display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem; margin-bottom: 0.85rem; }
+    .od__di { background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.06); border-radius: 10px; padding: 0.75rem 1rem; display: flex; flex-direction: column; gap: 3px; }
+    .od__dk { font-size: 0.6rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: rgba(255,255,255,0.3); }
+    .od__dv { font-size: 0.85rem; font-weight: 600; color: rgba(255,255,255,0.85); }
+    .od__vin-row { display: flex; flex-direction: column; gap: 4px; padding: 0.75rem 1rem; background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.06); border-radius: 10px; }
+    .od__vin { font-family: 'Courier New', monospace; font-size: 0.82rem; font-weight: 700; color: #e63946; letter-spacing: 0.04em; }
+
+    /* Tune display card */
+    .od-tune-card {
+      display: flex; align-items: center; gap: 1rem; padding: 1.1rem 1.25rem; border-radius: 14px; margin-bottom: 1rem;
+      border: 1px solid rgba(255,255,255,0.08); background: rgba(255,255,255,0.03);
+      &--s1 { border-color: rgba(96,165,250,0.25); background: rgba(96,165,250,0.05); }
+      &--s2 { border-color: rgba(230,57,70,0.25);  background: rgba(230,57,70,0.05);  }
+      &--s3 { border-color: rgba(167,139,250,0.25);background: rgba(167,139,250,0.05);}
+      &__left { flex: 1; display: flex; align-items: center; gap: 1rem; min-width: 0; }
+      &__badge { padding: 0.3rem 0.75rem; border-radius: 8px; font-size: 0.75rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.05em; flex-shrink: 0;
+        &--s1 { background: rgba(96,165,250,0.15); color: #60a5fa; border: 1px solid rgba(96,165,250,0.3); }
+        &--s2 { background: rgba(230,57,70,0.15);  color: #e63946; border: 1px solid rgba(230,57,70,0.3); }
+        &--s3 { background: rgba(167,139,250,0.15);color: #a78bfa; border: 1px solid rgba(167,139,250,0.3); }
+      }
+      &__info { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+      &__row { display: flex; align-items: center; gap: 0.5rem; font-size: 0.8rem; color: rgba(255,255,255,0.7); i { font-size: 0.7rem; color: rgba(255,255,255,0.3); flex-shrink: 0; } }
+      &__price { font-size: 1.1rem; font-weight: 800; color: #fff; white-space: nowrap; flex-shrink: 0; }
+    }
+
+    /* Extra services module tiles */
+    .od__extras { margin-top: 0.25rem; display: flex; flex-direction: column; gap: 0.65rem; }
+    .od__extras-grid { display: flex; flex-direction: column; gap: 0.4rem; }
+    .od-mod-tile {
+      display: flex; align-items: center; justify-content: space-between; gap: 0.75rem;
+      padding: 0.7rem 1rem; border-radius: 11px;
+      background: rgba(245,158,11,0.05); border: 1px solid rgba(245,158,11,0.14);
+      &__left  { display: flex; align-items: center; gap: 0.65rem; flex: 1; min-width: 0; }
+      &__icon  { width: 28px; height: 28px; border-radius: 8px; background: rgba(245,158,11,0.12); color: #f59e0b; display: flex; align-items: center; justify-content: center; flex-shrink: 0; i { font-size: 0.75rem; } }
+      &__name  { font-size: 0.8rem; font-weight: 700; color: #fff; margin: 0 0 2px; }
+      &__desc  { font-size: 0.68rem; color: rgba(255,255,255,0.35); margin: 0; }
+      &__price { font-size: 0.82rem; font-weight: 800; color: #f59e0b; flex-shrink: 0; white-space: nowrap; }
+    }
+    .od__extras-total {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 0.55rem 1rem; border-radius: 10px;
+      background: rgba(245,158,11,0.08); border: 1px dashed rgba(245,158,11,0.25);
+      font-size: 0.72rem; color: rgba(255,255,255,0.4); font-weight: 600;
+      &__val { font-size: 0.88rem; font-weight: 800; color: #f59e0b; }
+    }
+
+    /* Notes */
+    .od__note-box { display: flex; align-items: flex-start; gap: 0.75rem; padding: 1rem; border-radius: 12px; background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.06); font-size: 0.85rem; color: rgba(255,255,255,0.65); i { color: #f59e0b; flex-shrink: 0; font-size: 1rem; margin-top: 1px; } p { margin: 0; line-height: 1.5; } }
+
+    /* File card (sidebar) */
+    .od__file-card {
+      background: #1a1d27; border: 1px solid rgba(255,255,255,0.07); border-radius: 20px; padding: 1.5rem;
+    }
+    .od__file-card-head { display: flex; align-items: flex-start; gap: 0.85rem; margin-bottom: 1rem; }
+    .od__file-card-icon { font-size: 1.75rem; color: rgba(255,255,255,0.2); flex-shrink: 0; &--green { color: #4ade80; } &--blue { color: #60a5fa; } &--amber { color: #f59e0b; } }
+    .od__file-card-title { font-size: 0.9rem; font-weight: 700; color: #fff; margin: 0 0 3px; }
+    .od__file-card-sub { font-size: 0.75rem; color: rgba(255,255,255,0.4); margin: 0; &--green { color: #4ade80; } &--blue { color: #60a5fa; } }
+    .od__file-name-row { display: flex; align-items: center; gap: 0.5rem; padding: 0.65rem 0.85rem; border-radius: 10px; background: rgba(74,222,128,0.06); border: 1px solid rgba(74,222,128,0.15); margin-bottom: 0.85rem; font-size: 0.78rem; font-family: monospace; color: #fff; overflow: hidden; i { color: #4ade80; flex-shrink: 0; } span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; } }
+    .od__dl-btn { display: flex; align-items: center; justify-content: center; gap: 0.5rem; width: 100%; padding: 0.75rem; border-radius: 12px; border: none; cursor: pointer; background: linear-gradient(135deg,#4ade80,#16a34a); color: #000; font-size: 0.9rem; font-weight: 700; &:hover { opacity: 0.9; } }
+    .od__progress-hint { p { font-size: 0.75rem; color: rgba(255,255,255,0.35); margin: 0.5rem 0 0; } }
+    .od__progress-bar { height: 4px; background: rgba(255,255,255,0.08); border-radius: 2px; overflow: hidden; &__fill { height: 100%; width: 60%; background: linear-gradient(90deg,#60a5fa,#93c5fd); border-radius: 2px; animation: shimmer 2s ease-in-out infinite; } }
+    @keyframes shimmer { 0% { transform: translateX(-100%); } 100% { transform: translateX(200%); } }
+    .od__file-wait { font-size: 0.75rem; color: rgba(255,255,255,0.35); margin: 0; line-height: 1.5; }
+
+    /* Orig file chip */
+    .od__orig-chip { display: flex; align-items: center; gap: 0.5rem; padding: 0.5rem 0.75rem; border-radius: 8px; background: rgba(96,165,250,0.06); border: 1px solid rgba(96,165,250,0.15); margin-bottom: 0.65rem; font-size: 0.75rem; color: rgba(255,255,255,0.7); overflow: hidden; i { color: #60a5fa; flex-shrink: 0; } span:first-of-type { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-family: monospace; } }
+    .od__orig-chip-badge { font-size: 0.65rem; font-weight: 700; color: #60a5fa; background: rgba(96,165,250,0.12); padding: 1px 8px; border-radius: 10px; flex-shrink: 0; }
 
     /* Upload zone */
-    .op-upload-zone {
+    .od__upload-zone {
       border: 2px dashed rgba(255,255,255,0.1); border-radius: 12px; background: rgba(255,255,255,0.02);
-      display: flex; flex-direction: column; align-items: center; gap: 0.5rem;
-      padding: 1.25rem; text-align: center;
-      i { font-size: 1.5rem; color: rgba(255,255,255,0.2); }
-      p { font-size: 0.78rem; color: rgba(255,255,255,0.3); margin: 0; }
-      &--filled { flex-direction: row; padding: 0.75rem 1rem; border-color: rgba(74,222,128,0.3); background: rgba(74,222,128,0.03); }
+      display: flex; flex-direction: column; align-items: center; gap: 0.45rem; padding: 1.25rem; text-align: center;
+      i { font-size: 1.4rem; color: rgba(255,255,255,0.2); }
+      p { font-size: 0.75rem; color: rgba(255,255,255,0.25); margin: 0; }
+      &--filled { flex-direction: row; padding: 0.65rem 0.85rem; border-color: rgba(74,222,128,0.3); background: rgba(74,222,128,0.03); }
     }
-    .op-upload-btn {
-      display: inline-flex; align-items: center; gap: 0.4rem; cursor: pointer;
-      background: rgba(255,255,255,0.07); border: 1px solid rgba(255,255,255,0.12); border-radius: 8px;
-      padding: 0.4rem 0.85rem; font-size: 0.75rem; color: rgba(255,255,255,0.7);
-      &:hover { background: rgba(255,255,255,0.12); }
-    }
-    .op-upload-fname { flex: 1; font-size: 0.78rem; color: rgba(255,255,255,0.8); text-align: left; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-family: monospace; }
-    .op-upload-actions { display: flex; align-items: center; gap: 0.4rem; flex-shrink: 0; }
-    .op-upload-send-btn { display: flex; align-items: center; gap: 0.35rem; padding: 0.4rem 0.75rem; border-radius: 8px; border: none; background: linear-gradient(135deg,#e63946,#c1121f); color: #fff; font-size: 0.75rem; font-weight: 600; cursor: pointer; &:hover { opacity: 0.88; } }
-    .op-upload-remove { border: none; background: transparent; color: rgba(255,255,255,0.3); cursor: pointer; font-size: 0.8rem; &:hover { color: #fff; } }
-    .op-sent-note { margin-top: 0.65rem; display: flex; align-items: center; gap: 0.4rem; font-size: 0.78rem; color: #4ade80; }
-
-    /* ── Pagination ── */
-    .op__pagination { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 1rem; }
-    .op__page-info { font-size: 0.8rem; color: rgba(255,255,255,0.35); }
-    .op__page-btns { display: flex; gap: 0.375rem; }
-    .op__page-btn {
-      width: 34px; height: 34px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.08);
-      background: #1a1d27; color: rgba(255,255,255,0.5); font-size: 0.82rem; font-weight: 500;
-      display: flex; align-items: center; justify-content: center; cursor: pointer; transition: all 180ms;
-      &:hover:not(:disabled) { border-color: rgba(255,255,255,0.2); color: #fff; }
-      &:disabled { opacity: 0.35; cursor: not-allowed; }
-      &--active { background: rgba(230,57,70,0.15); border-color: rgba(230,57,70,0.4); color: #e63946; }
-    }
+    .od__upload-btn { display: inline-flex; align-items: center; gap: 0.4rem; cursor: pointer; background: rgba(255,255,255,0.07); border: 1px solid rgba(255,255,255,0.12); border-radius: 8px; padding: 0.4rem 0.85rem; font-size: 0.75rem; color: rgba(255,255,255,0.7); &:hover { background: rgba(255,255,255,0.12); } }
+    .od__upload-fname { flex: 1; font-size: 0.75rem; color: rgba(255,255,255,0.8); text-align: left; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-family: monospace; }
+    .od__upload-acts { display: flex; align-items: center; gap: 0.4rem; flex-shrink: 0; }
+    .od__send-btn { display: flex; align-items: center; gap: 0.35rem; padding: 0.4rem 0.75rem; border-radius: 8px; border: none; background: linear-gradient(135deg,#e63946,#c1121f); color: #fff; font-size: 0.75rem; font-weight: 600; cursor: pointer; &:hover { opacity: 0.88; } }
+    .od__rm-btn { border: none; background: transparent; color: rgba(255,255,255,0.3); cursor: pointer; &:hover { color: #fff; } }
+    .od__sent { margin-top: 0.6rem; display: flex; align-items: center; gap: 0.4rem; font-size: 0.78rem; color: #4ade80; }
   `],
 })
 export class OrdersPage {
   protected readonly selectedOrder = signal<UserOrder | null>(null);
+  protected readonly currentView   = signal<'list' | 'detail'>('list');
   protected readonly activeFilter  = signal<string>('all');
+  protected readonly search        = signal('');
   protected readonly uploadedFile  = signal<File | null>(null);
   protected readonly fileSent      = signal(false);
-  protected search = '';
 
   protected readonly filterOptions = [
-    { label: 'Tümü',        value: 'all'        },
-    { label: 'Beklemede',   value: 'pending'    },
-    { label: 'İşlemde',     value: 'processing' },
-    { label: 'Tamamlandı',  value: 'completed'  },
+    { label: 'Tümü',       value: 'all'        },
+    { label: 'Beklemede',  value: 'pending'    },
+    { label: 'İşlemde',    value: 'processing' },
+    { label: 'Tamamlandı', value: 'completed'  },
   ];
 
-  protected readonly orders: UserOrder[] = MOCK_ORDERS;
+  protected readonly progressSteps = [
+    { label: 'Sipariş Alındı', icon: 'pi-check-circle', rank: 0, hint: '' },
+    { label: 'İnceleniyor',    icon: 'pi-eye',           rank: 1, hint: 'Ekibimiz inceliyor' },
+    { label: 'Hazırlanıyor',   icon: 'pi-cog',           rank: 2, hint: 'Dosya hazırlanıyor' },
+    { label: 'Tamamlandı',     icon: 'pi-check',         rank: 3, hint: '' },
+  ];
+
+  protected readonly orders: UserOrder[] = MOCK;
 
   protected readonly filtered = computed(() => {
-    const q = this.search.toLowerCase();
+    const q = this.search().toLowerCase();
     const f = this.activeFilter();
     return this.orders.filter(o => {
-      const matchQ = !q || o.vehicle.toLowerCase().includes(q) || o.id.toLowerCase().includes(q);
+      const matchQ = !q || `${o.make} ${o.model}`.toLowerCase().includes(q) || o.id.toLowerCase().includes(q);
       const matchF = f === 'all' || o.status === f;
       return matchQ && matchF;
     });
   });
 
   countBy(s: OrderStatus): number { return this.orders.filter(o => o.status === s).length; }
-  statusLabel(s: OrderStatus): string { return STATUS_LABEL[s]; }
+  extraDesc(name: string): string  { return EXTRA_MAP[name]?.desc  ?? ''; }
+  extraPrice(name: string): number { return EXTRA_MAP[name]?.price ?? 0;  }
+  extrasTotal(names: string[]): number { return names.reduce((sum, n) => sum + (EXTRA_MAP[n]?.price ?? 0), 0); }
 
-  selectOrder(o: UserOrder): void {
-    const same = this.selectedOrder()?.id === o.id;
-    this.selectedOrder.set(same ? null : o);
-    if (!same) { this.uploadedFile.set(null); this.fileSent.set(false); }
+  statusLabel(s: OrderStatus): string { return STATUS_LABEL[s]; }
+  stageKey(s: string): string { return s === 'Stage 1' ? 's1' : s === 'Stage 2' ? 's2' : 's3'; }
+  progressRank(s: OrderStatus): number { return { pending: 1, processing: 2, completed: 4, cancelled: 0 }[s]; }
+
+  openDetail(o: UserOrder): void {
+    this.selectedOrder.set(o);
+    this.uploadedFile.set(null);
+    this.fileSent.set(false);
+    this.currentView.set('detail');
   }
+  goBack(): void { this.currentView.set('list'); this.selectedOrder.set(null); }
 
   onFileSelect(ev: Event): void {
     const file = (ev.target as HTMLInputElement).files?.[0] ?? null;
-    this.uploadedFile.set(file);
-    this.fileSent.set(false);
+    this.uploadedFile.set(file); this.fileSent.set(false);
   }
-
   onDrop(ev: DragEvent): void {
     ev.preventDefault();
     const file = ev.dataTransfer?.files?.[0] ?? null;
     if (file) { this.uploadedFile.set(file); this.fileSent.set(false); }
   }
-
-  sendOriginalFile(): void {
-    this.uploadedFile.set(null);
-    this.fileSent.set(true);
-  }
+  sendOriginalFile(): void { this.uploadedFile.set(null); this.fileSent.set(true); }
 }

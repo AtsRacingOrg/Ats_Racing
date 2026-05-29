@@ -68,7 +68,7 @@ function areaPath(data: number[], W = 540, H = 100, padX = 20, padY = 10): strin
           <span>2026</span>
         </div>
       </div>
-      <svg class="ao-svg" viewBox="0 0 580 130" preserveAspectRatio="none">
+      <svg class="ao-svg" viewBox="0 0 580 130" preserveAspectRatio="xMidYMid meet">
         <defs>
           <linearGradient id="revGrad" x1="0" y1="0" x2="0" y2="1">
             <stop offset="0%" stop-color="#f59e0b" stop-opacity="0.25"/>
@@ -107,7 +107,7 @@ function areaPath(data: number[], W = 540, H = 100, padX = 20, padY = 10): strin
           <span>Sipariş</span>
         </div>
       </div>
-      <svg class="ao-svg" viewBox="0 0 580 130" preserveAspectRatio="none">
+      <svg class="ao-svg" viewBox="0 0 580 130" preserveAspectRatio="xMidYMid meet">
         <defs>
           <linearGradient id="ordGrad" x1="0" y1="0" x2="0" y2="1">
             <stop offset="0%" stop-color="#60a5fa" stop-opacity="0.3"/>
@@ -122,13 +122,13 @@ function areaPath(data: number[], W = 540, H = 100, padX = 20, padY = 10): strin
         <!-- Bars -->
         @for (b of orderBars; track b.x) {
           <rect [attr.x]="b.x" [attr.y]="b.y" [attr.width]="b.w" [attr.height]="b.h"
-            rx="4" fill="rgba(96,165,250,0.25)" stroke="#60a5fa" stroke-width="1"/>
-          <rect [attr.x]="b.x" [attr.y]="b.y" [attr.width]="b.w" height="4"
-            rx="2" fill="#60a5fa"/>
+            rx="5" fill="rgba(96,165,250,0.18)" stroke="#60a5fa" stroke-width="1.5"/>
+          <rect [attr.x]="b.x" [attr.y]="b.y" [attr.width]="b.w" [attr.height]="5"
+            rx="3" fill="#60a5fa"/>
         }
         <!-- Month labels -->
-        @for (m of months; track $index) {
-          <text [attr.x]="20 + $index * 108 + 27" y="126" fill="rgba(255,255,255,0.3)" font-size="10" text-anchor="middle">{{ m }}</text>
+        @for (b of orderBars; track b.cx) {
+          <text [attr.x]="b.cx" y="126" fill="rgba(255,255,255,0.3)" font-size="10" text-anchor="middle">{{ months[$index] }}</text>
         }
       </svg>
     </div>
@@ -232,13 +232,14 @@ function areaPath(data: number[], W = 540, H = 100, padX = 20, padY = 10): strin
     .ao__title { font-size: 1.6rem; font-weight: 700; color: #fff; margin: 0; }
     .ao__sub { font-size: 0.875rem; color: rgba(255,255,255,0.4); margin: 0.25rem 0 0; }
 
-    /* ── Stats — 4 equal columns ── */
+    /* ── Stats — 5 equal columns ── */
     .ao__stats {
       display: grid;
-      grid-template-columns: repeat(4, 1fr);
+      grid-template-columns: repeat(5, 1fr);
       gap: 1rem;
     }
-    @media (max-width: 1024px) { .ao__stats { grid-template-columns: repeat(2, 1fr); } }
+    @media (max-width: 1280px) { .ao__stats { grid-template-columns: repeat(3, 1fr); } }
+    @media (max-width: 900px)  { .ao__stats { grid-template-columns: repeat(2, 1fr); } }
     @media (max-width: 600px)  { .ao__stats { grid-template-columns: 1fr; } }
 
     .ao-stat {
@@ -259,7 +260,7 @@ function areaPath(data: number[], W = 540, H = 100, padX = 20, padY = 10): strin
     .ao__charts { display: grid; grid-template-columns: 1fr 1fr; gap: 1.25rem; @media(max-width:900px){ grid-template-columns: 1fr; } }
     .ao-card--chart { padding-bottom: 1rem; }
 
-    .ao-svg { width: 100%; height: 130px; display: block; overflow: visible; }
+    .ao-svg { width: 100%; height: auto; min-height: 100px; display: block; overflow: visible; }
 
     .ao-chart__val { font-size: 1.1rem; font-weight: 700; color: #fff; margin: 0.15rem 0 0; display: flex; align-items: center; gap: 0.5rem; }
     .ao-chart__badge { font-size: 0.65rem; font-weight: 700; display: inline-flex; align-items: center; gap: 2px; padding: 2px 6px; border-radius: 6px;
@@ -333,21 +334,23 @@ export class AdminOverviewPage {
     y: parseFloat((10 + 100 - (v / Math.max(...REVENUE)) * 100).toFixed(1)),
   }));
 
-  // Orders bar chart
-  protected readonly orderBars: { x: number; y: number; w: number; h: number }[] = (() => {
-    const max = Math.max(...ORDERS); const barW = 55; const gap = 53; const padX = 20; const padY = 10; const H = 100;
+  // Orders bar chart — barW=40, gap=60, padX=20 → 6 bars fit within 580px viewBox
+  protected readonly orderBars: { x: number; y: number; w: number; h: number; cx: number }[] = (() => {
+    const max = Math.max(...ORDERS); const barW = 40; const gap = 60; const padX = 20; const padY = 10; const H = 100;
     return ORDERS.map((v, i) => ({
-      x: padX + i * (barW + gap),
-      y: padY + H - (v / max) * H,
-      w: barW,
-      h: (v / max) * H,
+      x:  padX + i * (barW + gap),
+      y:  padY + H - (v / max) * H,
+      w:  barW,
+      h:  (v / max) * H,
+      cx: padX + i * (barW + gap) + barW / 2,   // bar centre for label
     }));
   })();
 
   protected readonly stats = [
-    { label: 'Toplam Kullanıcı', value: '248',   icon: 'pi-users',         color: '#60a5fa', trend: '+12 bu ay', up: true },
-    { label: 'Aktif Bayiler',    value: '18',    icon: 'pi-building',      color: '#f59e0b', trend: '+2 bu ay',  up: true },
-    { label: 'Toplam Sipariş',   value: '1.240', icon: 'pi-shopping-cart', color: '#e63946', trend: '+61 bu ay', up: true },
+    { label: 'Toplam Kazanç',    value: '₺847K', icon: 'pi-wallet',        color: '#4ade80', trend: '+₺73K bu ay', up: true },
+    { label: 'Toplam Kullanıcı', value: '248',   icon: 'pi-users',         color: '#60a5fa', trend: '+12 bu ay',   up: true },
+    { label: 'Aktif Bayiler',    value: '18',    icon: 'pi-building',      color: '#f59e0b', trend: '+2 bu ay',    up: true },
+    { label: 'Toplam Sipariş',   value: '1.240', icon: 'pi-shopping-cart', color: '#e63946', trend: '+61 bu ay',   up: true },
     { label: 'Açık Ticketlar',   value: '7',     icon: 'pi-comments',      color: '#a78bfa', trend: '-3 bu hafta', up: false },
   ];
 
