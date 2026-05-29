@@ -65,7 +65,8 @@ const STATUS_LABEL: Record<TicketStatus, string> = { open: 'Açık', pending: 'B
     </div>
     <div class="atk-search">
       <i class="pi pi-search"></i>
-      <input type="text" placeholder="Ticket veya kullanıcı ara…" [(ngModel)]="search" />
+      <input type="text" placeholder="Ticket veya kullanıcı ara…"
+        [ngModel]="search()" (ngModelChange)="search.set($event)" />
     </div>
   </div>
 
@@ -263,7 +264,7 @@ const STATUS_LABEL: Record<TicketStatus, string> = { open: 'Açık', pending: 'B
     .atk-messages { flex: 1; padding: 1.5rem; display: flex; flex-direction: column; gap: 1.25rem; overflow-y: auto; max-height: 420px; }
     .atk-msg {
       display: flex; gap: 0.75rem;
-      &--user { flex-direction: row-reverse; }
+      &--support { flex-direction: row-reverse; }
       &__avatar { width: 36px; height: 36px; border-radius: 10px; flex-shrink: 0; display: flex; align-items: center; justify-content: center; font-size: 0.7rem; font-weight: 700;
         &--support { background: rgba(245,158,11,0.15); color: #f59e0b; }
         &--user    { background: rgba(96,165,250,0.15); color: #60a5fa; }
@@ -273,9 +274,9 @@ const STATUS_LABEL: Record<TicketStatus, string> = { open: 'Açık', pending: 'B
       &__sender { font-size: 0.72rem; font-weight: 600; color: rgba(255,255,255,0.5); }
       &__time   { font-size: 0.68rem; color: rgba(255,255,255,0.25); }
       &__bubble { padding: 0.75rem 1rem; border-radius: 12px; font-size: 0.85rem; line-height: 1.55; color: rgba(255,255,255,0.85); background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.07); }
-      &--user &__meta { flex-direction: row-reverse; }
-      &--user &__bubble { background: rgba(96,165,250,0.08); border-color: rgba(96,165,250,0.15); }
+      &--support &__meta { flex-direction: row-reverse; }
       &--support &__bubble { background: rgba(245,158,11,0.06); border-color: rgba(245,158,11,0.15); }
+      &--user &__bubble { background: rgba(96,165,250,0.08); border-color: rgba(96,165,250,0.15); }
     }
 
     .atk-reply { padding: 1rem 1.5rem; border-top: 1px solid rgba(255,255,255,0.07); display: flex; gap: 0.75rem; align-items: flex-end; }
@@ -287,10 +288,10 @@ const STATUS_LABEL: Record<TicketStatus, string> = { open: 'Açık', pending: 'B
   `],
 })
 export class AdminTicketsPage {
-  protected readonly tickets = signal<AdminTicket[]>(MOCK_TICKETS);
+  protected readonly tickets      = signal<AdminTicket[]>(MOCK_TICKETS);
   protected readonly activeStatus = signal<TicketStatus | ''>('');
-  protected search = '';
-  protected readonly activeId = signal<string | null>(null);
+  protected readonly search       = signal('');
+  protected readonly activeId     = signal<string | null>(null);
   protected replyText = '';
 
   protected readonly active = computed(() => this.tickets().find(t => t.id === this.activeId()) ?? null);
@@ -298,7 +299,8 @@ export class AdminTicketsPage {
 
   protected readonly filtered = computed(() => {
     let list = this.tickets();
-    if (this.search) { const q = this.search.toLowerCase(); list = list.filter(t => t.subject.toLowerCase().includes(q) || t.user.toLowerCase().includes(q) || t.id.toLowerCase().includes(q)); }
+    const q = this.search().toLowerCase();
+    if (q) { list = list.filter(t => t.subject.toLowerCase().includes(q) || t.user.toLowerCase().includes(q) || t.id.toLowerCase().includes(q)); }
     const status = this.activeStatus();
     if (status) { list = list.filter(t => t.status === status); }
     return list;
