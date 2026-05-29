@@ -1,5 +1,6 @@
-import { ChangeDetectionStrategy, Component, signal } from '@angular/core';
-import { RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
+import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/core';
+import { RouterLink, RouterLinkActive, RouterOutlet, Router } from '@angular/router';
+import { AuthService } from '../../../core/auth/auth.service';
 
 interface NavItem {
   label: string;
@@ -292,8 +293,15 @@ interface NavItem {
   `],
 })
 export class DashboardLayout {
+  private  readonly auth    = inject(AuthService);
+  private  readonly router  = inject(Router);
   protected readonly collapsed = signal(false);
   protected readonly mobileOpen = signal(false);
+
+  protected get userName(): string { return this.auth.currentUser()?.name ?? 'Kullanıcı'; }
+  protected get userAvatar(): string { return this.auth.currentUser()?.avatar ?? 'AY'; }
+
+  logout(): void { this.auth.logout(); this.router.navigate(['/login']); }
 
   protected readonly navItems: NavItem[] = [
     { label: 'Genel Bakış', icon: 'pi-home',        route: '/dashboard/overview' },

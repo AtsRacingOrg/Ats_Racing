@@ -8,10 +8,12 @@ import {
   ValidationErrors,
   Validators,
 } from '@angular/forms';
+import { Router } from '@angular/router';
 import { ButtonModule } from 'primeng/button';
 import { CheckboxModule } from 'primeng/checkbox';
 import { InputTextModule } from 'primeng/inputtext';
 import { PasswordModule } from 'primeng/password';
+import { AuthService } from '../../core/auth/auth.service';
 
 type AuthTab = 'login' | 'register';
 
@@ -36,7 +38,9 @@ function passwordsMatch(group: AbstractControl): ValidationErrors | null {
   styleUrl: './login-page.scss',
 })
 export default class LoginPage {
-  private readonly fb = inject(FormBuilder);
+  private readonly fb     = inject(FormBuilder);
+  private readonly auth   = inject(AuthService);
+  private readonly router = inject(Router);
 
   protected readonly tab = signal<AuthTab>('login');
 
@@ -101,8 +105,17 @@ export default class LoginPage {
 
     this.submitting.set(true);
     try {
-      await new Promise((r) => setTimeout(r, 700));
-      if (this.tab() === 'register') {
+      await new Promise((r) => setTimeout(r, 500));
+      if (this.tab() === 'login') {
+        const { email, password } = this.loginForm.getRawValue();
+        const user = this.auth.login(email, password);
+        if (!user) {
+          this.serverError.set('E-posta veya şifre hatalı.');
+          return;
+        }
+        const dest = user.role === 'admin' ? '/admin' : '/dashboard';
+        this.router.navigate([dest]);
+      } else {
         this.success.set('Hesabın oluşturuldu. Giriş yapabilirsin.');
         this.registerForm.reset({ terms: false });
         this.setTab('login');
