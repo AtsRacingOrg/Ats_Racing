@@ -1,18 +1,13 @@
 import { NestFactory } from '@nestjs/core';
-import { ExpressAdapter } from '@nestjs/platform-express';
-import { ValidationPipe } from '@nestjs/common';
-import express from 'express';
+import { ValidationPipe, INestApplication } from '@nestjs/common';
 import { AppModule } from '../apps/api/src/app/app.module';
 
-const server = express();
-let isInitialized = false;
+let app: INestApplication;
 
-async function bootstrap() {
-  if (isInitialized) return server;
+async function bootstrap(): Promise<INestApplication> {
+  if (app) return app;
 
-  const app = await NestFactory.create(AppModule, new ExpressAdapter(server), {
-    logger: ['error', 'warn'],
-  });
+  app = await NestFactory.create(AppModule, { logger: ['error', 'warn'] });
 
   app.enableCors({ origin: true, credentials: true });
 
@@ -27,11 +22,10 @@ async function bootstrap() {
   app.setGlobalPrefix('api');
   await app.init();
 
-  isInitialized = true;
-  return server;
+  return app;
 }
 
-export default async function handler(req: express.Request, res: express.Response) {
-  const app = await bootstrap();
-  app(req, res);
+export default async function handler(req: any, res: any) {
+  const nestApp = await bootstrap();
+  nestApp.getHttpAdapter().getInstance()(req, res);
 }
