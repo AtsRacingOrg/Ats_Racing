@@ -102,6 +102,19 @@ export class AuthService {
           'E-posta adresin henüz doğrulanmamış. Gelen kutunu kontrol et.',
         );
       }
+      // Genuine "wrong password" returns a 400 invalid_credentials from GoTrue.
+      // Anything else (network error, bad SUPABASE_URL/key, fetch failure)
+      // means the request never authenticated against Supabase — surface that
+      // as a 500 so it is not silently masked as "wrong password".
+      const status = (error as { status?: number }).status;
+      if (status !== 400) {
+        this.logger.error(
+          `signIn unexpected failure (status=${status}, name=${error.name}): ${error.message}`,
+        );
+        throw new InternalServerErrorException(
+          'Kimlik doğrulama servisine ulaşılamadı. Lütfen daha sonra tekrar dene.',
+        );
+      }
       throw new UnauthorizedException('E-posta veya şifre hatalı.');
     }
 
