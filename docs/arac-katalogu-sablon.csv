@@ -1,0 +1,3 @@
+marka,model,seri,yil_etiket,yil_baslangic,yil_bitis,motor_etiket,motor_kodu,hacim_metin,hacim_cc,cap_strok,sikistirma,ecu,yakit,stock_hp,stock_tork,stage1_hp,stage1_tork,stage2_hp,stage2_tork,stage3_hp,stage3_tork
+BMW,M3,G80,2021–,2021,,S58B30 3.0T,S58B30,3.0L Twin Turbo,2993,84.0 × 90.0 mm,10.2:1,Bosch MG1CS024,Benzin,510,650,580,730,650,820,730,920
+Audi,RS6,C8,2020–,2020,,DKCE 4.0 TFSI,DKCE,4.0L V8 TT,3996,84.5 × 89.0 mm,9.8:1,Bosch MG1CS002,Benzin,600,800,680,880,760,960,860,1080

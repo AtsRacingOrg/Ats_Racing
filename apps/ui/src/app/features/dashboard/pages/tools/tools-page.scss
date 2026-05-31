@@ -101,6 +101,7 @@
   &:focus { outline: none; border-color: rgba(230,57,70,0.5); }
   &::placeholder { color: rgba(255,255,255,0.25); }
   &[type="number"] { padding-right: 3rem; }
+  &:disabled { opacity: 0.35; cursor: not-allowed; }
 }
 .input-suffix {
   position: absolute; right: 0.875rem;
@@ -319,6 +320,9 @@
   &__body { flex: 1; h3 { font-size: 1rem; font-weight: 700; color: #fff; margin: 0 0 4px; } p { font-size: 0.82rem; color: rgba(255,255,255,0.5); margin: 0; } }
 }
 
+/* ── HESAPLA CTA ── */
+.calc-cta { margin-top: 1.25rem; display: flex; }
+
 /* ── TUNE OPTIONS ── */
 .tune-opts { margin-bottom: 0; }
 .tune-opts__grid { display: flex; gap: 0.875rem; flex-wrap: wrap; }
@@ -330,11 +334,17 @@
   &--s1 { border-color: rgba(96,165,250,0.45) !important; background: rgba(96,165,250,0.07) !important; }
   &--s2 { border-color: rgba(230,57,70,0.45) !important;  background: rgba(230,57,70,0.07) !important; }
   &--s3 { border-color: rgba(168,85,247,0.45) !important; background: rgba(168,85,247,0.07) !important; }
+  /* Kilitli kart — veri yok, seçilemez */
+  &--locked {
+    cursor: not-allowed; opacity: 0.5;
+    &:hover { border-color: rgba(255,255,255,0.1); background: transparent; }
+  }
+  &__lock { font-size: 0.85rem; color: rgba(255,255,255,0.35); }
   &__head  { display: flex; align-items: center; justify-content: space-between; gap: 0.5rem; }
   &__badge { display: inline-block; font-size: 0.7rem; font-weight: 800; letter-spacing: 0.06em; padding: 2px 10px; border-radius: 20px; &--blue { background: rgba(96,165,250,0.15); color: #60a5fa; } &--red { background: rgba(230,57,70,0.15); color: #e63946; } &--purple { background: rgba(168,85,247,0.15); color: #a855f7; } }
   &__price { font-size: 0.95rem; font-weight: 800; color: #fff; }
   &__desc { font-size: 0.78rem; color: rgba(255,255,255,0.4); }
-  &__gain { font-size: 0.82rem; font-weight: 700; color: #4ade80; }
+  &__gain { font-size: 0.82rem; font-weight: 700; color: #4ade80; &--muted { color: rgba(255,255,255,0.3); } }
 }
 
 /* ── EXTRA STEP HELPERS ── */
@@ -602,3 +612,64 @@
 }
 
 .module-tab, .tuning-tab { display: flex; flex-direction: column; gap: 1.25rem; }
+
+/* ── ENTRY (Pcode + Not, çift olarak) ── */
+.entries-count {
+  font-size: 0.72rem; font-weight: 700; color: #e63946;
+  background: rgba(230,57,70,0.12); padding: 2px 10px; border-radius: 20px;
+}
+.entry-form {
+  background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.07);
+  border-radius: 14px; padding: 1.1rem 1.2rem; margin-bottom: 1rem;
+}
+.entry-form__grid {
+  display: grid; grid-template-columns: minmax(140px, 220px) 1fr; gap: 1rem; align-items: start;
+  @media(max-width: 560px){ grid-template-columns: 1fr; }
+}
+.add-btn {
+  flex-shrink: 0; display: inline-flex; align-items: center; justify-content: center; gap: 0.4rem;
+  padding: 0.7rem 1.1rem; border-radius: 10px; border: 1px solid rgba(230,57,70,0.4);
+  background: rgba(230,57,70,0.12); color: #e63946;
+  font-size: 0.8rem; font-weight: 700; cursor: pointer; white-space: nowrap; transition: all 180ms;
+  &:hover:not(:disabled) { background: rgba(230,57,70,0.2); }
+  &:disabled { opacity: 0.35; cursor: not-allowed; }
+  i { font-size: 0.7rem; }
+  &--block { width: 100%; margin-top: 0.85rem; }
+}
+.multi-empty {
+  margin: 0.4rem 0 0; font-size: 0.75rem; color: rgba(255,255,255,0.3); font-style: italic;
+}
+.entry-list { display: flex; flex-direction: column; gap: 0.55rem; }
+.entry-row {
+  display: flex; align-items: flex-start; gap: 0.85rem;
+  padding: 0.75rem 0.9rem; border-radius: 11px;
+  background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.07);
+  &__main { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 0.35rem; }
+  &__pcode {
+    display: inline-flex; align-items: center; gap: 0.4rem; align-self: flex-start;
+    padding: 0.2rem 0.6rem; border-radius: 7px;
+    background: rgba(96,165,250,0.1); border: 1px solid rgba(96,165,250,0.25);
+    color: #93c5fd; font-size: 0.76rem; font-weight: 700; font-family: monospace;
+    i { font-size: 0.66rem; opacity: 0.8; }
+  }
+  &__note { font-size: 0.82rem; color: rgba(255,255,255,0.7); line-height: 1.45; word-break: break-word; }
+  &__x {
+    flex-shrink: 0; display: inline-flex; align-items: center; justify-content: center;
+    width: 28px; height: 28px; border: none; border-radius: 8px; cursor: pointer;
+    background: rgba(255,255,255,0.06); color: rgba(255,255,255,0.4); transition: all 160ms;
+    &:hover { background: rgba(230,57,70,0.2); color: #e63946; }
+    i { font-size: 0.72rem; }
+  }
+}
+/* ── PAYMENT NOTE (role-aware) ── */
+.pay-note {
+  display: flex; align-items: flex-start; gap: 0.65rem;
+  padding: 0.75rem 0.9rem; border-radius: 12px; margin: 0.85rem 0 0;
+  i { font-size: 1.05rem; flex-shrink: 0; margin-top: 1px; }
+  div { display: flex; flex-direction: column; gap: 2px; }
+  &__title { font-size: 0.78rem; font-weight: 700; color: #fff; }
+  &__text  { font-size: 0.7rem; color: rgba(255,255,255,0.5); line-height: 1.4; }
+  &--user   { background: rgba(74,222,128,0.07); border: 1px solid rgba(74,222,128,0.2);  i { color: #4ade80; } }
+  &--dealer { background: rgba(96,165,250,0.07); border: 1px solid rgba(96,165,250,0.22); i { color: #60a5fa; } }
+}
+
