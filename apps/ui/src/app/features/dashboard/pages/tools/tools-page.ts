@@ -491,8 +491,8 @@ const GROUP_ORDER = ['Emisyon', 'Motor', 'Performans', 'Konfor', 'Egzoz', 'Güve
                         <span class="tune-opt__badge tune-opt__badge--red">Stage 2</span>
                         <i class="pi pi-lock tune-opt__lock"></i>
                       </span>
-                      <span class="tune-opt__desc">Bu motor için henüz veri girilmedi</span>
-                      <span class="tune-opt__gain tune-opt__gain--muted">— HP  /  — Nm</span>
+                      <span class="tune-opt__desc">Bu seviye için iletişime geçin</span>
+                      <span class="tune-opt__gain tune-opt__gain--muted">İletişime geçin</span>
                     </button>
                   }
 
@@ -516,8 +516,8 @@ const GROUP_ORDER = ['Emisyon', 'Motor', 'Performans', 'Konfor', 'Egzoz', 'Güve
                         <span class="tune-opt__badge tune-opt__badge--purple">Stage 3</span>
                         <i class="pi pi-lock tune-opt__lock"></i>
                       </span>
-                      <span class="tune-opt__desc">Bu motor için henüz veri girilmedi</span>
-                      <span class="tune-opt__gain tune-opt__gain--muted">— HP  /  — Nm</span>
+                      <span class="tune-opt__desc">Bu seviye için iletişime geçin</span>
+                      <span class="tune-opt__gain tune-opt__gain--muted">İletişime geçin</span>
                     </button>
                   }
                 </div>
@@ -1535,45 +1535,98 @@ export class ToolsPage implements OnInit {
     return e.displacementCc ? `${e.displacementCc} cc` : '—';
   }
 
-  /** Build a power curve chart for either HP or Torque */
-  private buildChart(stockMax: number, tunedMax: number) {
+  /** Devir bandı — dizel düşük, benzin yüksek devirli. */
+  private revBand(fuel: FuelType): { min: number; max: number } {
+    const diesel = fuel === 'diesel' || fuel === 'diesel_mhev'
+      || fuel === 'diesel_phev' || fuel === 'diesel_hybrid';
+    return diesel ? { min: 850, max: 5200 } : { min: 900, max: 7000 };
+  }
+
+  /**
+   * Gerçekçi dyno eğrisi üretir.
+   *  - Tork: orta devirde erken tepe yapar, geniş plato, redline'a doğru düşer.
+   *  - Güç: tork × devir'den türetilir → daha geç tepe yapar ve redline'da düşer.
+   * Böylece HP ve Tork grafikleri farklı, gerçek dyno gibi görünür.
+   */
+  private buildChart(
+    stockMax: number, tunedMax: number,
+    kind: 'power' | 'torque', rpmMin: number, rpmMax: number,
+  ) {
     const W = 480; const H = 220; const padX = 44; const padY = 22; const botY = 26;
     const chartH = H - padY - botY;
     const chartW = W - padX - 8;
-    const xs   = [0, 0.15, 0.32, 0.5, 0.68, 0.82, 1.0];
-    const sF   = [0.20, 0.45, 0.70, 0.88, 0.97, 1.00, 0.96];
-    const tF   = [0.22, 0.49, 0.74, 0.92, 1.02, 1.07, 1.03];
-    const yMax = tunedMax * 1.10;
-    const toX  = (x: number) => padX + x * chartW;
-    const toY  = (v: number) => padY + chartH - (v / yMax) * chartH;
-    const makeBez = (pts: {x:number;y:number}[]) => {
+
+    // Tepe torkun oranı olarak tork faktörü (devir bandı boyunca).
+    // Erken tepe (~%30 devir), tepe sonrası belirgin düşüş → uçlar aşağı iner.
+    const torqueFactor = (x: number) => {
+      const rise = 1 - Math.exp(-(x + 0.04) / 0.13);                     // rölantiden yükseliş
+      const fall = 1 - 0.70 * Math.pow(Math.max(0, x - 0.30) / 0.70, 1.5); // tepe sonrası düşüş
+      return rise * fall;
+    };
+    const rpmAt = (x: number) => rpmMin + x * (rpmMax - rpmMin);
+    const shapeFn = kind === 'torque'
+      ? torqueFactor
+      : (x: number) => torqueFactor(x) * rpmAt(x); // güç ∝ tork × devir
+
+    const N = 40;
+    const xs: number[] = [];
+    for (let i = 0; i <= N; i++) { xs.push(i / N); }
+    const raw = xs.map(shapeFn);
+    const rawMax = Math.max(...raw);
+    const factor = raw.map(v => v / rawMax); // tepe = 1
+
+    const yMax = (tunedMax || 1) * 1.08;
+    const toX = (x: number) => padX + x * chartW;
+    const toY = (v: number) => padY + chartH - (v / yMax) * chartH;
+    // Catmull-Rom spline → doğal teğetler, dalgalanma yok (pürüzsüz dyno çizgisi).
+    const makeBez = (pts: { x: number; y: number }[]) => {
+      if (pts.length < 2) { return ''; }
       let d = `M ${pts[0].x.toFixed(1)} ${pts[0].y.toFixed(1)}`;
-      for (let i = 1; i < pts.length; i++) {
-        const cp1x = pts[i-1].x + (pts[i].x - pts[i-1].x) * 0.45;
-        const cp2x = pts[i].x   - (pts[i].x - pts[i-1].x) * 0.45;
-        d += ` C ${cp1x.toFixed(1)} ${pts[i-1].y.toFixed(1)} ${cp2x.toFixed(1)} ${pts[i].y.toFixed(1)} ${pts[i].x.toFixed(1)} ${pts[i].y.toFixed(1)}`;
+      for (let i = 0; i < pts.length - 1; i++) {
+        const p0 = pts[i - 1] ?? pts[i];
+        const p1 = pts[i];
+        const p2 = pts[i + 1];
+        const p3 = pts[i + 2] ?? p2;
+        const cp1x = p1.x + (p2.x - p0.x) / 6;
+        const cp1y = p1.y + (p2.y - p0.y) / 6;
+        const cp2x = p2.x - (p3.x - p1.x) / 6;
+        const cp2y = p2.y - (p3.y - p1.y) / 6;
+        d += ` C ${cp1x.toFixed(1)} ${cp1y.toFixed(1)} ${cp2x.toFixed(1)} ${cp2y.toFixed(1)} ${p2.x.toFixed(1)} ${p2.y.toFixed(1)}`;
       }
       return d;
     };
-    const stockPts = xs.map((x, i) => ({ x: toX(x), y: toY(sF[i] * stockMax) }));
-    const tunedPts = xs.map((x, i) => ({ x: toX(x), y: toY(tF[i] * tunedMax) }));
+
+    // Gerçek dyno gürültüsü — devire bağlı deterministik küçük dalgalar.
+    // Yükle orantılı (faktörle çarpılır → rölantide küçük, tepede belirgin),
+    // stock ve tuned farklı faz (seed) ile birbirinin kopyası görünmesin.
+    const noise = (x: number, seed: number) =>
+      Math.sin(x * 31 + seed * 1.7) * 0.009 +
+      Math.sin(x * 17 + seed * 0.9 + 0.6) * 0.013 +
+      Math.sin(x * 8  + seed * 1.3 + 1.1) * 0.011;
+    const stockPts = xs.map((x, i) => ({ x: toX(x), y: toY(factor[i] * (1 + noise(x, 0)) * stockMax) }));
+    const tunedPts = xs.map((x, i) => ({ x: toX(x), y: toY(factor[i] * (1 + noise(x, 1)) * tunedMax) }));
     const botLine  = `L ${toX(1).toFixed(1)} ${(H - botY).toFixed(1)} L ${toX(0).toFixed(1)} ${(H - botY).toFixed(1)} Z`;
     const stockPath = makeBez(stockPts);
     const tunedPath = makeBez(tunedPts);
+
     const gridSteps = [0, 0.25, 0.5, 0.75, 1.0];
     const gridY = gridSteps.map(p => ({ y: toY(p * yMax), label: p === 0 ? '' : `${Math.round(p * yMax)}` }));
-    const rpmLabels = ['1500', '2500', '3500', '4500', '5500', '6500', '7200'];
-    const xLabels = xs.map((x, i) => ({ x: toX(x), label: rpmLabels[i] }));
-    const peakStockIdx = sF.indexOf(Math.max(...sF));
-    const peakTunedIdx = tF.indexOf(Math.max(...tF));
+
+    const ticks = 7;
+    const xLabels = Array.from({ length: ticks }, (_, i) => {
+      const x = i / (ticks - 1);
+      return { x: toX(x), label: `${Math.round(rpmAt(x) / 100) * 100}` };
+    });
+
+    const peakIdx = factor.indexOf(Math.max(...factor));
     return {
       W, H, padX,
       stockPath, tunedPath,
       stockArea: stockPath + botLine,
       tunedArea: tunedPath + botLine,
       gridY, xLabels,
-      stockPeak: stockPts[peakStockIdx],
-      tunedPeak: tunedPts[peakTunedIdx],
+      stockPeak: stockPts[peakIdx],
+      tunedPeak: tunedPts[peakIdx],
       stockVal: stockMax,
       tunedVal: tunedMax,
     };
@@ -1582,13 +1635,15 @@ export class ToolsPage implements OnInit {
   protected readonly hpChart = computed(() => {
     const e = this.tuningResult();
     if (!e) { return null; }
-    return this.buildChart(e.stock.hp, this.tunedHp());
+    const b = this.revBand(e.fuel);
+    return this.buildChart(e.stock.hp, this.tunedHp(), 'power', b.min, b.max);
   });
 
   protected readonly torqueChart = computed(() => {
     const e = this.tuningResult();
     if (!e) { return null; }
-    return this.buildChart(e.stock.torque, this.tunedTorque());
+    const b = this.revBand(e.fuel);
+    return this.buildChart(e.stock.torque, this.tunedTorque(), 'torque', b.min, b.max);
   });
 
   /* ─── CASCADE — marka → model → nesil → motor ─── */
