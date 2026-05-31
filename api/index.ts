@@ -10,7 +10,29 @@ async function bootstrap(): Promise<INestApplication> {
 
   app = await NestFactory.create(AppModule, { logger: ['error', 'warn'] });
 
-  app.enableCors({ origin: true, credentials: true });
+  // Only allow our own front-ends to call the API from the browser.
+  // - production domains (Vercel)
+  // - local dev server (ng serve on :4200)
+  // An optional APP_URL env var is added too, so a custom domain just works.
+  const allowedOrigins = [
+    'https://ats-racing-xd4q.vercel.app',
+    'https://ats-racing-xd4q-kutay-karademirs-projects.vercel.app',
+    'https://ats-racing-xd4q-git-main-kutay-karademirs-projects.vercel.app',
+    'http://localhost:4200',
+    process.env.APP_URL,
+  ].filter(Boolean) as string[];
+
+  app.enableCors({
+    origin(origin, callback) {
+      // Allow non-browser clients (curl, server-to-server) that send no Origin.
+      if (!origin || allowedOrigins.includes(origin)) {
+        callback(null, true);
+      } else {
+        callback(new Error(`Origin not allowed by CORS: ${origin}`), false);
+      }
+    },
+    credentials: true,
+  });
 
   app.useGlobalPipes(
     new ValidationPipe({
