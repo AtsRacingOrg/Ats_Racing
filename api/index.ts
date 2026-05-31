@@ -1,5 +1,6 @@
 import { NestFactory } from '@nestjs/core';
 import { ValidationPipe, INestApplication } from '@nestjs/common';
+import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { AppModule } from '../apps/api/src/app/app.module';
 
 let app: INestApplication;
@@ -20,6 +21,20 @@ async function bootstrap(): Promise<INestApplication> {
   );
 
   app.setGlobalPrefix('api');
+
+  // Swagger UI served at /api/docs (useGlobalPrefix prepends the "api" prefix).
+  const swaggerConfig = new DocumentBuilder()
+    .setTitle('Ats Racing API')
+    .setDescription('Ats Racing backend API documentation')
+    .setVersion('1.0')
+    .addBearerAuth()
+    .build();
+  const document = SwaggerModule.createDocument(app, swaggerConfig);
+  SwaggerModule.setup('docs', app, document, {
+    useGlobalPrefix: true,
+    swaggerOptions: { persistAuthorization: true },
+  });
+
   await app.init();
 
   return app;
