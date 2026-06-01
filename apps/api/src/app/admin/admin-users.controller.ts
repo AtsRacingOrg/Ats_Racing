@@ -1,4 +1,4 @@
-import { Controller, Get, UseGuards } from '@nestjs/common';
+import { Controller, Get, Param, ParseUUIDPipe, UseGuards } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { AdminService } from './admin.service';
 import { AdminGuard } from './admin.guard';
@@ -14,5 +14,11 @@ export class AdminUsersController {
   @ApiOperation({ summary: 'Tüm kullanıcılar (sipariş özetiyle)' })
   list() {
     return this.admin.listUsers();
+  }
+
+  @Get(':id/statements')
+  @ApiOperation({ summary: 'Bayinin aylık ekstreleri' })
+  statements(@Param('id', ParseUUIDPipe) id: string) {
+    return this.admin.listDealerStatements(id);
   }
 }

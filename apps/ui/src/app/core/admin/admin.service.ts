@@ -2,6 +2,7 @@ import { Injectable, inject } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { firstValueFrom } from 'rxjs';
 import { environment } from '../../../environments/environment';
+import { Statement } from '../payments/payments.service';
 
 export type RegStatus = 'pending' | 'approved' | 'rejected';
 
@@ -48,6 +49,10 @@ export class AdminService {
 
   listUsers(): Promise<AdminUserRow[]> {
     return firstValueFrom(this.http.get<AdminUserRow[]>(`${this.api}/admin/users`));
+  }
+
+  listDealerStatements(userId: string): Promise<Statement[]> {
+    return firstValueFrom(this.http.get<Statement[]>(`${this.api}/admin/users/${userId}/statements`));
   }
 
   listRegistrations(status?: RegStatus): Promise<Registration[]> {

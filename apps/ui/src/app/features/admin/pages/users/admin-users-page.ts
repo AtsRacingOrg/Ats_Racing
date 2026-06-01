@@ -2,7 +2,8 @@ import { ChangeDetectionStrategy, ChangeDetectorRef, Component, OnInit, signal, 
 import { PageLoader } from '../../../../shared/page-loader';
 import { FormsModule } from '@angular/forms';
 import { AdminService, AdminUserRow } from '../../../../core/admin/admin.service';
-import { stageLabel, formatTl, formatTrDate } from '../../../../core/orders/order-format';
+import { Statement, StatementStatus } from '../../../../core/payments/payments.service';
+import { stageLabel, formatTl, formatTrDate, periodLabel } from '../../../../core/orders/order-format';
 
 type UserRole   = 'user' | 'dealer' | 'admin';
 type AccountStatus = 'approved' | 'pending' | 'rejected';
@@ -258,6 +259,37 @@ const ROLE_LABEL: Record<UserRole, string> = { user: 'Kullanıcı', dealer: 'Bay
                   <div class="au-dp__empty"><i class="pi pi-inbox"></i><p>Henüz sipariş yok</p></div>
                 }
               </div>
+
+              <!-- Bayi ödeme durumu -->
+              @if (u.role === 'dealer') {
+                <div class="au-dp-card au-dp-card--stretch">
+                  <h3 class="au-dp-card__title">Ödeme Durumu</h3>
+                  <div class="au-pay-summary">
+                    <div class="au-pay-stat"><span class="au-pay-stat__val au-pay-stat__val--blue">{{ formatTl(stmtAccruing()) }}</span><span class="au-pay-stat__lbl">Birikiyor</span></div>
+                    <div class="au-pay-stat"><span class="au-pay-stat__val au-pay-stat__val--amber">{{ formatTl(stmtDue()) }}</span><span class="au-pay-stat__lbl">Vadesi Gelen</span></div>
+                    <div class="au-pay-stat"><span class="au-pay-stat__val">{{ formatTl(stmtOutstanding()) }}</span><span class="au-pay-stat__lbl">Açık Bakiye</span></div>
+                    <div class="au-pay-stat"><span class="au-pay-stat__val au-pay-stat__val--green">{{ formatTl(stmtPaid()) }}</span><span class="au-pay-stat__lbl">Ödenen</span></div>
+                  </div>
+                  @if (statements().length > 0) {
+                    <div class="au-stmt-list">
+                      @for (s of statements(); track s.id) {
+                        <div class="au-stmt">
+                          <div class="au-stmt__top">
+                            <span class="au-stmt__period">{{ periodLabel(s.periodYear, s.periodMonth) }} <span class="au-stmt__no">{{ s.statementNo }}</span></span>
+                            <span class="au-stmt__badge au-stmt__badge--{{ s.status }}">{{ stmtStatusLabel(s.status) }}</span>
+                          </div>
+                          <div class="au-stmt__bottom">
+                            <span class="au-stmt__meta">{{ s.orders.length }} sipariş · Son ödeme: {{ formatTrDate(s.dueDate) }}</span>
+                            <span class="au-stmt__total">{{ formatTl(s.total) }}</span>
+                          </div>
+                        </div>
+                      }
+                    </div>
+                  } @else {
+                    <div class="au-dp__empty"><i class="pi pi-wallet"></i><p>Henüz ekstre yok</p></div>
+                  }
+                </div>
+              }
             } @else {
               <div class="au-dp-card">
                 <div class="au-dp__empty"><i class="pi pi-shield"></i><p>Admin hesapları sipariş geçmişine sahip değildir.</p></div>
@@ -427,6 +459,33 @@ const ROLE_LABEL: Record<UserRole, string> = { user: 'Kullanıcı', dealer: 'Bay
       &--pending    { background: rgba(251,191,36,0.1);  color: #fbbf24;  border: 1px solid rgba(251,191,36,0.2);  }
       &--cancelled  { background: rgba(255,255,255,0.06); color: rgba(255,255,255,0.35); border: 1px solid rgba(255,255,255,0.1); }
     }
+    /* Bayi ödeme durumu */
+    .au-pay-summary { display: grid; grid-template-columns: repeat(2, 1fr); gap: 0.6rem; margin-bottom: 1rem; }
+    .au-pay-stat {
+      display: flex; flex-direction: column; gap: 2px; padding: 0.7rem 0.85rem;
+      background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.07); border-radius: 10px;
+      &__val { font-size: 1rem; font-weight: 800; color: #fff;
+        &--blue { color: #60a5fa; } &--amber { color: #fbbf24; } &--green { color: #4ade80; } }
+      &__lbl { font-size: 0.62rem; text-transform: uppercase; letter-spacing: 0.05em; color: rgba(255,255,255,0.35); font-weight: 700; }
+    }
+    .au-stmt-list { display: flex; flex-direction: column; gap: 0.5rem; }
+    .au-stmt {
+      background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.07); border-radius: 10px; padding: 0.7rem 0.85rem;
+      display: flex; flex-direction: column; gap: 0.4rem;
+      &__top { display: flex; align-items: center; justify-content: space-between; gap: 0.5rem; }
+      &__period { font-size: 0.82rem; font-weight: 700; color: #fff; }
+      &__no { font-family: 'Courier New', monospace; font-size: 0.68rem; color: rgba(255,255,255,0.35); margin-left: 0.3rem; }
+      &__bottom { display: flex; align-items: center; justify-content: space-between; gap: 0.5rem; }
+      &__meta { font-size: 0.7rem; color: rgba(255,255,255,0.4); }
+      &__total { font-size: 0.92rem; font-weight: 800; color: #fff; }
+      &__badge {
+        font-size: 0.6rem; font-weight: 700; text-transform: uppercase; padding: 2px 8px; border-radius: 5px;
+        &--accruing { background: rgba(96,165,250,0.12); color: #60a5fa; }
+        &--due { background: rgba(251,191,36,0.12); color: #fbbf24; }
+        &--overdue { background: rgba(248,113,113,0.12); color: #f87171; }
+        &--paid { background: rgba(74,222,128,0.12); color: #4ade80; }
+      }
+    }
     .au-order-total {
       display: flex; align-items: center; justify-content: space-between; margin-top: 0.75rem;
       padding-top: 0.75rem; border-top: 1px solid rgba(255,255,255,0.07);
@@ -447,6 +506,26 @@ export class AdminUsersPage implements OnInit {
   protected readonly currentView  = signal<'list' | 'detail'>('list');
   protected readonly selectedUser = signal<AdminUser | null>(null);
   protected readonly loading      = signal(true);
+  protected readonly statements   = signal<Statement[]>([]);
+
+  // Şablonda kullanım için
+  protected readonly formatTl = formatTl;
+  protected readonly periodLabel = periodLabel;
+  protected readonly formatTrDate = formatTrDate;
+
+  private sumStmt(statuses: StatementStatus[]): number {
+    return this.statements()
+      .filter(s => statuses.includes(s.status))
+      .reduce((sum, s) => sum + s.total, 0);
+  }
+  protected readonly stmtAccruing    = computed(() => this.sumStmt(['accruing']));
+  protected readonly stmtDue         = computed(() => this.sumStmt(['due', 'overdue']));
+  protected readonly stmtOutstanding = computed(() => this.stmtAccruing() + this.stmtDue());
+  protected readonly stmtPaid        = computed(() => this.sumStmt(['paid']));
+
+  stmtStatusLabel(s: StatementStatus): string {
+    return { accruing: 'Birikiyor', due: 'Vadesi Geldi', paid: 'Ödendi', overdue: 'Gecikmiş' }[s];
+  }
 
   async ngOnInit(): Promise<void> {
     try {
@@ -473,6 +552,15 @@ export class AdminUsersPage implements OnInit {
     return list;
   });
 
-  openDetail(u: AdminUser): void { this.selectedUser.set(u); this.currentView.set('detail'); }
+  async openDetail(u: AdminUser): Promise<void> {
+    this.selectedUser.set(u);
+    this.currentView.set('detail');
+    this.statements.set([]);
+    if (u.role === 'dealer') {
+      try { this.statements.set(await this.adminApi.listDealerStatements(u.id)); }
+      catch { /* sessiz */ }
+      this.cdr.markForCheck();
+    }
+  }
   goBack(): void { this.currentView.set('list'); this.selectedUser.set(null); }
 }

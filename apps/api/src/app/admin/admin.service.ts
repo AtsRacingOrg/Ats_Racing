@@ -11,6 +11,7 @@ import {
   RegistrationView,
   toRegistrationView,
 } from '../auth/auth.types';
+import { StatementRow, StatementView, toStatementView } from '../orders/orders.types';
 
 export interface AdminUserOrder {
   orderNo: string;
@@ -94,6 +95,22 @@ export class AdminService {
         orders: userOrders,
       };
     });
+  }
+
+  /** Belirli bir bayinin aylık ekstreleri (Ödeme Borçlarım'ın admin görünümü). */
+  async listDealerStatements(dealerId: string): Promise<StatementView[]> {
+    const { data, error } = await this.supabase.admin
+      .from('dealer_statements')
+      .select('*, orders(order_no,created_at,make,model,stage,total_price)')
+      .eq('dealer_id', dealerId)
+      .order('period_year', { ascending: false })
+      .order('period_month', { ascending: false })
+      .returns<StatementRow[]>();
+    if (error) {
+      this.logger.error(`listDealerStatements failed: ${error.message}`);
+      throw new InternalServerErrorException('Ekstreler getirilemedi.');
+    }
+    return (data ?? []).map(toStatementView);
   }
 
   /** List registrations, optionally filtered by status (newest first). */
