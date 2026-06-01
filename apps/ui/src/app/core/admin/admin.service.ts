@@ -17,12 +17,38 @@ export interface Registration {
   createdAt: string;
 }
 
+export interface AdminUserOrder {
+  orderNo: string;
+  vehicle: string;
+  stage: string;
+  date: string;
+  price: number;
+  status: string;
+}
+export interface AdminUserRow {
+  id: string;
+  name: string;
+  email: string;
+  role: 'user' | 'dealer' | 'admin';
+  status: RegStatus;
+  company: string | null;
+  phone: string | null;
+  createdAt: string;
+  orderCount: number;
+  totalSpent: number;
+  orders: AdminUserOrder[];
+}
+
 @Injectable({ providedIn: 'root' })
 export class AdminService {
   private readonly http = inject(HttpClient);
   private readonly api  = environment.apiUrl;
 
   // Bearer token is attached automatically by authInterceptor.
+
+  listUsers(): Promise<AdminUserRow[]> {
+    return firstValueFrom(this.http.get<AdminUserRow[]>(`${this.api}/admin/users`));
+  }
 
   listRegistrations(status?: RegStatus): Promise<Registration[]> {
     const params = status ? `?status=${status}` : '';

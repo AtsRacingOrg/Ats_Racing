@@ -1,58 +1,55 @@
-import { ChangeDetectionStrategy, Component, signal, computed } from '@angular/core';
+import { ChangeDetectionStrategy, ChangeDetectorRef, Component, OnInit, signal, computed, inject } from '@angular/core';
 import { FormsModule } from '@angular/forms';
+import { AdminService, AdminUserRow } from '../../../../core/admin/admin.service';
+import { stageLabel, formatTl, formatTrDate } from '../../../../core/orders/order-format';
 
 type UserRole   = 'user' | 'dealer' | 'admin';
-type UserStatus = 'active' | 'passive';
+type AccountStatus = 'approved' | 'pending' | 'rejected';
 
 interface OrderRef { id: string; vehicle: string; stage: string; date: string; price: string; status: string; statusKey: string; }
 
 interface AdminUser {
   id: string; name: string; email: string;
-  role: UserRole; status: UserStatus;
+  role: UserRole; status: AccountStatus;
   company?: string; phone?: string;
   orders: number; paymentTotal: string;
   joinDate: string; lastLogin: string;
   orderHistory: OrderRef[];
 }
 
-const MOCK_USERS: AdminUser[] = [
-  { id: 'U001', name: 'Ali Yıldız',    email: 'kullanici@atsracing.com', role: 'user',   status: 'active',  orders: 3,  paymentTotal: '₺7.750',   joinDate: '10 Oca 2026', lastLogin: '29 May 2026',
-    orderHistory: [
-      { id: 'ORD-048', vehicle: 'BMW M3 G80',       stage: 'Stage 1', date: '29 May 2026', price: '₺2.500', status: 'Beklemede',  statusKey: 'pending'    },
-      { id: 'ORD-003', vehicle: 'BMW M3 G80',       stage: 'Stage 1', date: '18 Mar 2026', price: '₺2.500', status: 'Tamamlandı', statusKey: 'completed'  },
-      { id: 'ORD-001', vehicle: 'Audi S3 8Y',       stage: 'Stage 2', date: '12 May 2026', price: '₺2.750', status: 'Tamamlandı', statusKey: 'completed'  },
-    ]},
-  { id: 'U002', name: 'Mert Kaya',     email: 'mert@gmail.com',          role: 'user',   status: 'active',  orders: 7,  paymentTotal: '₺18.250',  joinDate: '5 Şub 2026',  lastLogin: '28 May 2026',
-    orderHistory: [
-      { id: 'ORD-047', vehicle: 'Audi RS6 C8',      stage: 'Stage 2', date: '28 May 2026', price: '₺4.000', status: 'İşlemde',    statusKey: 'processing' },
-      { id: 'ORD-042', vehicle: 'Audi S3 8Y',       stage: 'Stage 3', date: '20 May 2026', price: '₺7.500', status: 'İptal',      statusKey: 'cancelled'  },
-    ]},
-  { id: 'U003', name: 'Selin Demir',   email: 'selin@hotmail.com',       role: 'user',   status: 'active',  orders: 2,  paymentTotal: '₺5.000',   joinDate: '20 Şub 2026', lastLogin: '27 May 2026',
-    orderHistory: [
-      { id: 'ORD-046', vehicle: 'VW Golf R Mk8',    stage: 'Stage 1', date: '27 May 2026', price: '₺2.500', status: 'Tamamlandı', statusKey: 'completed'  },
-    ]},
-  { id: 'U004', name: 'Emre Şahin',   email: 'emre@outlook.com',        role: 'user',   status: 'passive', orders: 1,  paymentTotal: '₺7.500',   joinDate: '1 Mar 2026',  lastLogin: '15 Nis 2026',
-    orderHistory: [
-      { id: 'ORD-045', vehicle: 'Porsche 911 Turbo',stage: 'Stage 3', date: '26 May 2026', price: '₺7.500', status: 'Tamamlandı', statusKey: 'completed'  },
-    ]},
-  { id: 'U005', name: 'Zeynep Arslan', email: 'zeynep@gmail.com',        role: 'user',   status: 'active',  orders: 5,  paymentTotal: '₺12.000',  joinDate: '12 Mar 2026', lastLogin: '28 May 2026',
-    orderHistory: [
-      { id: 'ORD-044', vehicle: 'Mercedes C63 AMG', stage: 'Stage 2', date: '25 May 2026', price: '₺4.000', status: 'İşlemde',    statusKey: 'processing' },
-    ]},
-  { id: 'U006', name: 'Ahmet Yılmaz',  email: 'bayi@atsracing.com',      role: 'dealer', status: 'active',  orders: 48, paymentTotal: '₺142.000', joinDate: '1 Oca 2026',  lastLogin: '29 May 2026', company: 'ATS Bayi İstanbul', phone: '+90 532 111 0001',
-    orderHistory: [
-      { id: 'ORD-B001', vehicle: 'BMW M3 G80',      stage: 'Stage 2', date: '28 May 2026', price: '₺4.000', status: 'Tamamlandı', statusKey: 'completed'  },
-      { id: 'ORD-B002', vehicle: 'Audi RS6 C8',     stage: 'Stage 1', date: '26 May 2026', price: '₺2.500', status: 'Tamamlandı', statusKey: 'completed'  },
-      { id: 'ORD-B003', vehicle: 'VW Golf R Mk8',   stage: 'Stage 3', date: '24 May 2026', price: '₺7.500', status: 'İşlemde',    statusKey: 'processing' },
-    ]},
-  { id: 'U007', name: 'Turan Çelik',   email: 'turan@bayiankara.com',    role: 'dealer', status: 'active',  orders: 31, paymentTotal: '₺89.500',  joinDate: '15 Oca 2026', lastLogin: '28 May 2026', company: 'Speed Tuning Ankara', phone: '+90 533 222 0002',
-    orderHistory: [
-      { id: 'ORD-C001', vehicle: 'Porsche Cayenne', stage: 'Stage 2', date: '25 May 2026', price: '₺4.000', status: 'Beklemede',  statusKey: 'pending'    },
-    ]},
-  { id: 'U008', name: 'Berk Öztürk',  email: 'berk@gmail.com',          role: 'user',   status: 'active',  orders: 0,  paymentTotal: '₺0',       joinDate: '20 May 2026', lastLogin: '21 May 2026', orderHistory: [] },
-  { id: 'A001', name: 'Admin Yetkili', email: 'admin@atsracing.com',      role: 'admin',  status: 'active',  orders: 0,  paymentTotal: '—', joinDate: '1 Oca 2026',  lastLogin: '29 May 2026', orderHistory: [] },
-  { id: 'A002', name: 'Destek Ekibi',  email: 'destek@atsracing.com',    role: 'admin',  status: 'active',  orders: 0,  paymentTotal: '—', joinDate: '1 Oca 2026',  lastLogin: '28 May 2026', orderHistory: [] },
-];
+const ORDER_STATUS_LABEL: Record<string, string> = {
+  pending: 'Beklemede', processing: 'İşlemde', completed: 'Tamamlandı', cancelled: 'İptal',
+};
+const STATUS_META: Record<AccountStatus, { label: string; active: boolean }> = {
+  approved: { label: 'Aktif', active: true },
+  pending:  { label: 'Onay Bekliyor', active: false },
+  rejected: { label: 'Reddedildi', active: false },
+};
+
+function mapAdminUser(u: AdminUserRow): AdminUser {
+  return {
+    id: u.id,
+    name: u.name,
+    email: u.email,
+    role: u.role,
+    status: u.status,
+    company: u.company ?? undefined,
+    phone: u.phone ?? undefined,
+    orders: u.orderCount,
+    paymentTotal: u.role === 'admin' ? '—' : formatTl(u.totalSpent),
+    joinDate: formatTrDate(u.createdAt),
+    lastLogin: '—',
+    orderHistory: u.orders.map(o => ({
+      id: o.orderNo,
+      vehicle: o.vehicle,
+      stage: stageLabel(o.stage),
+      date: formatTrDate(o.date),
+      price: formatTl(o.price),
+      status: ORDER_STATUS_LABEL[o.status] ?? o.status,
+      statusKey: o.status,
+    })),
+  };
+}
 
 const ROLE_LABEL: Record<UserRole, string> = { user: 'Kullanıcı', dealer: 'Bayi', admin: 'Admin' };
 
@@ -81,8 +78,9 @@ const ROLE_LABEL: Record<UserRole, string> = { user: 'Kullanıcı', dealer: 'Bay
         <select class="au-filter"
           [ngModel]="filterStatus()" (ngModelChange)="filterStatus.set($event)">
           <option value="">Tüm Durumlar</option>
-          <option value="active">Aktif</option>
-          <option value="passive">Pasif</option>
+          <option value="approved">Aktif</option>
+          <option value="pending">Onay Bekliyor</option>
+          <option value="rejected">Reddedildi</option>
         </select>
       </div>
     </div>
@@ -112,7 +110,6 @@ const ROLE_LABEL: Record<UserRole, string> = { user: 'Kullanıcı', dealer: 'Bay
           @if (activeTab() !== 'admin') { <th>Sipariş</th><th>Toplam Ödeme</th> }
           <th>Durum</th>
           <th>Kayıt</th>
-          <th>Son Giriş</th>
           <th></th>
         </tr></thead>
         <tbody>
@@ -137,12 +134,11 @@ const ROLE_LABEL: Record<UserRole, string> = { user: 'Kullanıcı', dealer: 'Bay
                 <td class="au-payment">{{ u.paymentTotal }}</td>
               }
               <td>
-                <span class="au-status" [class.au-status--active]="u.status==='active'" [class.au-status--passive]="u.status==='passive'">
-                  <span class="au-status__dot"></span>{{ u.status === 'active' ? 'Aktif' : 'Pasif' }}
+                <span class="au-status" [class.au-status--active]="isActive(u.status)" [class.au-status--passive]="!isActive(u.status)">
+                  <span class="au-status__dot"></span>{{ statusLabel(u.status) }}
                 </span>
               </td>
               <td class="au-muted">{{ u.joinDate }}</td>
-              <td class="au-muted">{{ u.lastLogin }}</td>
               <td>
                 <button class="au-icon-btn" type="button" (click)="$event.stopPropagation(); openDetail(u)">
                   <i class="pi pi-chevron-right"></i>
@@ -151,7 +147,7 @@ const ROLE_LABEL: Record<UserRole, string> = { user: 'Kullanıcı', dealer: 'Bay
             </tr>
           }
           @if (filteredByTab().length === 0) {
-            <tr><td [attr.colspan]="activeTab() !== 'admin' ? 8 : 6" class="au-empty-td">
+            <tr><td [attr.colspan]="activeTab() !== 'admin' ? 7 : 5" class="au-empty-td">
               <i class="pi pi-users"></i><p>Kayıt bulunamadı</p>
             </td></tr>
           }
@@ -194,7 +190,6 @@ const ROLE_LABEL: Record<UserRole, string> = { user: 'Kullanıcı', dealer: 'Bay
                 @if (u.phone)   { <div class="au-info-row"><i class="pi pi-phone"></i><span>{{ u.phone }}</span></div> }
                 @if (u.company) { <div class="au-info-row"><i class="pi pi-building"></i><span>{{ u.company }}</span></div> }
                 <div class="au-info-row"><i class="pi pi-calendar"></i><span>Kayıt: {{ u.joinDate }}</span></div>
-                <div class="au-info-row"><i class="pi pi-clock"></i><span>Son giriş: {{ u.lastLogin }}</span></div>
               </div>
             </div>
 
@@ -213,30 +208,16 @@ const ROLE_LABEL: Record<UserRole, string> = { user: 'Kullanıcı', dealer: 'Bay
               </div>
             }
 
-            <!-- Account management -->
+            <!-- Account status -->
             <div class="au-dp-card">
-              <h3 class="au-dp-card__title">Hesap Yönetimi</h3>
-              <div class="au-dp__mgmt">
-                <div class="au-dp__status-row">
-                  <span class="au-status" [class.au-status--active]="u.status==='active'" [class.au-status--passive]="u.status==='passive'">
-                    <span class="au-status__dot"></span>{{ u.status === 'active' ? 'Aktif' : 'Pasif' }}
-                  </span>
-                  <button class="au-toggle-btn" type="button"
-                    [class.au-toggle-btn--deactivate]="u.status==='active'"
-                    [class.au-toggle-btn--activate]="u.status==='passive'"
-                    (click)="toggleStatus(u)">
-                    <i [class]="u.status==='active' ? 'pi pi-ban' : 'pi pi-check'"></i>
-                    {{ u.status === 'active' ? 'Pasife Al' : 'Aktife Al' }}
-                  </button>
-                </div>
-                <div class="au-dp__action-row">
-                  <button class="au-action-btn au-action-btn--edit" type="button">
-                    <i class="pi pi-pencil"></i> Düzenle
-                  </button>
-                  <button class="au-action-btn au-action-btn--reset" type="button">
-                    <i class="pi pi-refresh"></i> Şifre Sıfırla
-                  </button>
-                </div>
+              <h3 class="au-dp-card__title">Hesap Durumu</h3>
+              <div class="au-dp__status-row">
+                <span class="au-status" [class.au-status--active]="isActive(u.status)" [class.au-status--passive]="!isActive(u.status)">
+                  <span class="au-status__dot"></span>{{ statusLabel(u.status) }}
+                </span>
+                @if (u.status === 'pending') {
+                  <span class="au-status-hint">Onay "Kayıtlar" ekranından yapılır</span>
+                }
               </div>
             </div>
 
@@ -411,6 +392,7 @@ const ROLE_LABEL: Record<UserRole, string> = { user: 'Kullanıcı', dealer: 'Bay
 
     .au-dp__mgmt { display: flex; flex-direction: column; gap: 0.75rem; }
     .au-dp__status-row { display: flex; align-items: center; justify-content: space-between; gap: 0.75rem; }
+    .au-status-hint { font-size: 0.72rem; color: rgba(255,255,255,0.35); }
     .au-toggle-btn {
       display: flex; align-items: center; gap: 0.4rem; padding: 0.45rem 0.85rem; border-radius: 8px; border: none; cursor: pointer; font-size: 0.75rem; font-weight: 600;
       &--deactivate { background: rgba(248,113,113,0.1); color: #f87171; border: 1px solid rgba(248,113,113,0.2); &:hover { background: rgba(248,113,113,0.2); } }
@@ -451,18 +433,31 @@ const ROLE_LABEL: Record<UserRole, string> = { user: 'Kullanıcı', dealer: 'Bay
     .au-dp__empty { display: flex; flex-direction: column; align-items: center; gap: 0.5rem; padding: 1.5rem; color: rgba(255,255,255,0.2); i { font-size: 1.75rem; } p { font-size: 0.8rem; margin: 0; text-align: center; } }
   `],
 })
-export class AdminUsersPage {
-  protected readonly allUsers     = signal<AdminUser[]>(MOCK_USERS);
+export class AdminUsersPage implements OnInit {
+  private readonly adminApi = inject(AdminService);
+  private readonly cdr = inject(ChangeDetectorRef);
+
+  protected readonly allUsers     = signal<AdminUser[]>([]);
   protected readonly activeTab    = signal<UserRole>('user');
   protected readonly search       = signal('');
   protected readonly filterStatus = signal('');
   protected readonly currentView  = signal<'list' | 'detail'>('list');
   protected readonly selectedUser = signal<AdminUser | null>(null);
 
+  async ngOnInit(): Promise<void> {
+    try {
+      const data = await this.adminApi.listUsers();
+      this.allUsers.set(data.map(mapAdminUser));
+    } catch { /* sessiz */ }
+    finally { this.cdr.markForCheck(); }
+  }
+
   setTab(tab: UserRole): void { this.activeTab.set(tab); this.goBack(); }
   countByRole(r: UserRole): number { return this.allUsers().filter(u => u.role === r).length; }
   roleLabel(r: UserRole): string   { return ROLE_LABEL[r]; }
-  initials(name: string): string   { return name.split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase(); }
+  statusLabel(s: AccountStatus): string { return STATUS_META[s].label; }
+  isActive(s: AccountStatus): boolean { return STATUS_META[s].active; }
+  initials(name: string): string   { return name.split(' ').filter(Boolean).map(w => w[0]).join('').slice(0, 2).toUpperCase(); }
 
   protected readonly filteredByTab = computed(() => {
     const tab = this.activeTab();
@@ -476,10 +471,4 @@ export class AdminUsersPage {
 
   openDetail(u: AdminUser): void { this.selectedUser.set(u); this.currentView.set('detail'); }
   goBack(): void { this.currentView.set('list'); this.selectedUser.set(null); }
-
-  toggleStatus(u: AdminUser): void {
-    const next = u.status === 'active' ? 'passive' : 'active' as UserStatus;
-    this.allUsers.update(list => list.map(x => x.id === u.id ? { ...x, status: next } : x));
-    this.selectedUser.update(sel => sel?.id === u.id ? { ...sel, status: next } : sel);
-  }
 }

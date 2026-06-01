@@ -1,23 +1,20 @@
-import { ChangeDetectionStrategy, Component, computed, inject } from '@angular/core';
+import { ChangeDetectionStrategy, ChangeDetectorRef, Component, OnInit, computed, inject, signal } from '@angular/core';
 import { DatePipe, DecimalPipe } from '@angular/common';
 import { RouterLink } from '@angular/router';
 import { AuthService } from '../../../../core/auth/auth.service';
-
-interface TuningFile {
-  id: string;
-  vehicle: string;
-  fileName: string;
-  type: string;
-  date: Date;
-  amount: number;
-  status: 'Teslim Edildi' | 'Hazırlanıyor' | 'İncelemede';
-}
+import { Order, OrdersService } from '../../../../core/orders/orders.service';
+import { TicketsService } from '../../../../core/tickets/tickets.service';
+import { PaymentsService } from '../../../../core/payments/payments.service';
+import { stageLabel, formatTl } from '../../../../core/orders/order-format';
 
 interface MonthStat {
   month: string;
   amount: number;
-  files: number;
 }
+
+const ORDER_STATUS_LABEL: Record<string, string> = {
+  pending: 'Beklemede', processing: 'İşlemde', completed: 'Tamamlandı', cancelled: 'İptal',
+};
 
 @Component({
   selector: 'app-overview-page',
@@ -38,7 +35,7 @@ interface MonthStat {
 
       <!-- STAT CARDS -->
       <div class="ov__stats">
-        @for (s of stats; track s.label) {
+        @for (s of stats(); track s.label) {
           <div class="stat-card">
             <div class="stat-card__top">
               <div class="stat-card__icon" [style.background]="s.color + '1a'" [style.color]="s.color">
@@ -48,10 +45,6 @@ interface MonthStat {
             </div>
             <div class="stat-card__bottom">
               <span class="stat-card__label">{{ s.label }}</span>
-              <div class="stat-card__trend" [class.stat-card__trend--up]="s.trendUp" [class.stat-card__trend--down]="!s.trendUp">
-                <i [class]="'pi ' + (s.trendUp ? 'pi-arrow-up-right' : 'pi-arrow-down-right')"></i>
-                {{ s.trend }}
-              </div>
             </div>
           </div>
         }
@@ -78,7 +71,7 @@ interface MonthStat {
                 </linearGradient>
               </defs>
               <!-- Grid lines + Y labels -->
-              @for (line of gridLines; track line) {
+              @for (line of gridLines(); track line.y) {
                 <line
                   [attr.x1]="48" [attr.y1]="line.y"
                   [attr.x2]="590" [attr.y2]="line.y"
@@ -89,7 +82,7 @@ interface MonthStat {
                 </text>
               }
               <!-- Bars only — no month labels here -->
-              @for (m of monthStats; track m.month; let i = $index) {
+              @for (m of monthStats(); track m.month; let i = $index) {
                 <rect
                   [attr.x]="barX(i)"
                   [attr.y]="barY(m.amount)"
@@ -105,32 +98,35 @@ interface MonthStat {
             </svg>
             <!-- Month labels as HTML — never distorted -->
             <div class="bar-months">
-              @for (m of monthStats; track m.month) {
+              @for (m of monthStats(); track m.month) {
                 <span>{{ m.month }}</span>
               }
             </div>
           </div>
         </div>
 
-        <!-- RECENT FILES -->
+        <!-- RECENT ORDERS -->
         <div class="dash-card">
           <div class="dash-card__head">
-            <h2 class="dash-card__title">Son Dosyalar</h2>
-            <a routerLink="/dashboard/files" class="dash-link">Tümünü Gör →</a>
+            <h2 class="dash-card__title">Son Siparişler</h2>
+            <a routerLink="/dashboard/orders" class="dash-link">Tümünü Gör →</a>
           </div>
           <div class="recent-list">
-            @for (f of recentFiles; track f.id) {
+            @if (recentOrders().length === 0) {
+              <div class="recent-empty"><i class="pi pi-inbox"></i><span>Henüz sipariş yok</span></div>
+            }
+            @for (o of recentOrders(); track o.id) {
               <div class="recent-item">
                 <div class="recent-item__icon">
-                  <i class="pi pi-file"></i>
+                  <i class="pi pi-car"></i>
                 </div>
                 <div class="recent-item__body">
-                  <span class="recent-item__name">{{ f.vehicle }}</span>
-                  <span class="recent-item__meta">{{ f.fileName }}</span>
+                  <span class="recent-item__name">{{ vehicleOf(o) }}</span>
+                  <span class="recent-item__meta">{{ o.orderNo }} · {{ stageLabel(o.stage) }}</span>
                 </div>
                 <div class="recent-item__right">
-                  <span class="recent-item__amount">₺{{ f.amount | number:'1.0-0' }}</span>
-                  <span class="status-chip" [class]="statusClass(f.status)">{{ f.status }}</span>
+                  <span class="recent-item__amount">₺{{ o.totalPrice | number:'1.0-0' }}</span>
+                  <span [class]="orderStatusClass(o.status)">{{ orderStatusLabel(o.status) }}</span>
                 </div>
               </div>
             }
@@ -246,6 +242,7 @@ interface MonthStat {
 
     /* RECENT LIST */
     .recent-list { display: flex; flex-direction: column; gap: 0.75rem; }
+    .recent-empty { display: flex; flex-direction: column; align-items: center; gap: 0.5rem; padding: 2rem; color: rgba(255,255,255,0.3); font-size: 0.82rem; i { font-size: 1.5rem; } }
     .recent-item {
       display: flex; align-items: center; gap: 0.875rem;
       padding: 0.75rem;
@@ -309,58 +306,90 @@ interface MonthStat {
     .quick-card:hover .quick-card__arrow { right: 1rem; color: rgba(255,255,255,0.5); }
   `],
 })
-export class OverviewPage {
+export class OverviewPage implements OnInit {
   private readonly auth = inject(AuthService);
-  protected readonly today = new Date();
+  private readonly ordersApi = inject(OrdersService);
+  private readonly ticketsApi = inject(TicketsService);
+  private readonly paymentsApi = inject(PaymentsService);
+  private readonly cdr = inject(ChangeDetectorRef);
 
-  /** Kullanıcının ilk adı (selamlama için). */
+  protected readonly today = new Date();
+  protected readonly isDealer = this.auth.isDealer;
+
+  private readonly orders = signal<Order[]>([]);
+  private readonly openTicketCount = signal(0);
+  private readonly pendingPayment = signal(0);
+
   protected readonly firstName = computed(() =>
     this.auth.currentUser()?.name?.trim().split(/\s+/)[0] ?? '',
   );
 
-  protected readonly stats = [
-    { label: 'Toplam Dosya', value: '12', icon: 'pi-folder', color: '#e63946', trend: '+2 bu ay', trendUp: true },
-    { label: 'Toplam Harcama', value: '₺8.450', icon: 'pi-wallet', color: '#60a5fa', trend: '+₺1.200', trendUp: true },
-    { label: 'Tamamlanan Sipariş', value: '9', icon: 'pi-check-circle', color: '#4ade80', trend: '+3 bu ay', trendUp: true },
-    { label: 'Bekleyen Sipariş', value: '1', icon: 'pi-clock', color: '#fbbf24', trend: 'Hazırlanıyor', trendUp: false },
-  ];
+  async ngOnInit(): Promise<void> {
+    try {
+      const [orders, tickets] = await Promise.all([
+        this.ordersApi.listMyOrders(),
+        this.ticketsApi.listMyTickets(),
+      ]);
+      this.orders.set(orders);
+      this.openTicketCount.set(tickets.filter(t => t.status !== 'resolved').length);
+      if (this.isDealer()) {
+        const statements = await this.paymentsApi.listStatements();
+        this.pendingPayment.set(
+          statements.filter(s => s.status !== 'paid').reduce((sum, s) => sum + s.total, 0),
+        );
+      }
+    } catch { /* sessiz */ }
+    finally { this.cdr.markForCheck(); }
+  }
 
-  protected readonly monthStats: MonthStat[] = [
-    { month: 'Oca', amount: 800, files: 1 },
-    { month: 'Şub', amount: 1200, files: 2 },
-    { month: 'Mar', amount: 600, files: 1 },
-    { month: 'Nis', amount: 1800, files: 3 },
-    { month: 'May', amount: 950, files: 2 },
-    { month: 'Haz', amount: 1100, files: 2 },
-    { month: 'Tem', amount: 0, files: 0 },
-    { month: 'Ağu', amount: 0, files: 0 },
-    { month: 'Eyl', amount: 0, files: 0 },
-    { month: 'Eki', amount: 0, files: 0 },
-    { month: 'Kas', amount: 0, files: 0 },
-    { month: 'Ara', amount: 0, files: 0 },
-  ];
+  /* ── Türetilen istatistikler ── */
+  protected readonly stats = computed(() => {
+    const os = this.orders();
+    const completed = os.filter(o => o.status === 'completed').length;
+    const cards = [
+      { label: 'Toplam Sipariş', value: String(os.length), icon: 'pi-shopping-cart', color: '#e63946' },
+      { label: 'Tamamlanan', value: String(completed), icon: 'pi-check-circle', color: '#4ade80' },
+      { label: 'Açık Talep', value: String(this.openTicketCount()), icon: 'pi-comments', color: '#60a5fa' },
+    ];
+    if (this.isDealer()) {
+      cards.push({ label: 'Bekleyen Ödeme', value: formatTl(this.pendingPayment()), icon: 'pi-wallet', color: '#fbbf24' });
+    } else {
+      const total = os.reduce((s, o) => s + o.totalPrice, 0);
+      cards.push({ label: 'Toplam Harcama', value: formatTl(total), icon: 'pi-wallet', color: '#fbbf24' });
+    }
+    return cards;
+  });
 
-  protected readonly recentFiles: TuningFile[] = [
-    { id: '1', vehicle: 'BMW M3 F80', fileName: 'bmw_m3_f80_stage2.bin', type: 'Stage 2', date: new Date('2025-05-20'), amount: 1500, status: 'Teslim Edildi' },
-    { id: '2', vehicle: 'Audi RS6 C8', fileName: 'audi_rs6_c8_pop_bang.bin', type: 'Pop & Bang', date: new Date('2025-05-15'), amount: 950, status: 'Teslim Edildi' },
-    { id: '3', vehicle: 'VW Golf R Mk8', fileName: 'vw_golf_r_mk8_stage1.bin', type: 'Stage 1', date: new Date('2025-05-28'), amount: 750, status: 'Hazırlanıyor' },
-  ];
+  protected readonly monthStats = computed<MonthStat[]>(() => {
+    const months = ['Oca', 'Şub', 'Mar', 'Nis', 'May', 'Haz', 'Tem', 'Ağu', 'Eyl', 'Eki', 'Kas', 'Ara'];
+    const arr = months.map(m => ({ month: m, amount: 0 }));
+    const yr = new Date().getFullYear();
+    for (const o of this.orders()) {
+      const d = new Date(o.createdAt);
+      if (d.getFullYear() === yr) { arr[d.getMonth()].amount += o.totalPrice; }
+    }
+    return arr;
+  });
+
+  protected readonly recentOrders = computed(() => this.orders().slice(0, 5));
 
   protected readonly quickActions = [
     { label: 'Chip Hesapla', desc: 'Aracınızın kazanımını hesaplayın', icon: 'pi-sliders-h', color: '#e63946', route: '/dashboard/tools' },
-    { label: 'Dosyalarım', desc: 'Tüm tuning dosyalarını görüntüle', icon: 'pi-folder-open', color: '#60a5fa', route: '/dashboard/files' },
-    { label: 'Destek Al', desc: 'Ekibimizle iletişime geç', icon: 'pi-headphones', color: '#4ade80', route: '/contact' },
+    { label: 'Siparişlerim', desc: 'Sipariş durumlarını takip et', icon: 'pi-shopping-cart', color: '#60a5fa', route: '/dashboard/orders' },
+    { label: 'Destek Al', desc: 'Ekibimizle iletişime geç', icon: 'pi-headphones', color: '#4ade80', route: '/dashboard/support' },
   ];
 
   readonly barW = 36;
   readonly chartH = 175;
-  readonly maxAmount = Math.max(...this.monthStats.map(m => m.amount), 1);
   readonly barSpacing = (600 - 48) / 12;
 
-  readonly gridLines = [0, 0.25, 0.5, 0.75, 1].map(pct => ({
-    y: 10 + (1 - pct) * this.chartH,
-    label: pct === 0 ? '' : `${Math.round(pct * this.maxAmount / 100) * 100}`,
-  }));
+  protected readonly maxAmount = computed(() => Math.max(...this.monthStats().map(m => m.amount), 1));
+  protected readonly gridLines = computed(() =>
+    [0, 0.25, 0.5, 0.75, 1].map(pct => ({
+      y: 10 + (1 - pct) * this.chartH,
+      label: pct === 0 ? '' : `${Math.round(pct * this.maxAmount() / 100) * 100}`,
+    })),
+  );
 
   barX(i: number): number {
     return 52 + i * this.barSpacing + (this.barSpacing - this.barW) / 2;
@@ -369,15 +398,19 @@ export class OverviewPage {
     return 10 + this.chartH - this.barH(amount);
   }
   barH(amount: number): number {
-    return Math.max(2, (amount / this.maxAmount) * this.chartH);
+    return Math.max(2, (amount / this.maxAmount()) * this.chartH);
   }
 
-  statusClass(status: TuningFile['status']): string {
-    const map: Record<TuningFile['status'], string> = {
-      'Teslim Edildi': 'status-chip status--delivered',
-      'Hazırlanıyor': 'status-chip status--preparing',
-      'İncelemede': 'status-chip status--review',
-    };
-    return map[status];
+  vehicleOf(o: Order): string {
+    return [o.make, o.model].filter(Boolean).join(' ') || 'Araç';
   }
+  orderStatusLabel(s: string): string { return ORDER_STATUS_LABEL[s] ?? s; }
+  orderStatusClass(s: string): string {
+    const map: Record<string, string> = {
+      pending: 'status-chip status--review', processing: 'status-chip status--preparing',
+      completed: 'status-chip status--delivered', cancelled: 'status-chip status--review',
+    };
+    return map[s] ?? 'status-chip';
+  }
+  stageLabel = stageLabel;
 }
