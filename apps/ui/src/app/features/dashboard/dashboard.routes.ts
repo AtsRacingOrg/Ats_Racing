@@ -1,7 +1,6 @@
 import { Route } from '@angular/router';
 import { DashboardLayout } from './layout/dashboard-layout';
 import { OverviewPage } from './pages/overview/overview-page';
-import { FilesPage } from './pages/files/files-page';
 import { OrdersPage } from './pages/orders/orders-page';
 
 export const dashboardRoutes: Route[] = [
@@ -23,17 +22,6 @@ export const dashboardRoutes: Route[] = [
         path: 'orders',
         component: OrdersPage,
         data: { title: 'Siparişlerim' },
-      },
-      {
-        path: 'files',
-        component: FilesPage,
-        data: { title: 'Dosyalarım' },
-      },
-      {
-        path: 'files/:id',
-        loadComponent: () =>
-          import('./pages/files/file-detail-page').then(m => m.FileDetailPage),
-        data: { title: 'Dosya Detayı' },
       },
       {
         path: 'tools',

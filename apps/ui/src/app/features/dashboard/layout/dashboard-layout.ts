@@ -307,9 +307,8 @@ export class DashboardLayout {
   protected readonly navItems = computed<NavItem[]>(() => {
     const items: NavItem[] = [
       { label: 'Genel Bakış',  icon: 'pi-home',          route: '/dashboard/overview' },
-      { label: 'Siparişlerim', icon: 'pi-shopping-cart',  route: '/dashboard/orders'   },
-      { label: 'Dosyalarım',   icon: 'pi-folder-open',   route: '/dashboard/files'    },
-      { label: 'Araçlar',      icon: 'pi-sliders-h',     route: '/dashboard/tools'    },
+      { label: 'Siparişlerim', icon: 'pi-shopping-cart', route: '/dashboard/orders' },
+      { label: 'Araçlar',      icon: 'pi-sliders-h',    route: '/dashboard/tools'  },
     ];
     if (this.auth.isDealer()) {
       items.push({ label: 'Ödeme Borçlarım', icon: 'pi-wallet', route: '/dashboard/payments' });
