@@ -98,6 +98,11 @@ function mapStatement(s: Statement): MonthlyStatement {
       <span class="sum-card__val">₺{{ outstandingTotal() | number }}</span>
       <span class="sum-card__meta"><i class="pi pi-wallet"></i> Birikiyor + vadesi gelen</span>
     </div>
+    <div class="sum-card sum-card--paid">
+      <span class="sum-card__lbl">Toplam Ödenen</span>
+      <span class="sum-card__val">₺{{ paidTotal() | number }}</span>
+      <span class="sum-card__meta"><i class="pi pi-check-circle"></i> {{ paidCount() }} ekstre ödendi</span>
+    </div>
   </div>
 
   <!-- EKSTRELER -->
@@ -190,7 +195,7 @@ function mapStatement(s: Statement): MonthlyStatement {
     .pay__sub   { font-size: 0.875rem; color: rgba(255,255,255,0.4); margin: 0.25rem 0 0; }
 
     /* Summary cards */
-    .pay__cards { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem; @media(max-width:820px){ grid-template-columns: 1fr; } }
+    .pay__cards { display: grid; grid-template-columns: repeat(4, 1fr); gap: 1rem; @media(max-width:1024px){ grid-template-columns: repeat(2, 1fr); } @media(max-width:560px){ grid-template-columns: 1fr; } }
     .sum-card {
       background: #1a1d27; border: 1px solid rgba(255,255,255,0.08); border-radius: 16px; padding: 1.3rem 1.4rem;
       display: flex; flex-direction: column; gap: 0.4rem;
@@ -199,6 +204,7 @@ function mapStatement(s: Statement): MonthlyStatement {
       &__meta { display: flex; align-items: center; gap: 0.4rem; font-size: 0.72rem; color: rgba(255,255,255,0.4); i { font-size: 0.75rem; } }
       &--accent { border-color: rgba(96,165,250,0.3); .sum-card__val { color: #60a5fa; } }
       &--warn   { border-color: rgba(251,191,36,0.3); .sum-card__val { color: #fbbf24; } }
+      &--paid   { border-color: rgba(74,222,128,0.3); .sum-card__val { color: #4ade80; } }
     }
 
     /* Statements */
@@ -298,6 +304,10 @@ export class PaymentsPage implements OnInit {
   );
   protected readonly outstandingTotal = computed(() =>
     this.accruingTotal() + this.dueTotal(),
+  );
+  protected readonly paidTotal = computed(() => this.sumByStatus('paid'));
+  protected readonly paidCount = computed(() =>
+    this.statements().filter(s => s.status === 'paid').length,
   );
 
   private sumByStatus(status: DebtStatus): number {
