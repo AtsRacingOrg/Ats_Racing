@@ -2,7 +2,7 @@ import { ChangeDetectionStrategy, ChangeDetectorRef, Component, OnInit, inject, 
 import { FormsModule } from '@angular/forms';
 import { DecimalPipe } from '@angular/common';
 import { Order, OrdersService } from '../../../../core/orders/orders.service';
-import { fuelLabelTr, stageLabel, formatTrDate, formatTl, triggerDownload } from '../../../../core/orders/order-format';
+import { fuelLabelTr, stageLabel, formatTrDate, formatTl } from '../../../../core/orders/order-format';
 
 type OrderStatus = 'pending' | 'processing' | 'completed' | 'cancelled';
 
@@ -749,11 +749,15 @@ export class OrdersPage implements OnInit {
 
   async download(o: UserOrder): Promise<void> {
     if (this.downloading()) { return; }
+    // window.open must be called synchronously within the user gesture (before any await)
+    // otherwise browsers block it as a popup.
+    const win = window.open('about:blank', '_blank');
     this.downloading.set(true);
     try {
       const res = await this.ordersApi.getDownloadUrl(o.dbId);
-      triggerDownload(res.url, res.fileName);
+      if (win) { win.location.href = res.url; }
     } catch {
+      win?.close();
       this.loadError.set('Dosya indirilemedi.');
     } finally {
       this.downloading.set(false);
