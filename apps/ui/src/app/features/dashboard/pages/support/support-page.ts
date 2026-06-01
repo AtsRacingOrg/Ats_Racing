@@ -7,6 +7,7 @@ import {
   inject,
   signal,
 } from '@angular/core';
+import { PageLoader } from '../../../../shared/page-loader';
 import { DatePipe } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { TicketsService, Ticket as ApiTicket } from '../../../../core/tickets/tickets.service';
@@ -60,9 +61,10 @@ function mapTicket(t: ApiTicket): Ticket {
 @Component({
   selector: 'app-support-page',
   standalone: true,
-  imports: [DatePipe, FormsModule],
+  imports: [DatePipe, FormsModule, PageLoader],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
+@if (loading()) { <app-page-loader /> } @else {
 <div class="sp">
 
   <!-- PAGE HEADER -->
@@ -257,6 +259,7 @@ function mapTicket(t: ApiTicket): Ticket {
     </div>
 
   </div>
+}
 }
   `,
   styles: [`

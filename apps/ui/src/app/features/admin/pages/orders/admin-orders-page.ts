@@ -1,4 +1,5 @@
 import { ChangeDetectionStrategy, ChangeDetectorRef, Component, OnInit, inject, signal, computed } from '@angular/core';
+import { PageLoader } from '../../../../shared/page-loader';
 import { FormsModule } from '@angular/forms';
 import { DecimalPipe } from '@angular/common';
 import { Order, OrdersService } from '../../../../core/orders/orders.service';
@@ -89,9 +90,10 @@ const STATUS_LABEL: Record<OrderStatus, string> = {
 @Component({
   selector: 'app-admin-orders',
   standalone: true,
-  imports: [FormsModule, DecimalPipe],
+  imports: [FormsModule, DecimalPipe, PageLoader],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
+@if (loading()) { <app-page-loader /> } @else {
 <div class="aor">
 
   @if (currentView() === 'list') {
@@ -576,6 +578,7 @@ const STATUS_LABEL: Record<OrderStatus, string> = {
   }
 
 </div>
+}
   `,
   styles: [`
     .aor { display: flex; flex-direction: column; gap: 1.25rem; }

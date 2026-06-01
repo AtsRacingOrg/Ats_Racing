@@ -1,4 +1,5 @@
 import { ChangeDetectionStrategy, ChangeDetectorRef, Component, OnInit, computed, inject, signal } from '@angular/core';
+import { PageLoader } from '../../../../shared/page-loader';
 import { DatePipe, DecimalPipe } from '@angular/common';
 import { RouterLink } from '@angular/router';
 import { AuthService } from '../../../../core/auth/auth.service';
@@ -19,10 +20,11 @@ const ORDER_STATUS_LABEL: Record<string, string> = {
 @Component({
   selector: 'app-overview-page',
   standalone: true,
-  imports: [DatePipe, DecimalPipe, RouterLink],
+  imports: [DatePipe, DecimalPipe, RouterLink, PageLoader],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
-    <div class="ov">
+    @if (loading()) { <app-page-loader /> } @else {
+<div class="ov">
 
       <!-- PAGE HEADER -->
       <div class="ov__header">
@@ -153,6 +155,7 @@ const ORDER_STATUS_LABEL: Record<string, string> = {
       </div>
 
     </div>
+}
   `,
   styles: [`
     .ov { display: flex; flex-direction: column; gap: 2rem; }
@@ -316,6 +319,7 @@ export class OverviewPage implements OnInit {
   protected readonly today = new Date();
   protected readonly isDealer = this.auth.isDealer;
 
+  protected readonly loading = signal(true);
   private readonly orders = signal<Order[]>([]);
   private readonly openTicketCount = signal(0);
   private readonly pendingPayment = signal(0);
@@ -339,7 +343,7 @@ export class OverviewPage implements OnInit {
         );
       }
     } catch { /* sessiz */ }
-    finally { this.cdr.markForCheck(); }
+    finally { this.loading.set(false); this.cdr.markForCheck(); }
   }
 
   /* ── Türetilen istatistikler ── */

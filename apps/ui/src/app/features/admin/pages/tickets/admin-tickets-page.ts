@@ -1,4 +1,5 @@
 import { ChangeDetectionStrategy, ChangeDetectorRef, Component, OnInit, computed, inject, signal } from '@angular/core';
+import { PageLoader } from '../../../../shared/page-loader';
 import { FormsModule } from '@angular/forms';
 import { TicketsService, Ticket as ApiTicket } from '../../../../core/tickets/tickets.service';
 
@@ -46,9 +47,10 @@ const STATUS_LABEL: Record<TicketStatus, string> = { open: 'Açık', pending: 'B
 @Component({
   selector: 'app-admin-tickets',
   standalone: true,
-  imports: [FormsModule],
+  imports: [FormsModule, PageLoader],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
+@if (loading()) { <app-page-loader /> } @else {
 <div class="atk">
   <div class="atk__header">
     <div>
@@ -176,6 +178,7 @@ const STATUS_LABEL: Record<TicketStatus, string> = { open: 'Açık', pending: 'B
 
   </div>
 </div>
+}
   `,
   styles: [`
     .atk { display: flex; flex-direction: column; gap: 1.25rem; }
@@ -288,6 +291,7 @@ export class AdminTicketsPage implements OnInit {
   protected readonly search       = signal('');
   protected readonly activeId     = signal<string | null>(null);
   protected readonly busy         = signal(false);
+  protected readonly loading      = signal(true);
   protected replyText = '';
 
   async ngOnInit(): Promise<void> {
@@ -295,7 +299,7 @@ export class AdminTicketsPage implements OnInit {
       const data = await this.ticketsApi.adminListTickets();
       this.tickets.set(data.map(mapAdminTicket));
     } catch { /* sessiz */ }
-    finally { this.cdr.markForCheck(); }
+    finally { this.loading.set(false); this.cdr.markForCheck(); }
   }
 
   protected readonly active = computed(() => this.tickets().find(t => t.id === this.activeId()) ?? null);

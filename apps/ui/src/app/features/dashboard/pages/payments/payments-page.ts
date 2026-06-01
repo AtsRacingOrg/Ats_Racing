@@ -1,4 +1,5 @@
 import { ChangeDetectionStrategy, ChangeDetectorRef, Component, OnInit, computed, inject, signal } from '@angular/core';
+import { PageLoader } from '../../../../shared/page-loader';
 import { DecimalPipe } from '@angular/common';
 import { RouterLink } from '@angular/router';
 import { AuthService } from '../../../../core/auth/auth.service';
@@ -54,9 +55,10 @@ function mapStatement(s: Statement): MonthlyStatement {
 @Component({
   selector: 'app-payments-page',
   standalone: true,
-  imports: [DecimalPipe, RouterLink],
+  imports: [DecimalPipe, RouterLink, PageLoader],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
+@if (loading()) { <app-page-loader /> } @else {
 <div class="pay">
 
   <!-- Sadece bayiler içindir -->
@@ -177,6 +179,7 @@ function mapStatement(s: Statement): MonthlyStatement {
 
   }
 </div>
+}
   `,
   styles: [`
     .pay { display: flex; flex-direction: column; gap: 1.5rem; }

@@ -1,4 +1,5 @@
 import { ChangeDetectionStrategy, ChangeDetectorRef, Component, OnInit, signal, computed, inject } from '@angular/core';
+import { PageLoader } from '../../../../shared/page-loader';
 import { FormsModule } from '@angular/forms';
 import { AdminService, AdminUserRow } from '../../../../core/admin/admin.service';
 import { stageLabel, formatTl, formatTrDate } from '../../../../core/orders/order-format';
@@ -56,9 +57,10 @@ const ROLE_LABEL: Record<UserRole, string> = { user: 'Kullanıcı', dealer: 'Bay
 @Component({
   selector: 'app-admin-users',
   standalone: true,
-  imports: [FormsModule],
+  imports: [FormsModule, PageLoader],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
+@if (loading()) { <app-page-loader /> } @else {
 <div class="au">
 
   @if (currentView() === 'list') {
@@ -270,6 +272,7 @@ const ROLE_LABEL: Record<UserRole, string> = { user: 'Kullanıcı', dealer: 'Bay
 
   }
 </div>
+}
   `,
   styles: [`
     .au { display: flex; flex-direction: column; gap: 1.25rem; }
@@ -443,13 +446,14 @@ export class AdminUsersPage implements OnInit {
   protected readonly filterStatus = signal('');
   protected readonly currentView  = signal<'list' | 'detail'>('list');
   protected readonly selectedUser = signal<AdminUser | null>(null);
+  protected readonly loading      = signal(true);
 
   async ngOnInit(): Promise<void> {
     try {
       const data = await this.adminApi.listUsers();
       this.allUsers.set(data.map(mapAdminUser));
     } catch { /* sessiz */ }
-    finally { this.cdr.markForCheck(); }
+    finally { this.loading.set(false); this.cdr.markForCheck(); }
   }
 
   setTab(tab: UserRole): void { this.activeTab.set(tab); this.goBack(); }
