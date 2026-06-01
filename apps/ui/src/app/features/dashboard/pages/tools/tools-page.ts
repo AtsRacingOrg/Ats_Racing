@@ -1,6 +1,7 @@
 import { ChangeDetectionStrategy, ChangeDetectorRef, Component, OnInit, computed, inject, signal } from '@angular/core';
 import { DecimalPipe } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { RouterLink } from '@angular/router';
 import { AuthService } from '../../../../core/auth/auth.service';
 import {
   Brand,
@@ -46,7 +47,7 @@ const GROUP_ORDER = ['Emisyon', 'Motor', 'Performans', 'Konfor', 'Egzoz', 'Güve
 @Component({
   selector: 'app-tools-page',
   standalone: true,
-  imports: [DecimalPipe, FormsModule],
+  imports: [DecimalPipe, FormsModule, RouterLink],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div class="tp">
@@ -536,20 +537,26 @@ const GROUP_ORDER = ['Emisyon', 'Motor', 'Performans', 'Konfor', 'Egzoz', 'Güve
               <div class="checkout-steps">
 
             @if (orderSent()) {
-              <div class="order-success">
-                <div class="order-success__icon"><i class="pi pi-check-circle"></i></div>
-                <div class="order-success__body">
-                  <h3>Siparişiniz Alındı! <span class="order-success__no">{{ orderNo() }}</span></h3>
-                  <p>
-                    {{ tuneLabel() }} yazılım siparişiniz
-                    @if (selectedModules().size > 0) { <span>ve {{ selectedModules().size }} ekstra modül</span> }
-                    ekibimize iletildi. Siparişlerim sayfasından durumu takip edebilirsiniz.
-                  </p>
+              <div class="order-success-full">
+                <div class="order-success-full__icon"><i class="pi pi-check-circle"></i></div>
+                <h2 class="order-success-full__title">Siparişiniz Alındı!</h2>
+                <div class="order-success-full__no">{{ orderNo() }}</div>
+                <p class="order-success-full__desc">
+                  {{ tuneLabel() }} yazılım siparişiniz
+                  @if (selectedModules().size > 0) { ve {{ selectedModules().size }} ekstra modül }
+                  ekibimize iletildi.<br>
+                  Dosyanız hazırlandığında e-posta ile bilgilendirileceksiniz.
+                </p>
+                <div class="order-success-full__actions">
+                  <a routerLink="/dashboard/orders" class="cta-btn cta-btn--primary" style="justify-content:center">
+                    <i class="pi pi-list"></i> Siparişlerime Git
+                  </a>
+                  <button class="cta-btn cta-btn--outline" (click)="resetOrder()" type="button" style="justify-content:center">
+                    <i class="pi pi-plus"></i> Yeni Sipariş
+                  </button>
                 </div>
-                <button class="ghost-btn" (click)="resetOrder()" type="button">Yeni Sipariş</button>
               </div>
-            }
-
+            } @else {
             <div class="result-wrap">
 
               <div class="result-banner">
@@ -730,8 +737,10 @@ const GROUP_ORDER = ['Emisyon', 'Motor', 'Performans', 'Konfor', 'Egzoz', 'Güve
               </div>
 
             </div><!-- /result-wrap -->
+            }<!-- /@else orderSent -->
 
-                <!-- ADIM KARTLARI -->
+                <!-- ADIM KARTLARI — sipariş sonrası gizlenir -->
+                @if (!orderSent()) {
 
                 <!-- STEP 2 — AYARLAMA BİLGİLERİ -->
                 <div class="step-card">
@@ -969,6 +978,8 @@ const GROUP_ORDER = ['Emisyon', 'Motor', 'Performans', 'Konfor', 'Egzoz', 'Güve
                   </p>
                 </div>
 
+                }<!-- /@if !orderSent — adım kartları sonu -->
+
               </div><!-- /checkout-steps (dış) -->
 
               <!-- ── RIGHT: Sticky Summary Panel ── -->
@@ -1157,24 +1168,42 @@ const GROUP_ORDER = ['Emisyon', 'Motor', 'Performans', 'Konfor', 'Egzoz', 'Güve
                   }
 
                   <!-- CTA -->
-                  <div class="cs__actions">
-                    <button class="cta-btn cta-btn--primary" style="width:100%; justify-content:center"
-                      type="button" [disabled]="!uploadedFile() || orderSubmitting()" (click)="submitOrder()">
-                      <i class="pi" [class.pi-credit-card]="!isDealer() && !orderSubmitting()" [class.pi-check-circle]="isDealer() && !orderSubmitting()" [class.pi-spinner]="orderSubmitting()" [class.pi-spin]="orderSubmitting()"></i>
-                      {{ orderSubmitting() ? 'Gönderiliyor…' : orderCtaLabel() }}
-                    </button>
-                    <a href="/contact" class="cta-btn cta-btn--outline" style="width:100%; justify-content:center">
-                      <i class="pi pi-headphones"></i> Uzmanla Konuş
-                    </a>
-                  </div>
-                  @if (orderError()) {
-                    <p class="cs__file-warn-note" style="color:#e63946"><i class="pi pi-exclamation-triangle"></i> {{ orderError() }}</p>
-                  }
-
-                  @if (!uploadedFile()) {
-                    <p class="cs__file-warn-note">
-                      <i class="pi pi-lock"></i> Sipariş vermek için ECU dosyası gereklidir (Adım 6)
-                    </p>
+                  @if (orderSent()) {
+                    <!-- Sipariş alındı — sidebar da başarı gösterir -->
+                    <div class="cs__sent">
+                      <i class="pi pi-check-circle cs__sent__icon"></i>
+                      <div>
+                        <p class="cs__sent__title">Sipariş Alındı</p>
+                        <p class="cs__sent__no">{{ orderNo() }}</p>
+                      </div>
+                    </div>
+                    <div class="cs__actions">
+                      <a routerLink="/dashboard/orders" class="cta-btn cta-btn--primary" style="width:100%; justify-content:center">
+                        <i class="pi pi-list"></i> Siparişlerime Git
+                      </a>
+                      <button class="cta-btn cta-btn--outline" (click)="resetOrder()" type="button" style="width:100%; justify-content:center">
+                        <i class="pi pi-plus"></i> Yeni Sipariş
+                      </button>
+                    </div>
+                  } @else {
+                    <div class="cs__actions">
+                      <button class="cta-btn cta-btn--primary" style="width:100%; justify-content:center"
+                        type="button" [disabled]="!uploadedFile() || orderSubmitting()" (click)="submitOrder()">
+                        <i class="pi" [class.pi-credit-card]="!isDealer() && !orderSubmitting()" [class.pi-check-circle]="isDealer() && !orderSubmitting()" [class.pi-spinner]="orderSubmitting()" [class.pi-spin]="orderSubmitting()"></i>
+                        {{ orderSubmitting() ? 'Gönderiliyor…' : orderCtaLabel() }}
+                      </button>
+                      <a href="/contact" class="cta-btn cta-btn--outline" style="width:100%; justify-content:center">
+                        <i class="pi pi-headphones"></i> Uzmanla Konuş
+                      </a>
+                    </div>
+                    @if (orderError()) {
+                      <p class="cs__file-warn-note" style="color:#e63946"><i class="pi pi-exclamation-triangle"></i> {{ orderError() }}</p>
+                    }
+                    @if (!uploadedFile()) {
+                      <p class="cs__file-warn-note">
+                        <i class="pi pi-lock"></i> Sipariş vermek için ECU dosyası gereklidir (Adım 6)
+                      </p>
+                    }
                   }
 
                 </div>
