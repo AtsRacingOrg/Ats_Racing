@@ -1,53 +1,45 @@
-import { ChangeDetectionStrategy, Component, computed, signal } from '@angular/core';
+import { ChangeDetectionStrategy, ChangeDetectorRef, Component, OnInit, computed, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
+import { TicketsService, Ticket as ApiTicket } from '../../../../core/tickets/tickets.service';
 
 type TicketStatus = 'open' | 'pending' | 'resolved';
 
 interface Message { id: string; text: string; sender: 'user' | 'support'; time: string; }
 
 interface AdminTicket {
-  id: string; user: string; email: string;
+  id: string; ticketNo: string; user: string; email: string;
   order: string; subject: string;
   status: TicketStatus; date: string;
   messages: Message[];
 }
 
-const MOCK_TICKETS: AdminTicket[] = [
-  { id: 'TKT-003', user: 'Ali Yıldız',  email: 'kullanici@atsracing.com', order: 'ORD-003', subject: 'DPF ışığı hala yanıyor',
-    status: 'open', date: '18 Mar 2026',
-    messages: [
-      { id: 'm1', sender: 'user', time: '18 Mar, 09:00', text: 'DPF modülü yüklendi fakat gösterge panelinde DPF uyarı ışığı hala yanıyor.' },
-    ],
-  },
-  { id: 'TKT-001', user: 'Ali Yıldız',  email: 'kullanici@atsracing.com', order: 'ORD-001', subject: 'Yazılım sonrası rölantide titreme',
-    status: 'pending', date: '12 May 2026',
-    messages: [
-      { id: 'm2', sender: 'user',    time: '12 May, 10:30', text: 'Stage 1 yazılımı yüklendikten sonra rölantide hafif titreme başladı. Normal mi?' },
-      { id: 'm3', sender: 'support', time: '12 May, 11:45', text: 'Titreme durumu birkaç gün içinde ECU adaptasyonu tamamlanınca geçmektedir.' },
-      { id: 'm4', sender: 'user',    time: '13 May, 09:15', text: 'Tamam, biraz daha bekleyeyim. Teşekkürler.' },
-    ],
-  },
-  { id: 'TKT-005', user: 'Mert Kaya',   email: 'mert@gmail.com',          order: 'ORD-047', subject: 'Stage 2 sonrası DTC kodları',
-    status: 'open', date: '28 May 2026',
-    messages: [
-      { id: 'm5', sender: 'user', time: '28 May, 14:00', text: 'Stage 2 yazılımı sonrasında P0299 ve P0234 kodları geliyor, araç boost basıncı aşıyor mu?' },
-    ],
-  },
-  { id: 'TKT-004', user: 'Zeynep Arslan', email: 'zeynep@gmail.com',        order: 'ORD-044', subject: 'Şanzıman kayması sorunu',
-    status: 'pending', date: '25 May 2026',
-    messages: [
-      { id: 'm8', sender: 'user',    time: '25 May, 11:00', text: 'Stage 2 sonrası şanzıman kayması yaşıyorum, yazılımla ilgili mi?' },
-      { id: 'm9', sender: 'support', time: '25 May, 14:30', text: 'Şanzıman adaptasyonunu sıfırlamayı deneyin. Servise gitmenizi öneririz.' },
-    ],
-  },
-  { id: 'TKT-002', user: 'Ali Yıldız',  email: 'kullanici@atsracing.com', order: 'ORD-002', subject: 'Stage 2 için intercooler tavsiyesi',
-    status: 'resolved', date: '25 Nis 2026',
-    messages: [
-      { id: 'm6', sender: 'user',    time: '25 Nis, 14:00', text: 'Stage 2 yazılımı için hangi intercooler markasını önerirsiniz?' },
-      { id: 'm7', sender: 'support', time: '25 Nis, 16:30', text: 'Wagner Tuning veya Forge Motorsport intercooler\'larını tavsiye ediyoruz.' },
-    ],
-  },
-];
+const TR_MONTHS = ['Oca', 'Şub', 'Mar', 'Nis', 'May', 'Haz', 'Tem', 'Ağu', 'Eyl', 'Eki', 'Kas', 'Ara'];
+function fmtDateTime(iso: string): string {
+  const d = new Date(iso);
+  if (isNaN(d.getTime())) { return ''; }
+  const hh = String(d.getHours()).padStart(2, '0');
+  const mm = String(d.getMinutes()).padStart(2, '0');
+  return `${d.getDate()} ${TR_MONTHS[d.getMonth()]}, ${hh}:${mm}`;
+}
+
+function mapAdminTicket(t: ApiTicket): AdminTicket {
+  return {
+    id: t.id,
+    ticketNo: t.ticketNo,
+    user: t.customer?.fullName ?? '—',
+    email: t.customer?.email ?? '',
+    order: t.orderNo ?? 'Özel Talep',
+    subject: t.subject,
+    status: t.status,
+    date: fmtDateTime(t.createdAt).split(',')[0],
+    messages: t.messages.map((m, i) => ({
+      id: `m${i}`,
+      text: m.body,
+      sender: m.sender,
+      time: fmtDateTime(m.createdAt),
+    })),
+  };
+}
 
 const STATUS_LABEL: Record<TicketStatus, string> = { open: 'Açık', pending: 'Beklemede', resolved: 'Çözüldü' };
 
@@ -287,12 +279,24 @@ const STATUS_LABEL: Record<TicketStatus, string> = { open: 'Açık', pending: 'B
     .atk-reopen-btn { display: flex; align-items: center; gap: 0.35rem; margin-left: auto; padding: 0.35rem 0.75rem; border-radius: 7px; border: 1px solid rgba(251,191,36,0.2); background: rgba(251,191,36,0.08); color: #fbbf24; font-size: 0.75rem; cursor: pointer; &:hover { background: rgba(251,191,36,0.15); } i { font-size: 0.7rem; } }
   `],
 })
-export class AdminTicketsPage {
-  protected readonly tickets      = signal<AdminTicket[]>(MOCK_TICKETS);
+export class AdminTicketsPage implements OnInit {
+  private readonly ticketsApi = inject(TicketsService);
+  private readonly cdr = inject(ChangeDetectorRef);
+
+  protected readonly tickets      = signal<AdminTicket[]>([]);
   protected readonly activeStatus = signal<TicketStatus | ''>('');
   protected readonly search       = signal('');
   protected readonly activeId     = signal<string | null>(null);
+  protected readonly busy         = signal(false);
   protected replyText = '';
+
+  async ngOnInit(): Promise<void> {
+    try {
+      const data = await this.ticketsApi.adminListTickets();
+      this.tickets.set(data.map(mapAdminTicket));
+    } catch { /* sessiz */ }
+    finally { this.cdr.markForCheck(); }
+  }
 
   protected readonly active = computed(() => this.tickets().find(t => t.id === this.activeId()) ?? null);
   protected countBy(s: TicketStatus): number { return this.tickets().filter(t => t.status === s).length; }
@@ -300,7 +304,7 @@ export class AdminTicketsPage {
   protected readonly filtered = computed(() => {
     let list = this.tickets();
     const q = this.search().toLowerCase();
-    if (q) { list = list.filter(t => t.subject.toLowerCase().includes(q) || t.user.toLowerCase().includes(q) || t.id.toLowerCase().includes(q)); }
+    if (q) { list = list.filter(t => t.subject.toLowerCase().includes(q) || t.user.toLowerCase().includes(q) || t.ticketNo.toLowerCase().includes(q)); }
     const status = this.activeStatus();
     if (status) { list = list.filter(t => t.status === status); }
     return list;
@@ -309,18 +313,28 @@ export class AdminTicketsPage {
   statusLabel(s: TicketStatus): string { return STATUS_LABEL[s]; }
   userInitials(name: string): string { return name.split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase(); }
 
-  changeStatus(id: string, status: TicketStatus): void {
-    this.tickets.update(list => list.map(t => t.id === id ? { ...t, status } : t));
+  private upsert(t: AdminTicket): void {
+    this.tickets.update(list => list.map(x => x.id === t.id ? t : x));
   }
 
-  sendReply(): void {
+  async changeStatus(id: string, status: TicketStatus): Promise<void> {
+    if (this.busy()) { return; }
+    this.busy.set(true);
+    try {
+      this.upsert(mapAdminTicket(await this.ticketsApi.adminSetStatus(id, status)));
+    } catch { /* sessiz */ }
+    finally { this.busy.set(false); this.cdr.markForCheck(); }
+  }
+
+  async sendReply(): Promise<void> {
     const text = this.replyText.trim();
-    if (!text || !this.activeId()) { return; }
-    this.tickets.update(list => list.map(t =>
-      t.id === this.activeId()
-        ? { ...t, status: 'pending' as TicketStatus, messages: [...t.messages, { id: `m${Date.now()}`, sender: 'support' as const, text, time: new Date().toLocaleDateString('tr-TR', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }) }] }
-        : t
-    ));
-    this.replyText = '';
+    const id = this.activeId();
+    if (!text || !id || this.busy()) { return; }
+    this.busy.set(true);
+    try {
+      this.upsert(mapAdminTicket(await this.ticketsApi.adminReply(id, text)));
+      this.replyText = '';
+    } catch { /* sessiz */ }
+    finally { this.busy.set(false); this.cdr.markForCheck(); }
   }
 }

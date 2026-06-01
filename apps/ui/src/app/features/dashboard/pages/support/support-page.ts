@@ -1,11 +1,17 @@
 import {
   ChangeDetectionStrategy,
+  ChangeDetectorRef,
   Component,
+  OnInit,
   computed,
+  inject,
   signal,
 } from '@angular/core';
 import { DatePipe } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { TicketsService, Ticket as ApiTicket } from '../../../../core/tickets/tickets.service';
+import { OrdersService } from '../../../../core/orders/orders.service';
+import { stageLabel } from '../../../../core/orders/order-format';
 
 /* ─── Types ──────────────────────────────────────────────── */
 type TicketStatus = 'open' | 'pending' | 'resolved';
@@ -14,96 +20,41 @@ interface TicketMessage {
   id: string;
   text: string;
   sender: 'user' | 'support';
-  createdAt: Date;
+  createdAt: string;
 }
 
 interface Ticket {
   id: string;
-  orderId: string;
-  orderLabel: string;
+  ticketNo: string;
+  orderLabel: string | null;
   subject: string;
   status: TicketStatus;
-  createdAt: Date;
+  createdAt: string;
   messages: TicketMessage[];
 }
 
-interface Order {
+interface OrderOption {
   id: string;
   label: string;
-  date: Date;
 }
 
-/* ─── Mock Data ──────────────────────────────────────────── */
-const MOCK_ORDERS: Order[] = [
-  { id: 'ORD-001', label: 'BMW M3 G80 · Stage 1 Chip Tuning', date: new Date('2026-05-10') },
-  { id: 'ORD-002', label: 'Audi RS6 C8 · Stage 2 Chip Tuning', date: new Date('2026-04-22') },
-  { id: 'ORD-003', label: 'VW Golf R Mk8 · DPF + EGR Modül', date: new Date('2026-03-15') },
-];
-
-const MOCK_TICKETS: Ticket[] = [
-  {
-    id: 'TKT-001',
-    orderId: 'ORD-001',
-    orderLabel: 'BMW M3 G80 · Stage 1 Chip Tuning',
-    subject: 'Yazılım sonrası rölantide titreme var',
-    status: 'pending',
-    createdAt: new Date('2026-05-12T10:30:00'),
-    messages: [
-      {
-        id: 'm1', sender: 'user', createdAt: new Date('2026-05-12T10:30:00'),
-        text: 'Merhaba, Stage 1 yazılımı yüklendikten sonra rölantide hafif titreme başladı. Normal mi?',
-      },
-      {
-        id: 'm2', sender: 'support', createdAt: new Date('2026-05-12T11:45:00'),
-        text: 'Merhaba, titreme durumu birkaç gün içinde ECU adaptasyonu tamamlanınca geçmektedir. Eğer 3 günden uzun sürerse bize tekrar yazın, dosyayı güncelleyelim.',
-      },
-      {
-        id: 'm3', sender: 'user', createdAt: new Date('2026-05-13T09:15:00'),
-        text: 'Tamam, biraz daha bekleyeyim. Teşekkürler.',
-      },
-    ],
-  },
-  {
-    id: 'TKT-002',
-    orderId: 'ORD-002',
-    orderLabel: 'Audi RS6 C8 · Stage 2 Chip Tuning',
-    subject: 'Stage 2 için intercooler tavsiyesi',
-    status: 'resolved',
-    createdAt: new Date('2026-04-25T14:00:00'),
-    messages: [
-      {
-        id: 'm4', sender: 'user', createdAt: new Date('2026-04-25T14:00:00'),
-        text: 'Stage 2 yazılımı için hangi intercooler markasını önerirsiniz?',
-      },
-      {
-        id: 'm5', sender: 'support', createdAt: new Date('2026-04-25T16:30:00'),
-        text: 'RS6 C8 için Wagner Tuning veya Forge Motorsport intercooler\'larını tavsiye ediyoruz. Her ikisi de Stage 2 talepleri için yeterli kapasitededir.',
-      },
-      {
-        id: 'm6', sender: 'user', createdAt: new Date('2026-04-26T08:00:00'),
-        text: 'Wagner\'ı tercih ettim, sipariş verdim. Teşekkürler!',
-      },
-      {
-        id: 'm7', sender: 'support', createdAt: new Date('2026-04-26T09:00:00'),
-        text: 'Harika seçim! Montaj sonrası yazılımı güncellemek için bizimle iletişime geçin.',
-      },
-    ],
-  },
-  {
-    id: 'TKT-003',
-    orderId: 'ORD-003',
-    orderLabel: 'VW Golf R Mk8 · DPF + EGR Modül',
-    subject: 'DPF ışığı hala yanıyor',
-    status: 'open',
-    createdAt: new Date('2026-03-18T09:00:00'),
-    messages: [
-      {
-        id: 'm8', sender: 'user', createdAt: new Date('2026-03-18T09:00:00'),
-        text: 'DPF modülü yüklendi fakat gösterge panelinde DPF uyarı ışığı hala yanıyor.',
-      },
-    ],
-  },
-];
+/** API Ticket → ekran modeli. */
+function mapTicket(t: ApiTicket): Ticket {
+  return {
+    id: t.id,
+    ticketNo: t.ticketNo,
+    orderLabel: t.orderLabel ? `${t.orderNo} · ${t.orderLabel}` : null,
+    subject: t.subject,
+    status: t.status,
+    createdAt: t.createdAt,
+    messages: t.messages.map((m, i) => ({
+      id: `m${i}`,
+      text: m.body,
+      sender: m.sender,
+      createdAt: m.createdAt,
+    })),
+  };
+}
 
 /* ─── Component ──────────────────────────────────────────── */
 @Component({
@@ -150,7 +101,7 @@ const MOCK_TICKETS: Ticket[] = [
             <span class="tkt-row__date">{{ t.createdAt | date:'d MMM' }}</span>
           </div>
           <p class="tkt-row__subject">{{ t.subject }}</p>
-          <p class="tkt-row__order"><i class="pi pi-box"></i> {{ t.orderLabel }}</p>
+          <p class="tkt-row__order"><i class="pi" [class.pi-box]="t.orderLabel" [class.pi-comment]="!t.orderLabel"></i> {{ t.orderLabel || 'Özel Talep' }}</p>
           <p class="tkt-row__preview">{{ t.messages[t.messages.length - 1].text }}</p>
         </button>
       }
@@ -172,15 +123,12 @@ const MOCK_TICKETS: Ticket[] = [
             </span>
             <div>
               <h2 class="convo__subject">{{ activeTicket()!.subject }}</h2>
-              <p class="convo__order"><i class="pi pi-box"></i> {{ activeTicket()!.orderLabel }}</p>
+              <p class="convo__order">
+                <i class="pi" [class.pi-box]="activeTicket()!.orderLabel" [class.pi-comment]="!activeTicket()!.orderLabel"></i>
+                {{ activeTicket()!.orderLabel || 'Özel Talep' }}
+                <span class="convo__no">{{ activeTicket()!.ticketNo }}</span>
+              </p>
             </div>
-          </div>
-          <div class="convo__head-actions">
-            @if (activeTicket()!.status !== 'resolved') {
-              <button class="ghost-btn" type="button" (click)="resolveTicket(activeTicket()!.id)">
-                <i class="pi pi-check"></i> Çözüldü Olarak İşaretle
-              </button>
-            }
           </div>
         </div>
 
@@ -218,7 +166,7 @@ const MOCK_TICKETS: Ticket[] = [
             <button
               class="sp-send-btn"
               type="button"
-              [disabled]="!replyText.trim()"
+              [disabled]="!replyText.trim() || busy()"
               (click)="sendReply()"
             >
               <i class="pi pi-send"></i> Gönder
@@ -249,18 +197,41 @@ const MOCK_TICKETS: Ticket[] = [
     </div>
 
     <div class="ntm__body">
+      <!-- Talep türü -->
       <div class="ntm__field">
-        <label class="ntm__label" for="ntm-order">Sipariş</label>
-        <div class="sel-wrap">
-          <select id="ntm-order" class="sel" [(ngModel)]="newOrderId">
-            <option value="">— Sipariş seçin —</option>
-            @for (o of orders; track o.id) {
-              <option [value]="o.id">{{ o.label }} ({{ o.date | date:'d MMM yyyy' }})</option>
-            }
-          </select>
-          <i class="pi pi-chevron-down sel-arrow"></i>
+        <span class="ntm__label">Talep Türü</span>
+        <div class="ntm__toggle">
+          <button type="button" class="ntm__toggle-btn"
+            [class.ntm__toggle-btn--active]="newTicketType === 'order'"
+            (click)="newTicketType = 'order'">
+            <i class="pi pi-box"></i> Sipariş ile İlgili
+          </button>
+          <button type="button" class="ntm__toggle-btn"
+            [class.ntm__toggle-btn--active]="newTicketType === 'custom'"
+            (click)="newTicketType = 'custom'">
+            <i class="pi pi-comment"></i> Özel Talep
+          </button>
         </div>
       </div>
+
+      @if (newTicketType === 'order') {
+        <div class="ntm__field">
+          <label class="ntm__label" for="ntm-order">Sipariş</label>
+          @if (orders().length > 0) {
+            <div class="sel-wrap">
+              <select id="ntm-order" class="sel" [(ngModel)]="newOrderId">
+                <option value="">— Sipariş seçin —</option>
+                @for (o of orders(); track o.id) {
+                  <option [value]="o.id">{{ o.label }}</option>
+                }
+              </select>
+              <i class="pi pi-chevron-down sel-arrow"></i>
+            </div>
+          } @else {
+            <p class="ntm__hint">Henüz siparişiniz yok. "Özel Talep" seçerek yazabilirsiniz.</p>
+          }
+        </div>
+      }
 
       <div class="ntm__field">
         <label class="ntm__label" for="ntm-subject">Konu</label>
@@ -278,10 +249,10 @@ const MOCK_TICKETS: Ticket[] = [
       <button
         class="sp-send-btn"
         type="button"
-        [disabled]="!newOrderId || !newSubject.trim() || !newMessage.trim()"
+        [disabled]="!canSubmit() || busy()"
         (click)="submitNewTicket()"
       >
-        <i class="pi pi-send"></i> Ticket Oluştur
+        <i class="pi pi-send"></i> {{ busy() ? 'Gönderiliyor…' : 'Talep Oluştur' }}
       </button>
     </div>
 
@@ -488,6 +459,16 @@ const MOCK_TICKETS: Ticket[] = [
     .ntm__body { padding: 1.5rem; display: flex; flex-direction: column; gap: 1rem; }
     .ntm__field { display: flex; flex-direction: column; gap: 0.4rem; }
     .ntm__label { font-size: 0.7rem; font-weight: 600; color: rgba(255,255,255,0.4); text-transform: uppercase; letter-spacing: 0.07em; }
+    .ntm__toggle { display: flex; gap: 0.5rem; }
+    .ntm__toggle-btn {
+      flex: 1; display: flex; align-items: center; justify-content: center; gap: 0.4rem;
+      padding: 0.65rem; border-radius: 10px; cursor: pointer; font-size: 0.82rem; font-weight: 600;
+      background: rgba(255,255,255,0.03); border: 1.5px solid rgba(255,255,255,0.1); color: rgba(255,255,255,0.6);
+      transition: all 160ms;
+      &--active { border-color: #e63946; background: rgba(230,57,70,0.1); color: #fff; }
+    }
+    .ntm__hint { font-size: 0.78rem; color: rgba(255,255,255,0.4); margin: 0; padding: 0.5rem 0; }
+    .convo__no { font-family: 'Courier New', monospace; font-weight: 700; color: rgba(255,255,255,0.5); margin-left: 0.4rem; }
     .ntm__input {
       padding: 0.7rem 1rem; background: #0d0f14; border: 1px solid rgba(255,255,255,0.1);
       border-radius: 10px; color: rgba(255,255,255,0.85); font-size: 0.875rem;
@@ -507,51 +488,74 @@ const MOCK_TICKETS: Ticket[] = [
     }
   `],
 })
-export class SupportPage {
-  protected readonly orders = MOCK_ORDERS;
-  protected readonly tickets = signal<Ticket[]>(MOCK_TICKETS);
+export class SupportPage implements OnInit {
+  private readonly ticketsApi = inject(TicketsService);
+  private readonly ordersApi = inject(OrdersService);
+  private readonly cdr = inject(ChangeDetectorRef);
+
+  protected readonly orders = signal<OrderOption[]>([]);
+  protected readonly tickets = signal<Ticket[]>([]);
   protected readonly activeTicketId = signal<string | null>(null);
   protected readonly showNewTicket = signal(false);
+  protected readonly loading = signal(true);
+  protected readonly busy = signal(false);
 
   protected readonly activeTicket = computed(() =>
     this.tickets().find(t => t.id === this.activeTicketId()) ?? null
   );
 
   protected replyText = '';
+  /** 'order' = sipariş ile ilgili, 'custom' = özel talep */
+  protected newTicketType: 'order' | 'custom' = 'order';
   protected newOrderId = '';
   protected newSubject = '';
   protected newMessage = '';
+
+  async ngOnInit(): Promise<void> {
+    try {
+      const [tickets, orders] = await Promise.all([
+        this.ticketsApi.listMyTickets(),
+        this.ordersApi.listMyOrders(),
+      ]);
+      this.tickets.set(tickets.map(mapTicket));
+      this.orders.set(orders.map(o => ({
+        id: o.id,
+        label: `${o.orderNo} · ${[o.make, o.model].filter(Boolean).join(' ')} · ${stageLabel(o.stage)}`,
+      })));
+    } catch {
+      /* sessiz */
+    } finally {
+      this.loading.set(false);
+      this.cdr.markForCheck();
+    }
+  }
+
+  private async refresh(activeId?: string): Promise<void> {
+    const tickets = await this.ticketsApi.listMyTickets();
+    this.tickets.set(tickets.map(mapTicket));
+    if (activeId) { this.activeTicketId.set(activeId); }
+    this.cdr.markForCheck();
+  }
 
   protected statusLabel(s: TicketStatus): string {
     return s === 'open' ? 'Açık' : s === 'pending' ? 'Beklemede' : 'Çözüldü';
   }
 
-  protected sendReply(): void {
+  protected async sendReply(): Promise<void> {
     const text = this.replyText.trim();
-    if (!text || !this.activeTicketId()) { return; }
-    const newMsg: TicketMessage = {
-      id: `m${Date.now()}`,
-      sender: 'user',
-      text,
-      createdAt: new Date(),
-    };
-    this.tickets.update(list =>
-      list.map(t =>
-        t.id === this.activeTicketId()
-          ? { ...t, messages: [...t.messages, newMsg], status: 'pending' as TicketStatus }
-          : t
-      )
-    );
-    this.replyText = '';
-  }
-
-  protected resolveTicket(id: string): void {
-    this.tickets.update(list =>
-      list.map(t => t.id === id ? { ...t, status: 'resolved' as TicketStatus } : t)
-    );
+    const id = this.activeTicketId();
+    if (!text || !id || this.busy()) { return; }
+    this.busy.set(true);
+    try {
+      await this.ticketsApi.reply(id, text);
+      this.replyText = '';
+      await this.refresh(id);
+    } catch { /* sessiz */ }
+    finally { this.busy.set(false); this.cdr.markForCheck(); }
   }
 
   protected openNewTicket(): void {
+    this.newTicketType = this.orders().length > 0 ? 'order' : 'custom';
     this.newOrderId = '';
     this.newSubject = '';
     this.newMessage = '';
@@ -562,25 +566,24 @@ export class SupportPage {
     this.showNewTicket.set(false);
   }
 
-  protected submitNewTicket(): void {
-    if (!this.newOrderId || !this.newSubject.trim() || !this.newMessage.trim()) { return; }
-    const order = this.orders.find(o => o.id === this.newOrderId);
-    const ticket: Ticket = {
-      id: `TKT-${String(Date.now()).slice(-4)}`,
-      orderId: this.newOrderId,
-      orderLabel: order?.label ?? '',
-      subject: this.newSubject.trim(),
-      status: 'open',
-      createdAt: new Date(),
-      messages: [{
-        id: `m${Date.now()}`,
-        sender: 'user',
-        text: this.newMessage.trim(),
-        createdAt: new Date(),
-      }],
-    };
-    this.tickets.update(list => [ticket, ...list]);
-    this.activeTicketId.set(ticket.id);
-    this.closeNewTicket();
+  protected canSubmit(): boolean {
+    if (!this.newSubject.trim() || !this.newMessage.trim()) { return false; }
+    if (this.newTicketType === 'order' && !this.newOrderId) { return false; }
+    return true;
+  }
+
+  protected async submitNewTicket(): Promise<void> {
+    if (!this.canSubmit() || this.busy()) { return; }
+    this.busy.set(true);
+    try {
+      const res = await this.ticketsApi.createTicket({
+        subject: this.newSubject.trim(),
+        message: this.newMessage.trim(),
+        orderId: this.newTicketType === 'order' ? this.newOrderId : undefined,
+      });
+      this.closeNewTicket();
+      await this.refresh(res.id);
+    } catch { /* sessiz */ }
+    finally { this.busy.set(false); this.cdr.markForCheck(); }
   }
 }
