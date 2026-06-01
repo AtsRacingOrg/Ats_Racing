@@ -1,146 +1,86 @@
-import { ChangeDetectionStrategy, Component, signal, computed } from '@angular/core';
+import { ChangeDetectionStrategy, ChangeDetectorRef, Component, OnInit, inject, signal, computed } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { DecimalPipe } from '@angular/common';
+import { Order, OrdersService } from '../../../../core/orders/orders.service';
+import { fuelLabelTr, stageLabel, formatTrDate, formatTl, triggerDownload } from '../../../../core/orders/order-format';
 
 type OrderStatus = 'pending' | 'processing' | 'completed' | 'cancelled';
-type FuelType = 'Dizel' | 'Benzin' | 'Hibrit';
-type ReadMethod = 'OBD' | 'Bench' | 'Bootloader';
 
 interface TimelineEvent { date: string; event: string; by?: string; }
 
 interface AdminOrder {
-  id: string; date: string;
+  id: string; dbId: string; date: string;
   user: string; email: string; phone?: string;
   make: string; model: string; year: number;
-  engine: string; fuelType: FuelType; transmission: string;
-  vin: string; km: string;
-  stage: string; ecu: string; readMethod: ReadMethod;
+  engine: string; fuelType: string; transmission: string;
+  vin: string; km: string; plate: string;
+  stage: string; ecu: string; readMethod: string;
+  virtualFile: boolean; dyno: boolean;
+  ecuHw: string; ecuPart: string; ecuSw: string;
   extraServices: string[];
-  price: string;
+  price: string; basePrice: string;
   status: OrderStatus;
   notes?: string;
+  pcodes: { pcode: string | null; note: string | null }[];
+  modifiedParts: string[];
   originalFileUploaded: boolean; originalFileName?: string;
   fileUploaded: boolean; fileSent: boolean; sentFileName?: string;
   timeline: TimelineEvent[];
+  priceMap: Record<string, number>;
+  extrasTotalValue: number;
 }
 
-interface ExtraService { label: string; desc: string; price: number; group: string; }
+const ROLE_LABEL: Record<string, string> = { admin: 'Admin', user: 'Müşteri', dealer: 'Bayi' };
 
-const EXTRA_SERVICES: ExtraService[] = [
-  { label: 'DPF Silme',         desc: 'Partikül filtre devre dışı',         price: 350, group: 'Emisyon'    },
-  { label: 'EGR Silme',         desc: 'Egzoz gazı geri devir iptali',       price: 250, group: 'Emisyon'    },
-  { label: 'OPF Silme',         desc: 'Otto partikül filtre iptali',        price: 350, group: 'Emisyon'    },
-  { label: 'AdBlue Silme',      desc: 'Üre sistemi devre dışı',             price: 400, group: 'Emisyon'    },
-  { label: 'Lambda Silme',      desc: 'O2 sensör iptali',                   price: 200, group: 'Emisyon'    },
-  { label: 'NOX Silme',         desc: 'NOx sensör devre dışı',              price: 200, group: 'Emisyon'    },
-  { label: 'Decat',             desc: 'Katalizör devre dışı bırakma',       price: 300, group: 'Egzoz'      },
-  { label: 'Flaps / Swirl',     desc: 'Emme kapak aktüatör iptali',         price: 180, group: 'Motor'      },
-  { label: 'TVA Silme',         desc: 'Gaz kelebeği aktüatör iptali',       price: 180, group: 'Motor'      },
-  { label: 'Immo Off',          desc: 'İmmobilizer flash ile kaldırma',     price: 500, group: 'Güvenlik'   },
-  { label: 'Vmax Kaldırma',     desc: 'Hız sınırı kaldırma',               price: 250, group: 'Performans' },
-  { label: 'Launch Control',    desc: 'Fırlatma kontrolü aktivasyonu',      price: 300, group: 'Performans' },
-  { label: 'RPM Limiter',       desc: 'Yumuşak devir sınırı kaldırma',     price: 200, group: 'Performans' },
-  { label: 'Torque Monitor',    desc: 'Tork monitör devre dışı',            price: 120, group: 'Performans' },
-  { label: 'Start-Stop İptal',  desc: 'Otomatik stop sistemi iptali',       price: 150, group: 'Konfor'     },
-  { label: 'Water Pump',        desc: 'Su pompası PWM kontrolü',            price: 120, group: 'Motor'      },
-  { label: 'Readiness Cal.',    desc: 'OBD hazırlık kalibrasyonu',          price: 150, group: 'Motor'      },
-];
-
-const EXTRA_MAP: Record<string, ExtraService> = Object.fromEntries(EXTRA_SERVICES.map(s => [s.label, s]));
-
-const MOCK: AdminOrder[] = [
-  {
-    id: 'ORD-048', date: '29 May 2026',
-    user: 'Ali Yıldız', email: 'ali@gmail.com', phone: '+90 532 111 22 33',
-    make: 'BMW', model: 'M3 G80', year: 2022,
-    engine: '3.0L S58 510HP', fuelType: 'Benzin', transmission: 'Manuel',
-    vin: 'WBA7E2103MCH52841', km: '12.000',
-    stage: 'Stage 1', ecu: 'Bosch MG1CS002', readMethod: 'OBD',
-    extraServices: ['Decat'],
-    price: '₺2.500', status: 'pending', notes: 'Decat paketi de isteniyor.',
-    originalFileUploaded: false, fileUploaded: false, fileSent: false,
-    timeline: [{ date: '29 May 14:23', event: 'Sipariş oluşturuldu', by: 'Müşteri' }]
-  },
-  {
-    id: 'ORD-047', date: '28 May 2026',
-    user: 'Mert Kaya', email: 'mert@gmail.com', phone: '+90 533 444 55 66',
-    make: 'Audi', model: 'RS6 C8', year: 2021,
-    engine: '4.0L TFSI 600HP', fuelType: 'Benzin', transmission: 'Otomatik',
-    vin: 'WAUZZZ4G8KN012345', km: '8.500',
-    stage: 'Stage 2', ecu: 'Bosch MED17.1.62', readMethod: 'OBD',
-    extraServices: ['DPF Silme', 'EGR Silme'],
-    price: '₺4.000', status: 'processing', notes: '',
-    originalFileUploaded: true, originalFileName: 'audi_rs6_original.ori',
-    fileUploaded: false, fileSent: false,
-    timeline: [
-      { date: '28 May 10:05', event: 'Sipariş oluşturuldu', by: 'Müşteri' },
-      { date: '28 May 11:30', event: 'İnceleme tamamlandı', by: 'Admin' },
-      { date: '28 May 11:35', event: 'Durum "İşlemde" yapıldı', by: 'Admin' },
-    ]
-  },
-  {
-    id: 'ORD-046', date: '27 May 2026',
-    user: 'Selin Demir', email: 'selin@hotmail.com', phone: '+90 541 777 88 99',
-    make: 'VW', model: 'Golf R Mk8', year: 2021,
-    engine: '2.0L TSI 320HP', fuelType: 'Benzin', transmission: 'DSG',
-    vin: 'WVWZZZ1KZMW123456', km: '5.200',
-    stage: 'Stage 1', ecu: 'Bosch MG1CS011', readMethod: 'OBD',
-    extraServices: [],
-    price: '₺2.500', status: 'completed', notes: '',
-    originalFileUploaded: true, originalFileName: 'vw_golf_r_original.ori',
-    fileUploaded: true, fileSent: true, sentFileName: 'vw_golf_r_mk8_stage1_v2.bin',
-    timeline: [
-      { date: '27 May 09:10', event: 'Sipariş oluşturuldu', by: 'Müşteri' },
-      { date: '27 May 10:00', event: 'İnceleme tamamlandı', by: 'Admin' },
-      { date: '27 May 13:45', event: 'Yazılım dosyası hazırlandı', by: 'Admin' },
-      { date: '27 May 13:50', event: 'Dosya müşteriye gönderildi', by: 'Admin' },
-    ]
-  },
-  {
-    id: 'ORD-045', date: '26 May 2026',
-    user: 'Emre Şahin', email: 'emre@outlook.com', phone: '+90 555 222 33 44',
-    make: 'Porsche', model: '911 Turbo S', year: 2020,
-    engine: '3.8L Twin-Turbo 650HP', fuelType: 'Benzin', transmission: 'PDK',
-    vin: 'WP0ZZZ99ZLS123456', km: '22.000',
-    stage: 'Stage 3', ecu: 'Bosch ME9.1', readMethod: 'Bench',
-    extraServices: ['OPF Silme', 'Vmax Kaldırma', 'Launch Control'],
-    price: '₺7.500', status: 'completed', notes: 'OPF silme dahil.',
-    originalFileUploaded: true, originalFileName: 'porsche_911_original.bin',
-    fileUploaded: true, fileSent: true, sentFileName: 'porsche_911_stage3_opf.bin',
-    timeline: [
-      { date: '26 May 11:00', event: 'Sipariş oluşturuldu', by: 'Müşteri' },
-      { date: '26 May 11:45', event: 'Bench okuma talebi', by: 'Admin' },
-      { date: '26 May 14:20', event: 'Dosya hazırlandı ve gönderildi', by: 'Admin' },
-    ]
-  },
-  {
-    id: 'ORD-044', date: '25 May 2026',
-    user: 'Zeynep Arslan', email: 'zeynep@gmail.com', phone: '+90 544 999 11 22',
-    make: 'Mercedes', model: 'C63 AMG', year: 2019,
-    engine: '4.0L V8 Biturbo 476HP', fuelType: 'Benzin', transmission: 'Otomatik',
-    vin: 'WDDGF4HB3FR123456', km: '31.000',
-    stage: 'Stage 2', ecu: 'Siemens SIM266', readMethod: 'OBD',
-    extraServices: ['AdBlue Silme'],
-    price: '₺4.000', status: 'processing', notes: '',
-    originalFileUploaded: false, fileUploaded: false, fileSent: false,
-    timeline: [
-      { date: '25 May 09:30', event: 'Sipariş oluşturuldu', by: 'Müşteri' },
-      { date: '25 May 10:15', event: 'İnceleme başlatıldı', by: 'Admin' },
-    ]
-  },
-  {
-    id: 'ORD-043', date: '24 May 2026',
-    user: 'Berk Öztürk', email: 'berk@gmail.com',
-    make: 'BMW', model: 'M5 F90', year: 2019,
-    engine: '4.4L S63 600HP', fuelType: 'Benzin', transmission: 'Otomatik',
-    vin: 'WBSJF0C59LC123456', km: '4.100',
-    stage: 'Stage 1', ecu: 'Bosch MG1CS003', readMethod: 'OBD',
-    extraServices: [],
-    price: '₺2.500', status: 'pending', notes: '',
-    originalFileUploaded: false, fileUploaded: false, fileSent: false,
-    timeline: [{ date: '24 May 16:45', event: 'Sipariş oluşturuldu', by: 'Müşteri' }]
-  },
-];
+function mapAdminOrder(o: Order): AdminOrder {
+  const items = o.items ?? [];
+  const original = o.files.find(f => f.kind === 'original');
+  const delivered = o.files.find(f => f.kind === 'delivered');
+  return {
+    id: o.orderNo,
+    dbId: o.id,
+    date: formatTrDate(o.createdAt),
+    user: o.customer?.fullName ?? '—',
+    email: o.customer?.email ?? '',
+    phone: o.customer?.phone ?? undefined,
+    make: o.make ?? '',
+    model: o.model ?? '',
+    year: o.year ?? 0,
+    engine: o.engineLabel ?? '',
+    fuelType: fuelLabelTr(o.fuel),
+    transmission: o.transmission ?? '',
+    vin: o.vin ?? '',
+    km: o.km ?? '',
+    plate: o.plate ?? '',
+    stage: stageLabel(o.stage),
+    ecu: o.ecu ?? '',
+    readMethod: o.readingTool ?? '',
+    virtualFile: o.virtualFile,
+    dyno: o.dyno,
+    ecuHw: o.ecuHw ?? '',
+    ecuPart: o.ecuPart ?? '',
+    ecuSw: o.ecuSw ?? '',
+    extraServices: items.map(i => i.label),
+    price: formatTl(o.totalPrice),
+    basePrice: formatTl(o.basePrice),
+    status: o.status,
+    notes: o.notes ?? undefined,
+    pcodes: o.pcodes ?? [],
+    modifiedParts: o.modifiedParts ?? [],
+    originalFileUploaded: !!original,
+    originalFileName: original?.fileName,
+    fileUploaded: !!delivered,
+    fileSent: !!delivered,
+    sentFileName: delivered?.fileName,
+    timeline: (o.events ?? []).map(e => ({
+      date: formatTrDate(e.createdAt),
+      event: e.event,
+      by: e.actorRole ? (ROLE_LABEL[e.actorRole] ?? e.actorRole) : undefined,
+    })),
+    priceMap: Object.fromEntries(items.map(i => [i.label, i.unitPrice])),
+    extrasTotalValue: o.extrasTotal,
+  };
+}
 
 const STATUS_LABEL: Record<OrderStatus, string> = {
   pending: 'Beklemede', processing: 'İşlemde', completed: 'Tamamlandı', cancelled: 'İptal'
@@ -393,10 +333,16 @@ const STATUS_LABEL: Record<OrderStatus, string> = {
               <span class="aord-info-item__k">Kilometre</span>
               <span class="aord-info-item__v">{{ o.km }} km</span>
             </div>
-          </div>
-          <div class="aord-vin-row">
-            <span class="aord-info-item__k">VIN / Şasi No</span>
-            <span class="aord-vin">{{ o.vin || '—' }}</span>
+            @if (o.plate) {
+              <div class="aord-info-item">
+                <span class="aord-info-item__k">Plaka</span>
+                <span class="aord-info-item__v" style="text-transform:uppercase">{{ o.plate }}</span>
+              </div>
+            }
+            <div class="aord-info-item">
+              <span class="aord-info-item__k">VIN / Şasi No</span>
+              <span class="aord-vin">{{ o.vin || '—' }}</span>
+            </div>
           </div>
         </div>
 
@@ -417,8 +363,22 @@ const STATUS_LABEL: Record<OrderStatus, string> = {
                 <div class="aord-tune-card__row"><i class="pi pi-database"></i>{{ o.readMethod }} Okuma</div>
               </div>
             </div>
-            <div class="aord-tune-card__price">{{ o.price }}</div>
+            <div class="aord-tune-card__price">{{ o.basePrice }}</div>
           </div>
+
+          <!-- Okuma & ECU bilgileri -->
+          <div class="aord-extras-section">
+            <p class="aord-extras-section__label">Okuma & ECU Bilgileri</p>
+            <div class="aord-info-grid">
+              <div class="aord-info-cell"><span class="aord-info-cell__k">Okuma Aracı</span><span class="aord-info-cell__v">{{ o.readMethod || '—' }}</span></div>
+              <div class="aord-info-cell"><span class="aord-info-cell__k">Sanal Dosya</span><span class="aord-info-cell__v">{{ o.virtualFile ? 'Evet' : 'Hayır' }}</span></div>
+              <div class="aord-info-cell"><span class="aord-info-cell__k">Dinamometre</span><span class="aord-info-cell__v">{{ o.dyno ? 'Evet' : 'Hayır' }}</span></div>
+              <div class="aord-info-cell"><span class="aord-info-cell__k">ECU Donanım No</span><span class="aord-info-cell__v">{{ o.ecuHw || '—' }}</span></div>
+              <div class="aord-info-cell"><span class="aord-info-cell__k">ECU Parça No</span><span class="aord-info-cell__v">{{ o.ecuPart || '—' }}</span></div>
+              <div class="aord-info-cell"><span class="aord-info-cell__k">ECU Yazılım No</span><span class="aord-info-cell__v">{{ o.ecuSw || '—' }}</span></div>
+            </div>
+          </div>
+
           @if (o.extraServices.length > 0) {
             <div class="aord-extras-section">
               <p class="aord-extras-section__label">Ek Servisler</p>
@@ -429,7 +389,7 @@ const STATUS_LABEL: Record<OrderStatus, string> = {
                       <span class="aord-mod-tile__icon"><i class="pi pi-check-circle"></i></span>
                       <div>
                         <p class="aord-mod-tile__name">{{ s }}</p>
-                        <p class="aord-mod-tile__desc">{{ extraDesc(s) }}</p>
+                        <p class="aord-mod-tile__desc">{{ extraDesc() }}</p>
                       </div>
                     </div>
                     <span class="aord-mod-tile__price">+{{ extraPrice(s) | number }}₺</span>
@@ -438,7 +398,40 @@ const STATUS_LABEL: Record<OrderStatus, string> = {
               </div>
               <div class="aord-extras-total">
                 <span>Ek Servis Toplamı</span>
-                <span class="aord-extras-total__val">+{{ extrasTotal(o.extraServices) | number }}₺</span>
+                <span class="aord-extras-total__val">+{{ extrasTotal() | number }}₺</span>
+              </div>
+            </div>
+          }
+
+          <!-- Genel toplam -->
+          <div class="aord-grand-total">
+            <span>Toplam Tutar</span>
+            <span class="aord-grand-total__val">{{ o.price }}</span>
+          </div>
+
+          <!-- Değiştirilmiş parçalar -->
+          @if (o.modifiedParts.length > 0) {
+            <div class="aord-extras-section">
+              <p class="aord-extras-section__label">Değiştirilmiş Parçalar</p>
+              <div class="aord-chip-wrap">
+                @for (p of o.modifiedParts; track p) {
+                  <span class="aord-chip"><i class="pi pi-wrench"></i>{{ p }}</span>
+                }
+              </div>
+            </div>
+          }
+
+          <!-- Hata kodları -->
+          @if (o.pcodes.length > 0) {
+            <div class="aord-extras-section">
+              <p class="aord-extras-section__label">Hata Kodları & Notlar</p>
+              <div class="aord-pcode-list">
+                @for (pc of o.pcodes; track $index) {
+                  <div class="aord-pcode-row">
+                    @if (pc.pcode) { <span class="aord-pcode-tag"><i class="pi pi-tag"></i>{{ pc.pcode }}</span> }
+                    @if (pc.note) { <span class="aord-pcode-note">{{ pc.note }}</span> }
+                  </div>
+                }
               </div>
             </div>
           }
@@ -474,7 +467,7 @@ const STATUS_LABEL: Record<OrderStatus, string> = {
                 <p class="aor-orig-file__name">{{ o.originalFileName }}</p>
                 <p class="aor-orig-file__sub">Müşteri tarafından yüklendi</p>
               </div>
-              <button class="aor-icon-btn" type="button" title="İndir"><i class="pi pi-download"></i></button>
+              <button class="aor-icon-btn" type="button" title="İndir" [disabled]="downloading()" (click)="downloadFile(o, 'original')"><i class="pi pi-download"></i></button>
             </div>
           } @else {
             <div class="aor-no-file"><i class="pi pi-file-excel"></i><span>Müşteri orijinal dosya yüklemedi.</span></div>
@@ -522,6 +515,7 @@ const STATUS_LABEL: Record<OrderStatus, string> = {
                 <p class="aor-file-sent__name">{{ o.sentFileName }}</p>
                 <p class="aor-file-sent__sub">Müşteriye gönderildi</p>
               </div>
+              <button class="aor-icon-btn" type="button" title="İndir" [disabled]="downloading()" (click)="downloadFile(o, 'delivered')"><i class="pi pi-download"></i></button>
             </div>
             <button class="aor-change-btn" type="button" (click)="reuploadMode.set(true)">
               <i class="pi pi-refresh"></i> Dosyayı Değiştir
@@ -859,6 +853,10 @@ const STATUS_LABEL: Record<OrderStatus, string> = {
     /* Detail info items */
     .aord-info-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.85rem; }
     .aord-detail-row { display: grid; grid-template-columns: 1fr 1fr; gap: 0.85rem; }
+    .aord-detail-row .aord-info-item {
+      background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.06);
+      border-radius: 10px; padding: 0.75rem 1rem;
+    }
     .aord-info-item {
       display: flex; flex-direction: column; gap: 4px;
       &__k { font-size: 0.6rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; color: rgba(255,255,255,0.3); }
@@ -922,6 +920,43 @@ const STATUS_LABEL: Record<OrderStatus, string> = {
       font-size: 0.72rem; color: rgba(255,255,255,0.4); font-weight: 600;
       &__val { font-size: 0.88rem; font-weight: 800; color: #f59e0b; }
     }
+    .aord-info-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.6rem; }
+    @media (max-width: 640px) { .aord-info-grid { grid-template-columns: repeat(2, 1fr); } }
+    .aord-info-cell {
+      display: flex; flex-direction: column; gap: 3px;
+      padding: 0.55rem 0.75rem; border-radius: 10px;
+      background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.08);
+      &__k { font-size: 0.62rem; text-transform: uppercase; letter-spacing: 0.05em; color: rgba(255,255,255,0.35); font-weight: 700; }
+      &__v { font-size: 0.82rem; color: #fff; font-weight: 600; word-break: break-word; }
+    }
+    .aord-grand-total {
+      display: flex; align-items: center; justify-content: space-between;
+      margin-top: 1rem; padding: 0.7rem 1rem; border-radius: 10px;
+      background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.1);
+      font-size: 0.8rem; color: rgba(255,255,255,0.6); font-weight: 700;
+      &__val { font-size: 1.05rem; font-weight: 800; color: #fff; }
+    }
+    .aord-chip-wrap { display: flex; flex-wrap: wrap; gap: 0.4rem; }
+    .aord-chip {
+      display: inline-flex; align-items: center; gap: 0.35rem;
+      font-size: 0.72rem; font-weight: 600; color: rgba(255,255,255,0.75);
+      background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1);
+      padding: 4px 10px; border-radius: 20px;
+      i { font-size: 0.7rem; color: #60a5fa; }
+    }
+    .aord-pcode-list { display: flex; flex-direction: column; gap: 0.4rem; }
+    .aord-pcode-row {
+      display: flex; align-items: center; gap: 0.6rem; flex-wrap: wrap;
+      padding: 0.5rem 0.75rem; border-radius: 10px;
+      background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.08);
+    }
+    .aord-pcode-tag {
+      display: inline-flex; align-items: center; gap: 0.3rem; flex-shrink: 0;
+      font-family: 'Courier New', monospace; font-size: 0.75rem; font-weight: 800;
+      color: #e63946; background: rgba(230,57,70,0.12); padding: 2px 8px; border-radius: 6px;
+      i { font-size: 0.65rem; }
+    }
+    .aord-pcode-note { font-size: 0.78rem; color: rgba(255,255,255,0.6); }
 
     /* Note block */
     .aord-note-block {
@@ -933,8 +968,26 @@ const STATUS_LABEL: Record<OrderStatus, string> = {
     }
   `],
 })
-export class AdminOrdersPage {
-  protected readonly orders        = signal<AdminOrder[]>(MOCK);
+export class AdminOrdersPage implements OnInit {
+  private readonly ordersApi = inject(OrdersService);
+  private readonly cdr = inject(ChangeDetectorRef);
+
+  protected readonly orders        = signal<AdminOrder[]>([]);
+  protected readonly loading       = signal(true);
+  protected readonly loadError     = signal('');
+
+  async ngOnInit(): Promise<void> {
+    try {
+      const data = await this.ordersApi.adminListOrders();
+      this.orders.set(data.map(mapAdminOrder));
+    } catch {
+      this.loadError.set('Siparişler yüklenemedi.');
+    } finally {
+      this.loading.set(false);
+      this.cdr.markForCheck();
+    }
+  }
+
   protected readonly files         = signal<Record<string, File | null>>({});
   protected readonly search        = signal('');
   protected readonly filterStatus  = signal<OrderStatus | ''>('');
@@ -969,9 +1022,9 @@ export class AdminOrdersPage {
     return list;
   });
 
-  extraDesc(name: string): string  { return EXTRA_MAP[name]?.desc  ?? ''; }
-  extraPrice(name: string): number { return EXTRA_MAP[name]?.price ?? 0;  }
-  extrasTotal(names: string[]): number { return names.reduce((sum, n) => sum + (EXTRA_MAP[n]?.price ?? 0), 0); }
+  extraDesc(): string { return ''; }
+  extraPrice(name: string): number { return this.selectedOrder()?.priceMap[name] ?? 0; }
+  extrasTotal(): number { return this.selectedOrder()?.extrasTotalValue ?? 0; }
 
   statusLabel(s: OrderStatus): string { return STATUS_LABEL[s]; }
   countByStatus(s: OrderStatus): number { return this.orders().filter(o => o.status === s).length; }
@@ -984,11 +1037,17 @@ export class AdminOrdersPage {
   openDetail(o: AdminOrder): void { this.selectedOrder.set(o); this.reuploadMode.set(false); this.currentView.set('detail'); }
   goBack(): void { this.currentView.set('list'); this.selectedOrder.set(null); }
 
-  setStatus(o: AdminOrder, status: OrderStatus): void {
+  async setStatus(o: AdminOrder, status: OrderStatus): Promise<void> {
     if (o.status === status) { return; }
-    const newEvent: TimelineEvent = { date: new Date().toLocaleString('tr-TR', { day:'2-digit', month:'short', hour:'2-digit', minute:'2-digit' }), event: `Durum "${STATUS_LABEL[status]}" olarak güncellendi`, by: 'Admin' };
-    this.orders.update(list => list.map(x => x.id === o.id ? { ...x, status, timeline: [...x.timeline, newEvent] } : x));
-    this.selectedOrder.update(sel => sel?.id === o.id ? { ...sel, status, timeline: [...sel.timeline, newEvent] } : sel);
+    try {
+      const updated = mapAdminOrder(await this.ordersApi.adminUpdateStatus(o.dbId, status));
+      this.orders.update(list => list.map(x => x.dbId === updated.dbId ? updated : x));
+      this.selectedOrder.update(sel => sel?.dbId === updated.dbId ? updated : sel);
+    } catch {
+      this.loadError.set('Durum güncellenemedi.');
+    } finally {
+      this.cdr.markForCheck();
+    }
   }
 
   onFileSelect(ev: Event, orderId: string): void {
@@ -1002,18 +1061,38 @@ export class AdminOrdersPage {
   }
   removeFile(orderId: string): void { this.files.update(m => ({ ...m, [orderId]: null })); }
 
-  sendFile(o: AdminOrder): void {
+  protected readonly sending = signal(false);
+  protected readonly downloading = signal(false);
+
+  async downloadFile(o: AdminOrder, kind: 'original' | 'delivered'): Promise<void> {
+    if (this.downloading()) { return; }
+    this.downloading.set(true);
+    try {
+      const res = await this.ordersApi.getDownloadUrl(o.dbId, kind);
+      triggerDownload(res.url, res.fileName);
+    } catch {
+      this.loadError.set('Dosya indirilemedi.');
+    } finally {
+      this.downloading.set(false);
+      this.cdr.markForCheck();
+    }
+  }
+
+  async sendFile(o: AdminOrder): Promise<void> {
     const file = this.files()[o.id];
-    if (!file) { return; }
-    const sentFileName = file.name;
-    const newEvent: TimelineEvent = { date: new Date().toLocaleString('tr-TR', { day:'2-digit', month:'short', hour:'2-digit', minute:'2-digit' }), event: 'Yazılım dosyası müşteriye gönderildi', by: 'Admin' };
-    this.orders.update(list => list.map(x =>
-      x.id === o.id ? { ...x, fileUploaded: true, fileSent: true, status: 'completed', sentFileName, timeline: [...x.timeline, newEvent] } : x
-    ));
-    this.selectedOrder.update(sel =>
-      sel?.id === o.id ? { ...sel, fileUploaded: true, fileSent: true, status: 'completed', sentFileName, timeline: [...sel.timeline, newEvent] } : sel
-    );
-    this.files.update(m => ({ ...m, [o.id]: null }));
-    this.reuploadMode.set(false);
+    if (!file || this.sending()) { return; }
+    this.sending.set(true);
+    try {
+      const updated = mapAdminOrder(await this.ordersApi.adminDeliverFile(o.dbId, file));
+      this.orders.update(list => list.map(x => x.dbId === updated.dbId ? updated : x));
+      this.selectedOrder.update(sel => sel?.dbId === updated.dbId ? updated : sel);
+      this.files.update(m => ({ ...m, [o.id]: null }));
+      this.reuploadMode.set(false);
+    } catch {
+      this.loadError.set('Dosya gönderilemedi.');
+    } finally {
+      this.sending.set(false);
+      this.cdr.markForCheck();
+    }
   }
 }

@@ -11,6 +11,7 @@ import {
   Service,
   CatalogService,
 } from '../../../../core/catalog/catalog.service';
+import { OrdersService, CreateOrderPayload } from '../../../../core/orders/orders.service';
 
 /* ─── TYPES ─────────────────────────────────────────── */
 type TabKey = 'module' | 'tuning';
@@ -238,12 +239,14 @@ const GROUP_ORDER = ['Emisyon', 'Motor', 'Performans', 'Konfor', 'Egzoz', 'Güve
                   <span class="order-summary__total-lbl">Toplam</span>
                   <span class="order-summary__total-val">{{ totalPrice() | number }}₺</span>
                 </div>
-                <button class="cta-btn cta-btn--primary" type="button" (click)="submitOrder()">
-                  <i class="pi pi-send"></i>
-                  Sipariş Ver
+                <button class="cta-btn cta-btn--primary" type="button"
+                  [disabled]="orderSubmitting()" (click)="submitOrder()">
+                  <i class="pi" [class.pi-send]="!orderSubmitting()" [class.pi-spin]="orderSubmitting()" [class.pi-spinner]="orderSubmitting()"></i>
+                  {{ orderSubmitting() ? 'Gönderiliyor…' : 'Sipariş Ver' }}
                 </button>
               </div>
             </div>
+            @if (orderError()) { <p class="fields-hint" style="border-color:rgba(230,57,70,0.4)"><i class="pi pi-exclamation-triangle"></i> {{ orderError() }}</p> }
           }
 
           <!-- ORDER SUCCESS -->
@@ -251,8 +254,8 @@ const GROUP_ORDER = ['Emisyon', 'Motor', 'Performans', 'Konfor', 'Egzoz', 'Güve
             <div class="order-success">
               <div class="order-success__icon"><i class="pi pi-check-circle"></i></div>
               <div class="order-success__body">
-                <h3>Siparişiniz Alındı!</h3>
-                <p>{{ selectedModules().size }} modüllü yazılım talebiniz ekibimize iletildi. En kısa sürede dönüş yapılacaktır.</p>
+                <h3>Siparişiniz Alındı! <span class="order-success__no">{{ orderNo() }}</span></h3>
+                <p>{{ selectedModules().size }} modüllü yazılım talebiniz ekibimize iletildi. Siparişlerim sayfasından takip edebilirsiniz.</p>
               </div>
               <button class="ghost-btn" (click)="resetOrder()" type="button">Yeni Sipariş</button>
             </div>
@@ -536,11 +539,11 @@ const GROUP_ORDER = ['Emisyon', 'Motor', 'Performans', 'Konfor', 'Egzoz', 'Güve
               <div class="order-success">
                 <div class="order-success__icon"><i class="pi pi-check-circle"></i></div>
                 <div class="order-success__body">
-                  <h3>Siparişiniz Alındı!</h3>
+                  <h3>Siparişiniz Alındı! <span class="order-success__no">{{ orderNo() }}</span></h3>
                   <p>
                     {{ tuneLabel() }} yazılım siparişiniz
                     @if (selectedModules().size > 0) { <span>ve {{ selectedModules().size }} ekstra modül</span> }
-                    ekibimize iletildi. Hazırlık tamamlanınca e-posta ile bilgilendirileceksiniz.
+                    ekibimize iletildi. Siparişlerim sayfasından durumu takip edebilirsiniz.
                   </p>
                 </div>
                 <button class="ghost-btn" (click)="resetOrder()" type="button">Yeni Sipariş</button>
@@ -1156,14 +1159,17 @@ const GROUP_ORDER = ['Emisyon', 'Motor', 'Performans', 'Konfor', 'Egzoz', 'Güve
                   <!-- CTA -->
                   <div class="cs__actions">
                     <button class="cta-btn cta-btn--primary" style="width:100%; justify-content:center"
-                      type="button" [disabled]="!uploadedFile()" (click)="submitOrder()">
-                      <i class="pi" [class.pi-credit-card]="!isDealer()" [class.pi-check-circle]="isDealer()"></i>
-                      {{ orderCtaLabel() }}
+                      type="button" [disabled]="!uploadedFile() || orderSubmitting()" (click)="submitOrder()">
+                      <i class="pi" [class.pi-credit-card]="!isDealer() && !orderSubmitting()" [class.pi-check-circle]="isDealer() && !orderSubmitting()" [class.pi-spinner]="orderSubmitting()" [class.pi-spin]="orderSubmitting()"></i>
+                      {{ orderSubmitting() ? 'Gönderiliyor…' : orderCtaLabel() }}
                     </button>
                     <a href="/contact" class="cta-btn cta-btn--outline" style="width:100%; justify-content:center">
                       <i class="pi pi-headphones"></i> Uzmanla Konuş
                     </a>
                   </div>
+                  @if (orderError()) {
+                    <p class="cs__file-warn-note" style="color:#e63946"><i class="pi pi-exclamation-triangle"></i> {{ orderError() }}</p>
+                  }
 
                   @if (!uploadedFile()) {
                     <p class="cs__file-warn-note">
@@ -1188,6 +1194,7 @@ export class ToolsPage implements OnInit {
   /* ─── AUTH / ROL ─── */
   private readonly auth = inject(AuthService);
   private readonly catalogApi = inject(CatalogService);
+  private readonly ordersApi = inject(OrdersService);
   /**
    * withFetch() HTTP yanıtı Angular zone dışında çözülebildiği için, OnPush
    * altında async set'lerden sonra görünümü elle işaretliyoruz (aksi halde
@@ -1255,6 +1262,9 @@ export class ToolsPage implements OnInit {
   protected readonly isDragging   = signal(false);
   protected readonly selectedModules = signal<Set<string>>(new Set());
   protected readonly orderSent = signal(false);
+  protected readonly orderNo = signal('');
+  protected readonly orderSubmitting = signal(false);
+  protected readonly orderError = signal('');
 
   protected readonly availableEcus = computed(() => {
     const b = BRANDS_MODULE.find(x => x.label === this.modBrand());
@@ -1290,12 +1300,62 @@ export class ToolsPage implements OnInit {
   modPrice(code: string): number {
     return this.modules().find(m => m.code === code)?.price ?? 0;
   }
-  submitOrder(): void {
-    this.orderSent.set(true);
+  /** Sinyallerden sipariş yükünü kurar (Araçlar → Chip Tuning). */
+  private buildOrderPayload(): CreateOrderPayload {
+    return {
+      stage: this.selTune(),
+      engineId: this.selEngineId() || null,
+      make: this.selBrandName(),
+      model: [this.selModelName(), this.selSeriesName()].filter(Boolean).join(' '),
+      year: this.selYear(),
+      engineLabel: this.selEngine()?.label ?? '',
+      fuel: this.selEngine()?.fuel ?? '',
+      transmission: this.selTransmission(),
+      vin: this.selVin(),
+      km: this.selKm() == null ? '' : String(this.selKm()),
+      plate: this.selPlate(),
+      ecu: this.selEcu(),
+      readingTool: this.selReadingTool(),
+      virtualFile: this.selVirtualFile() === 'EVET',
+      dyno: this.selDyno() === 'EVET',
+      ecuHw: this.selEcuHw(),
+      ecuPart: this.selEcuPart(),
+      ecuSw: this.selEcuSw(),
+      notes: '',
+      serviceCodes: [...this.selectedModules()],
+      modifiedParts: [...this.selectedParts()],
+      pcodes: this.entries().map(e => ({ pcode: e.pcode, note: e.note })),
+    };
+  }
+
+  async submitOrder(): Promise<void> {
+    if (this.orderSubmitting()) { return; }
+    this.orderSubmitting.set(true);
+    this.orderError.set('');
+    try {
+      const res = await this.ordersApi.createOrder(this.buildOrderPayload());
+      const file = this.uploadedFile();
+      if (file) {
+        try { await this.ordersApi.uploadOriginalFile(res.id, file); }
+        catch { /* dosya yüklenemese de sipariş oluştu — sessiz geç */ }
+      }
+      this.orderNo.set(res.orderNo);
+      this.orderSent.set(true);
+    } catch (err: unknown) {
+      const status = (err as { status?: number })?.status;
+      this.orderError.set(
+        `Sipariş oluşturulamadı. Lütfen tekrar deneyin.${status ? ` (kod: ${status})` : ''}`,
+      );
+    } finally {
+      this.orderSubmitting.set(false);
+      this.cdr.markForCheck();
+    }
   }
   resetOrder(): void {
     this.selectedModules.set(new Set());
     this.orderSent.set(false);
+    this.orderNo.set('');
+    this.orderError.set('');
     this.uploadedFile.set(null);
     this.modBrand.set('');
     this.modEcu.set('');

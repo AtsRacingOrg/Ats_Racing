@@ -318,6 +318,7 @@
   border-radius: 16px; padding: 1.5rem; display: flex; align-items: center; gap: 1rem; flex-wrap: wrap;
   &__icon { font-size: 2rem; color: #22c55e; flex-shrink: 0; }
   &__body { flex: 1; h3 { font-size: 1rem; font-weight: 700; color: #fff; margin: 0 0 4px; } p { font-size: 0.82rem; color: rgba(255,255,255,0.5); margin: 0; } }
+  &__no { display: inline-block; margin-left: 0.4rem; font-family: 'Courier New', monospace; font-size: 0.8rem; font-weight: 800; color: #22c55e; background: rgba(34,197,94,0.15); padding: 1px 8px; border-radius: 6px; }
 }
 
 /* ── HESAPLA CTA ── */

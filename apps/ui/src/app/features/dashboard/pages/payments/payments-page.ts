@@ -1,7 +1,9 @@
-import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
+import { ChangeDetectionStrategy, ChangeDetectorRef, Component, OnInit, computed, inject, signal } from '@angular/core';
 import { DecimalPipe } from '@angular/common';
 import { RouterLink } from '@angular/router';
 import { AuthService } from '../../../../core/auth/auth.service';
+import { PaymentsService, Statement } from '../../../../core/payments/payments.service';
+import { periodLabel, stageLabel, formatTrDate } from '../../../../core/orders/order-format';
 
 type DebtStatus = 'accruing' | 'due' | 'paid' | 'overdue';
 
@@ -31,39 +33,23 @@ const STATUS_META: Record<DebtStatus, { label: string; }> = {
   overdue:  { label: 'Gecikmiş' },
 };
 
-/* ─── MOCK — bayi aylık ekstreleri ─── */
-const STATEMENTS: MonthlyStatement[] = [
-  {
-    id: 'EXT-2026-05', period: 'Mayıs 2026', dueDate: '1 Haziran 2026', status: 'accruing',
-    orders: [
-      { id: 'ORD-051', date: '29 May', vehicle: 'BMW M3 G80',  service: 'Stage 1 + Decat',     amount: 2800 },
-      { id: 'ORD-050', date: '24 May', vehicle: 'Audi RS6 C8',  service: 'Stage 2 + DPF/EGR',   amount: 4600 },
-      { id: 'ORD-049', date: '18 May', vehicle: 'VW Golf R',    service: 'Stage 1',             amount: 2500 },
-      { id: 'ORD-048', date: '11 May', vehicle: 'Mercedes C63', service: 'Stage 2',             amount: 4000 },
-    ],
-  },
-  {
-    id: 'EXT-2026-04', period: 'Nisan 2026', dueDate: '1 Mayıs 2026', status: 'due',
-    orders: [
-      { id: 'ORD-041', date: '28 Nis', vehicle: 'Audi S3 8Y',   service: 'Stage 2 + Vmax',  amount: 2950 },
-      { id: 'ORD-039', date: '15 Nis', vehicle: 'BMW M5 F90',   service: 'Stage 1',         amount: 2500 },
-      { id: 'ORD-037', date: '04 Nis', vehicle: 'Porsche 911',  service: 'Stage 1',         amount: 2500 },
-    ],
-  },
-  {
-    id: 'EXT-2026-03', period: 'Mart 2026', dueDate: '1 Nisan 2026', status: 'paid', paidAt: '1 Nisan 2026',
-    orders: [
-      { id: 'ORD-031', date: '22 Mar', vehicle: 'BMW M3 F80',   service: 'Stage 1',         amount: 2500 },
-      { id: 'ORD-028', date: '09 Mar', vehicle: 'VW Golf R',    service: 'Stage 2 + EGR',   amount: 4250 },
-    ],
-  },
-  {
-    id: 'EXT-2026-02', period: 'Şubat 2026', dueDate: '1 Mart 2026', status: 'paid', paidAt: '3 Mart 2026',
-    orders: [
-      { id: 'ORD-021', date: '19 Şub', vehicle: 'Audi RS6 C8',  service: 'Stage 1',         amount: 2500 },
-    ],
-  },
-];
+/** API Statement → ekran modeli (MonthlyStatement). */
+function mapStatement(s: Statement): MonthlyStatement {
+  return {
+    id: s.statementNo,
+    period: periodLabel(s.periodYear, s.periodMonth),
+    dueDate: formatTrDate(s.dueDate),
+    status: s.status,
+    paidAt: s.paidAt ? formatTrDate(s.paidAt) : undefined,
+    orders: s.orders.map(o => ({
+      id: o.orderNo,
+      date: formatTrDate(o.createdAt),
+      vehicle: [o.make, o.model].filter(Boolean).join(' '),
+      service: stageLabel(o.stage),
+      amount: o.amount,
+    })),
+  };
+}
 
 @Component({
   selector: 'app-payments-page',
@@ -116,7 +102,7 @@ const STATEMENTS: MonthlyStatement[] = [
 
   <!-- EKSTRELER -->
   <div class="pay__statements">
-    @for (st of statements; track st.id) {
+    @for (st of statements(); track st.id) {
       <div class="stmt stmt--{{ st.status }}">
 
         <button class="stmt__head" type="button" (click)="toggle(st.id)">
@@ -272,16 +258,34 @@ const STATEMENTS: MonthlyStatement[] = [
     }
   `],
 })
-export class PaymentsPage {
+export class PaymentsPage implements OnInit {
   private readonly auth = inject(AuthService);
+  private readonly paymentsApi = inject(PaymentsService);
+  private readonly cdr = inject(ChangeDetectorRef);
   protected readonly isDealer = this.auth.isDealer;
 
-  protected readonly statements = STATEMENTS;
-  protected readonly openIds = signal<Set<string>>(new Set(['EXT-2026-05', 'EXT-2026-04']));
+  protected readonly statements = signal<MonthlyStatement[]>([]);
+  protected readonly openIds = signal<Set<string>>(new Set());
   protected readonly paidMsg = signal('');
+  protected readonly loading = signal(true);
+
+  async ngOnInit(): Promise<void> {
+    if (!this.isDealer()) { this.loading.set(false); return; }
+    try {
+      const data = await this.paymentsApi.listStatements();
+      this.statements.set(data.map(mapStatement));
+      // En güncel açık ekstreleri varsayılan aç
+      this.openIds.set(new Set(data.filter(s => s.status !== 'paid').map(s => s.statementNo)));
+    } catch {
+      /* sessiz */
+    } finally {
+      this.loading.set(false);
+      this.cdr.markForCheck();
+    }
+  }
 
   protected readonly accruingDue = computed(
-    () => this.statements.find(s => s.status === 'accruing')?.dueDate ?? '—',
+    () => this.statements().find(s => s.status === 'accruing')?.dueDate ?? '—',
   );
   protected readonly accruingTotal = computed(() =>
     this.sumByStatus('accruing'),
@@ -290,14 +294,14 @@ export class PaymentsPage {
     this.sumByStatus('due') + this.sumByStatus('overdue'),
   );
   protected readonly dueCount = computed(() =>
-    this.statements.filter(s => s.status === 'due' || s.status === 'overdue').length,
+    this.statements().filter(s => s.status === 'due' || s.status === 'overdue').length,
   );
   protected readonly outstandingTotal = computed(() =>
     this.accruingTotal() + this.dueTotal(),
   );
 
   private sumByStatus(status: DebtStatus): number {
-    return this.statements
+    return this.statements()
       .filter(s => s.status === status)
       .reduce((sum, s) => sum + this.totalOf(s), 0);
   }
@@ -315,7 +319,7 @@ export class PaymentsPage {
   }
 
   payStatement(id: string): void {
-    const st = this.statements.find(s => s.id === id);
+    const st = this.statements().find(s => s.id === id);
     if (st) {
       this.paidMsg.set(`${st.period} ekstresi için ödeme talebi alındı.`);
     }

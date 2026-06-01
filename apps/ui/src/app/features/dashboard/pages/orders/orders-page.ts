@@ -1,92 +1,72 @@
-import { ChangeDetectionStrategy, Component, signal, computed } from '@angular/core';
+import { ChangeDetectionStrategy, ChangeDetectorRef, Component, OnInit, inject, signal, computed } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { DecimalPipe } from '@angular/common';
+import { Order, OrdersService } from '../../../../core/orders/orders.service';
+import { fuelLabelTr, stageLabel, formatTrDate, formatTl, triggerDownload } from '../../../../core/orders/order-format';
 
 type OrderStatus = 'pending' | 'processing' | 'completed' | 'cancelled';
-type FuelType = 'Dizel' | 'Benzin' | 'Hibrit';
-type ReadMethod = 'OBD' | 'Bench' | 'Bootloader';
 
 interface UserOrder {
-  id: string; date: string;
+  id: string; dbId: string; date: string;
   make: string; model: string; year: number;
-  engine: string; fuelType: FuelType; transmission: string;
-  vin: string; km: string;
-  stage: string; ecu: string; readMethod: ReadMethod;
+  engine: string; fuelType: string; transmission: string;
+  vin: string; km: string; plate: string;
+  stage: string; ecu: string; readMethod: string;
+  virtualFile: boolean; dyno: boolean;
+  ecuHw: string; ecuPart: string; ecuSw: string;
   extraServices: string[];
-  price: string;
+  price: string; basePrice: string;
   status: OrderStatus;
   notes?: string;
+  pcodes: { pcode: string | null; note: string | null }[];
+  modifiedParts: string[];
   originalFileUploaded: boolean; originalFileName?: string;
   fileAvailable: boolean; fileName?: string;
+  priceMap: Record<string, number>;
+  extrasTotalValue: number;
 }
 
-interface ExtraService { label: string; desc: string; price: number; group: string; }
-
-const EXTRA_SERVICES: ExtraService[] = [
-  { label: 'DPF Silme',         desc: 'Partikül filtre devre dışı',         price: 350, group: 'Emisyon'    },
-  { label: 'EGR Silme',         desc: 'Egzoz gazı geri devir iptali',       price: 250, group: 'Emisyon'    },
-  { label: 'OPF Silme',         desc: 'Otto partikül filtre iptali',        price: 350, group: 'Emisyon'    },
-  { label: 'AdBlue Silme',      desc: 'Üre sistemi devre dışı',             price: 400, group: 'Emisyon'    },
-  { label: 'Lambda Silme',      desc: 'O2 sensör iptali',                   price: 200, group: 'Emisyon'    },
-  { label: 'NOX Silme',         desc: 'NOx sensör devre dışı',              price: 200, group: 'Emisyon'    },
-  { label: 'Decat',             desc: 'Katalizör devre dışı bırakma',       price: 300, group: 'Egzoz'      },
-  { label: 'Flaps / Swirl',     desc: 'Emme kapak aktüatör iptali',         price: 180, group: 'Motor'      },
-  { label: 'TVA Silme',         desc: 'Gaz kelebeği aktüatör iptali',       price: 180, group: 'Motor'      },
-  { label: 'Immo Off',          desc: 'İmmobilizer flash ile kaldırma',     price: 500, group: 'Güvenlik'   },
-  { label: 'Vmax Kaldırma',     desc: 'Hız sınırı kaldırma',               price: 250, group: 'Performans' },
-  { label: 'Launch Control',    desc: 'Fırlatma kontrolü aktivasyonu',      price: 300, group: 'Performans' },
-  { label: 'RPM Limiter',       desc: 'Yumuşak devir sınırı kaldırma',     price: 200, group: 'Performans' },
-  { label: 'Torque Monitor',    desc: 'Tork monitör devre dışı',            price: 120, group: 'Performans' },
-  { label: 'Start-Stop İptal',  desc: 'Otomatik stop sistemi iptali',       price: 150, group: 'Konfor'     },
-  { label: 'Water Pump',        desc: 'Su pompası PWM kontrolü',            price: 120, group: 'Motor'      },
-  { label: 'Readiness Cal.',    desc: 'OBD hazırlık kalibrasyonu',          price: 150, group: 'Motor'      },
-];
-
-const EXTRA_MAP: Record<string, ExtraService> = Object.fromEntries(EXTRA_SERVICES.map(s => [s.label, s]));
-
-const MOCK: UserOrder[] = [
-  {
-    id: 'ORD-048', date: '29 May 2026',
-    make: 'BMW', model: 'M3 G80', year: 2022,
-    engine: '3.0L S58 510HP', fuelType: 'Benzin', transmission: 'Manuel',
-    vin: 'WBA7E2103MCH52841', km: '12.000',
-    stage: 'Stage 1', ecu: 'Bosch MG1CS002', readMethod: 'OBD',
-    extraServices: ['Decat'],
-    price: '₺2.500', status: 'pending', notes: 'Decat paketi de isteniyor.',
-    originalFileUploaded: false, fileAvailable: false,
-  },
-  {
-    id: 'ORD-047', date: '28 May 2026',
-    make: 'Audi', model: 'RS6 C8', year: 2021,
-    engine: '4.0L TFSI 600HP', fuelType: 'Benzin', transmission: 'Otomatik',
-    vin: 'WAUZZZ4G8KN012345', km: '8.500',
-    stage: 'Stage 2', ecu: 'Bosch MED17.1.62', readMethod: 'OBD',
-    extraServices: ['DPF Silme', 'EGR Silme'],
-    price: '₺4.000', status: 'processing',
-    originalFileUploaded: true, originalFileName: 'audi_rs6_original.ori',
-    fileAvailable: false,
-  },
-  {
-    id: 'ORD-003', date: '18 Mar 2026',
-    make: 'BMW', model: 'M3 G80', year: 2021,
-    engine: '3.0L S58 510HP', fuelType: 'Benzin', transmission: 'Manuel',
-    vin: 'WBA7E2103MCH52841', km: '10.000',
-    stage: 'Stage 1', ecu: 'Bosch MG1CS002', readMethod: 'OBD',
-    extraServices: [],
-    price: '₺2.500', status: 'completed',
-    originalFileUploaded: false, fileAvailable: true, fileName: 'bmw_m3_g80_stage1_ORD003.bin',
-  },
-  {
-    id: 'ORD-001', date: '12 May 2026',
-    make: 'Audi', model: 'S3 8Y', year: 2022,
-    engine: '2.0L TFSI 310HP', fuelType: 'Benzin', transmission: 'DSG',
-    vin: 'WAUZZZ8YXMA012345', km: '6.000',
-    stage: 'Stage 2', ecu: 'Bosch MED17', readMethod: 'OBD',
-    extraServices: ['Vmax Kaldırma'],
-    price: '₺2.750', status: 'completed',
-    originalFileUploaded: false, fileAvailable: true, fileName: 'audi_s3_8y_stage2_ORD001.bin',
-  },
-];
+/** API Order → ekran modeli (UserOrder). */
+function mapOrder(o: Order): UserOrder {
+  const items = o.items ?? [];
+  const original = o.files.find(f => f.kind === 'original');
+  const delivered = o.files.find(f => f.kind === 'delivered');
+  return {
+    id: o.orderNo,
+    dbId: o.id,
+    date: formatTrDate(o.createdAt),
+    make: o.make ?? '',
+    model: o.model ?? '',
+    year: o.year ?? 0,
+    engine: o.engineLabel ?? '',
+    fuelType: fuelLabelTr(o.fuel),
+    transmission: o.transmission ?? '',
+    vin: o.vin ?? '',
+    km: o.km ?? '',
+    plate: o.plate ?? '',
+    stage: stageLabel(o.stage),
+    ecu: o.ecu ?? '',
+    readMethod: o.readingTool ?? '',
+    virtualFile: o.virtualFile,
+    dyno: o.dyno,
+    ecuHw: o.ecuHw ?? '',
+    ecuPart: o.ecuPart ?? '',
+    ecuSw: o.ecuSw ?? '',
+    extraServices: items.map(i => i.label),
+    price: formatTl(o.totalPrice),
+    basePrice: formatTl(o.basePrice),
+    status: o.status,
+    notes: o.notes ?? undefined,
+    pcodes: o.pcodes ?? [],
+    modifiedParts: o.modifiedParts ?? [],
+    originalFileUploaded: !!original,
+    originalFileName: original?.fileName,
+    fileAvailable: !!delivered && delivered.isDownloadable,
+    fileName: delivered?.fileName,
+    priceMap: Object.fromEntries(items.map(i => [i.label, i.unitPrice])),
+    extrasTotalValue: o.extrasTotal,
+  };
+}
 
 const STATUS_LABEL: Record<OrderStatus, string> = {
   pending: 'Beklemede', processing: 'İşlemde', completed: 'Tamamlandı', cancelled: 'İptal'
@@ -108,7 +88,7 @@ const STATUS_LABEL: Record<OrderStatus, string> = {
       <p class="op__sub">Chip tuning siparişleriniz</p>
     </div>
     <div class="op__summary">
-      <div class="op__si"><span class="op__sv">{{ orders.length }}</span><span class="op__sl">Toplam</span></div>
+      <div class="op__si"><span class="op__sv">{{ orders().length }}</span><span class="op__sl">Toplam</span></div>
       <div class="op__ss"></div>
       <div class="op__si op__si--green"><span class="op__sv">{{ countBy('completed') }}</span><span class="op__sl">Tamamlandı</span></div>
       <div class="op__ss"></div>
@@ -161,7 +141,7 @@ const STATUS_LABEL: Record<OrderStatus, string> = {
             <td><span class="st-chip st-chip--{{o.status}}"><span class="st-dot"></span>{{ statusLabel(o.status) }}</span></td>
             <td>
               @if (o.fileAvailable) {
-                <button class="op__btn op__btn--dl" title="İndir" type="button" (click)="$event.stopPropagation()">
+                <button class="op__btn op__btn--dl" title="İndir" type="button" (click)="$event.stopPropagation(); download(o)">
                   <i class="pi pi-download"></i>
                 </button>
               } @else {
@@ -259,14 +239,13 @@ const STATUS_LABEL: Record<OrderStatus, string> = {
           <div class="od__detail-row">
             <div class="od__di"><span class="od__dk">Şanzıman</span><span class="od__dv">{{ o.transmission }}</span></div>
             <div class="od__di"><span class="od__dk">Kilometre</span><span class="od__dv">{{ o.km }} km</span></div>
+            @if (o.plate) {
+              <div class="od__di"><span class="od__dk">Plaka</span><span class="od__dv" style="text-transform:uppercase">{{ o.plate }}</span></div>
+            }
+            @if (o.vin) {
+              <div class="od__di"><span class="od__dk">VIN / Şasi No</span><span class="od__vin">{{ o.vin }}</span></div>
+            }
           </div>
-
-          @if (o.vin) {
-            <div class="od__vin-row">
-              <span class="od__dk">VIN / Şasi No</span>
-              <span class="od__vin">{{ o.vin }}</span>
-            </div>
-          }
         </div>
 
         <!-- STEP 2: Servis Detayları -->
@@ -287,7 +266,20 @@ const STATUS_LABEL: Record<OrderStatus, string> = {
                 <div class="od-tune-card__row"><i class="pi pi-database"></i>{{ o.readMethod }} Okuma</div>
               </div>
             </div>
-            <div class="od-tune-card__price">{{ o.price }}</div>
+            <div class="od-tune-card__price">{{ o.basePrice }}</div>
+          </div>
+
+          <!-- Okuma & ECU bilgileri -->
+          <div class="od__extras" style="margin-top:1rem">
+            <span class="od__dk">Okuma & ECU Bilgileri</span>
+            <div class="od__info-grid">
+              <div class="od__info-cell"><span class="od__info-k">Okuma Aracı</span><span class="od__info-v">{{ o.readMethod || '—' }}</span></div>
+              <div class="od__info-cell"><span class="od__info-k">Sanal Dosya</span><span class="od__info-v">{{ o.virtualFile ? 'Evet' : 'Hayır' }}</span></div>
+              <div class="od__info-cell"><span class="od__info-k">Dinamometre</span><span class="od__info-v">{{ o.dyno ? 'Evet' : 'Hayır' }}</span></div>
+              <div class="od__info-cell"><span class="od__info-k">ECU Donanım No</span><span class="od__info-v">{{ o.ecuHw || '—' }}</span></div>
+              <div class="od__info-cell"><span class="od__info-k">ECU Parça No</span><span class="od__info-v">{{ o.ecuPart || '—' }}</span></div>
+              <div class="od__info-cell"><span class="od__info-k">ECU Yazılım No</span><span class="od__info-v">{{ o.ecuSw || '—' }}</span></div>
+            </div>
           </div>
 
           @if (o.extraServices.length > 0) {
@@ -300,7 +292,7 @@ const STATUS_LABEL: Record<OrderStatus, string> = {
                       <span class="od-mod-tile__icon"><i class="pi pi-check-circle"></i></span>
                       <div>
                         <p class="od-mod-tile__name">{{ s }}</p>
-                        <p class="od-mod-tile__desc">{{ extraDesc(s) }}</p>
+                        <p class="od-mod-tile__desc">{{ extraDesc() }}</p>
                       </div>
                     </div>
                     <span class="od-mod-tile__price">+{{ extraPrice(s) | number }}₺</span>
@@ -309,7 +301,40 @@ const STATUS_LABEL: Record<OrderStatus, string> = {
               </div>
               <div class="od__extras-total">
                 <span>Ek Servis Toplamı</span>
-                <span class="od__extras-total__val">+{{ extrasTotal(o.extraServices) | number }}₺</span>
+                <span class="od__extras-total__val">+{{ extrasTotal() | number }}₺</span>
+              </div>
+            </div>
+          }
+
+          <!-- Genel toplam -->
+          <div class="od__grand-total">
+            <span>Toplam Tutar</span>
+            <span class="od__grand-total__val">{{ o.price }}</span>
+          </div>
+
+          <!-- Değiştirilmiş parçalar -->
+          @if (o.modifiedParts.length > 0) {
+            <div class="od__extras" style="margin-top:1rem">
+              <span class="od__dk">Değiştirilmiş Parçalar</span>
+              <div class="od__chip-wrap">
+                @for (p of o.modifiedParts; track p) {
+                  <span class="od__chip"><i class="pi pi-wrench"></i>{{ p }}</span>
+                }
+              </div>
+            </div>
+          }
+
+          <!-- Hata kodları (pcode) -->
+          @if (o.pcodes.length > 0) {
+            <div class="od__extras" style="margin-top:1rem">
+              <span class="od__dk">Hata Kodları & Notlar</span>
+              <div class="od__pcode-list">
+                @for (pc of o.pcodes; track $index) {
+                  <div class="od__pcode-row">
+                    @if (pc.pcode) { <span class="od__pcode-tag"><i class="pi pi-tag"></i>{{ pc.pcode }}</span> }
+                    @if (pc.note) { <span class="od__pcode-note">{{ pc.note }}</span> }
+                  </div>
+                }
               </div>
             </div>
           }
@@ -358,8 +383,9 @@ const STATUS_LABEL: Record<OrderStatus, string> = {
               <i class="pi pi-file"></i>
               <span>{{ o.fileName }}</span>
             </div>
-            <button class="od__dl-btn" type="button">
-              <i class="pi pi-download"></i> Dosyayı İndir
+            <button class="od__dl-btn" type="button" [disabled]="downloading()" (click)="download(o)">
+              <i class="pi" [class.pi-download]="!downloading()" [class.pi-spin]="downloading()" [class.pi-spinner]="downloading()"></i>
+              {{ downloading() ? 'Hazırlanıyor…' : 'Dosyayı İndir' }}
             </button>
           } @else if (o.status === 'processing') {
             <div class="od__progress-hint">
@@ -619,6 +645,43 @@ const STATUS_LABEL: Record<OrderStatus, string> = {
       font-size: 0.72rem; color: rgba(255,255,255,0.4); font-weight: 600;
       &__val { font-size: 0.88rem; font-weight: 800; color: #f59e0b; }
     }
+    .od__grand-total {
+      display: flex; align-items: center; justify-content: space-between;
+      margin-top: 1rem; padding: 0.7rem 1rem; border-radius: 10px;
+      background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.1);
+      font-size: 0.8rem; color: rgba(255,255,255,0.6); font-weight: 700;
+      &__val { font-size: 1.05rem; font-weight: 800; color: #fff; }
+    }
+    .od__chip-wrap { display: flex; flex-wrap: wrap; gap: 0.4rem; }
+    .od__chip {
+      display: inline-flex; align-items: center; gap: 0.35rem;
+      font-size: 0.72rem; font-weight: 600; color: rgba(255,255,255,0.75);
+      background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1);
+      padding: 4px 10px; border-radius: 20px;
+      i { font-size: 0.7rem; color: #60a5fa; }
+    }
+    .od__pcode-list { display: flex; flex-direction: column; gap: 0.4rem; }
+    .od__pcode-row {
+      display: flex; align-items: center; gap: 0.6rem; flex-wrap: wrap;
+      padding: 0.5rem 0.75rem; border-radius: 10px;
+      background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.08);
+    }
+    .od__pcode-tag {
+      display: inline-flex; align-items: center; gap: 0.3rem; flex-shrink: 0;
+      font-family: 'Courier New', monospace; font-size: 0.75rem; font-weight: 800;
+      color: #e63946; background: rgba(230,57,70,0.12); padding: 2px 8px; border-radius: 6px;
+      i { font-size: 0.65rem; }
+    }
+    .od__pcode-note { font-size: 0.78rem; color: rgba(255,255,255,0.6); }
+    .od__info-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.6rem; }
+    @media (max-width: 640px) { .od__info-grid { grid-template-columns: repeat(2, 1fr); } }
+    .od__info-cell {
+      display: flex; flex-direction: column; gap: 3px;
+      padding: 0.55rem 0.75rem; border-radius: 10px;
+      background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.08);
+    }
+    .od__info-k { font-size: 0.62rem; text-transform: uppercase; letter-spacing: 0.05em; color: rgba(255,255,255,0.35); font-weight: 700; }
+    .od__info-v { font-size: 0.82rem; color: #fff; font-weight: 600; word-break: break-word; }
 
     /* Notes */
     .od__note-box { display: flex; align-items: flex-start; gap: 0.75rem; padding: 1rem; border-radius: 12px; background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.06); font-size: 0.85rem; color: rgba(255,255,255,0.65); i { color: #f59e0b; flex-shrink: 0; font-size: 1rem; margin-top: 1px; } p { margin: 0; line-height: 1.5; } }
@@ -658,13 +721,45 @@ const STATUS_LABEL: Record<OrderStatus, string> = {
     .od__sent { margin-top: 0.6rem; display: flex; align-items: center; gap: 0.4rem; font-size: 0.78rem; color: #4ade80; }
   `],
 })
-export class OrdersPage {
+export class OrdersPage implements OnInit {
+  private readonly ordersApi = inject(OrdersService);
+  private readonly cdr = inject(ChangeDetectorRef);
+
   protected readonly selectedOrder = signal<UserOrder | null>(null);
   protected readonly currentView   = signal<'list' | 'detail'>('list');
   protected readonly activeFilter  = signal<string>('all');
   protected readonly search        = signal('');
   protected readonly uploadedFile  = signal<File | null>(null);
   protected readonly fileSent      = signal(false);
+  protected readonly loading       = signal(true);
+  protected readonly loadError     = signal('');
+  protected readonly downloading   = signal(false);
+
+  async ngOnInit(): Promise<void> {
+    try {
+      const data = await this.ordersApi.listMyOrders();
+      this.orders.set(data.map(mapOrder));
+    } catch {
+      this.loadError.set('Siparişler yüklenemedi.');
+    } finally {
+      this.loading.set(false);
+      this.cdr.markForCheck();
+    }
+  }
+
+  async download(o: UserOrder): Promise<void> {
+    if (this.downloading()) { return; }
+    this.downloading.set(true);
+    try {
+      const res = await this.ordersApi.getDownloadUrl(o.dbId);
+      triggerDownload(res.url, res.fileName);
+    } catch {
+      this.loadError.set('Dosya indirilemedi.');
+    } finally {
+      this.downloading.set(false);
+      this.cdr.markForCheck();
+    }
+  }
 
   protected readonly filterOptions = [
     { label: 'Tümü',       value: 'all'        },
@@ -680,22 +775,22 @@ export class OrdersPage {
     { label: 'Tamamlandı',     icon: 'pi-check',         rank: 3, hint: '' },
   ];
 
-  protected readonly orders: UserOrder[] = MOCK;
+  protected readonly orders = signal<UserOrder[]>([]);
 
   protected readonly filtered = computed(() => {
     const q = this.search().toLowerCase();
     const f = this.activeFilter();
-    return this.orders.filter(o => {
+    return this.orders().filter(o => {
       const matchQ = !q || `${o.make} ${o.model}`.toLowerCase().includes(q) || o.id.toLowerCase().includes(q);
       const matchF = f === 'all' || o.status === f;
       return matchQ && matchF;
     });
   });
 
-  countBy(s: OrderStatus): number { return this.orders.filter(o => o.status === s).length; }
-  extraDesc(name: string): string  { return EXTRA_MAP[name]?.desc  ?? ''; }
-  extraPrice(name: string): number { return EXTRA_MAP[name]?.price ?? 0;  }
-  extrasTotal(names: string[]): number { return names.reduce((sum, n) => sum + (EXTRA_MAP[n]?.price ?? 0), 0); }
+  countBy(s: OrderStatus): number { return this.orders().filter(o => o.status === s).length; }
+  extraDesc(): string { return ''; }
+  extraPrice(name: string): number { return this.selectedOrder()?.priceMap[name] ?? 0; }
+  extrasTotal(): number { return this.selectedOrder()?.extrasTotalValue ?? 0; }
 
   statusLabel(s: OrderStatus): string { return STATUS_LABEL[s]; }
   stageKey(s: string): string { return s === 'Stage 1' ? 's1' : s === 'Stage 2' ? 's2' : 's3'; }
