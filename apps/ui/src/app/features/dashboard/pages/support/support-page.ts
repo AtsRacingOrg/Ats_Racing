@@ -171,7 +171,8 @@ function mapTicket(t: ApiTicket): Ticket {
               [disabled]="!replyText.trim() || busy()"
               (click)="sendReply()"
             >
-              <i class="pi pi-send"></i> Gönder
+              <i class="pi" [class.pi-send]="!busy()" [class.pi-spin]="busy()" [class.pi-spinner]="busy()"></i>
+              {{ busy() ? 'Gönderiliyor…' : 'Gönder' }}
             </button>
           </div>
         } @else {
@@ -254,7 +255,8 @@ function mapTicket(t: ApiTicket): Ticket {
         [disabled]="!canSubmit() || busy()"
         (click)="submitNewTicket()"
       >
-        <i class="pi pi-send"></i> {{ busy() ? 'Gönderiliyor…' : 'Talep Oluştur' }}
+        <i class="pi" [class.pi-send]="!busy()" [class.pi-spin]="busy()" [class.pi-spinner]="busy()"></i>
+        {{ busy() ? 'Gönderiliyor…' : 'Talep Oluştur' }}
       </button>
     </div>
 

@@ -542,8 +542,9 @@ const STATUS_LABEL: Record<OrderStatus, string> = {
               }
             </div>
             <div class="aor-upload-actions">
-              <button class="aor-send-btn" type="button" [disabled]="!selectedFile(o.id)" (click)="sendFile(o)">
-                <i class="pi pi-send"></i> {{ o.fileSent ? 'Dosyayı Güncelle' : 'Müşteriye Gönder' }}
+              <button class="aor-send-btn" type="button" [disabled]="!selectedFile(o.id) || sending()" (click)="sendFile(o)">
+                <i class="pi" [class.pi-send]="!sending()" [class.pi-spin]="sending()" [class.pi-spinner]="sending()"></i>
+                {{ sending() ? 'Gönderiliyor…' : (o.fileSent ? 'Dosyayı Güncelle' : 'Müşteriye Gönder') }}
               </button>
               @if (reuploadMode()) {
                 <button class="aor-cancel-btn" type="button" (click)="reuploadMode.set(false); removeFile(o.id)">İptal</button>

@@ -161,8 +161,9 @@ const STATUS_LABEL: Record<TicketStatus, string> = { open: 'Açık', pending: 'B
         @if (active()!.status !== 'resolved') {
           <div class="atk-reply">
             <textarea class="atk-reply__input" rows="3" placeholder="Cevabınızı yazın…" [(ngModel)]="replyText"></textarea>
-            <button class="atk-send-btn" type="button" [disabled]="!replyText.trim()" (click)="sendReply()">
-              <i class="pi pi-send"></i> Gönder
+            <button class="atk-send-btn" type="button" [disabled]="!replyText.trim() || busy()" (click)="sendReply()">
+              <i class="pi" [class.pi-send]="!busy()" [class.pi-spin]="busy()" [class.pi-spinner]="busy()"></i>
+              {{ busy() ? 'Gönderiliyor…' : 'Gönder' }}
             </button>
           </div>
         } @else {
