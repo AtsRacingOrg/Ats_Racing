@@ -44,10 +44,10 @@ interface NavItem {
 
         <div class="dash-sidebar__bottom">
           <div class="dash-user">
-            <div class="dash-user__avatar">AY</div>
+            <div class="dash-user__avatar">{{ initials() }}</div>
             <div class="dash-user__info">
-              <span class="dash-user__name">Ahmet Yıldız</span>
-              <span class="dash-user__email">ahmet&#64;mail.com</span>
+              <span class="dash-user__name">{{ user()?.name || '—' }}</span>
+              <span class="dash-user__email">{{ user()?.email }}</span>
             </div>
           </div>
           <a routerLink="/login" class="dash-logout">
@@ -298,8 +298,16 @@ export class DashboardLayout {
   protected readonly collapsed = signal(false);
   protected readonly mobileOpen = signal(false);
 
+  protected readonly user = this.auth.currentUser;
   protected get userName(): string { return this.auth.currentUser()?.name ?? 'Kullanıcı'; }
   protected get userAvatar(): string { return this.auth.currentUser()?.avatar ?? 'AY'; }
+
+  /** Kullanıcı adından baş harfler (ör. "Ali Yıldız" → "AY"). */
+  protected initials(): string {
+    const name = this.auth.currentUser()?.name?.trim();
+    if (!name) { return '?'; }
+    return name.split(/\s+/).map(w => w[0]).join('').slice(0, 2).toUpperCase();
+  }
 
   logout(): void { this.auth.logout(); this.router.navigate(['/login']); }
 

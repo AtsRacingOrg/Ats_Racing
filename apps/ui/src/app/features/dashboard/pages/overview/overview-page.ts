@@ -1,6 +1,7 @@
-import { ChangeDetectionStrategy, Component } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, inject } from '@angular/core';
 import { DatePipe, DecimalPipe } from '@angular/common';
 import { RouterLink } from '@angular/router';
+import { AuthService } from '../../../../core/auth/auth.service';
 
 interface TuningFile {
   id: string;
@@ -30,7 +31,7 @@ interface MonthStat {
       <div class="ov__header">
         <div>
           <h1 class="ov__title">Genel Bakış</h1>
-          <p class="ov__sub">Hoş geldin, Ahmet 👋</p>
+          <p class="ov__sub">Hoş geldin, {{ firstName() }} 👋</p>
         </div>
         <span class="ov__date">{{ today | date:'d MMMM yyyy' }}</span>
       </div>
@@ -309,7 +310,13 @@ interface MonthStat {
   `],
 })
 export class OverviewPage {
+  private readonly auth = inject(AuthService);
   protected readonly today = new Date();
+
+  /** Kullanıcının ilk adı (selamlama için). */
+  protected readonly firstName = computed(() =>
+    this.auth.currentUser()?.name?.trim().split(/\s+/)[0] ?? '',
+  );
 
   protected readonly stats = [
     { label: 'Toplam Dosya', value: '12', icon: 'pi-folder', color: '#e63946', trend: '+2 bu ay', trendUp: true },
