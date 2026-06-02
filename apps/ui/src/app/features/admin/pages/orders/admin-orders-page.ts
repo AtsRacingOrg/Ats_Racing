@@ -177,12 +177,14 @@ const STATUS_LABEL: Record<OrderStatus, string> = {
             <td class="op__muted">{{ o.date }}</td>
             <td class="op__price">{{ o.price }}</td>
             <td>
-              <span class="st-chip st-chip--{{o.status}}"><span class="st-dot"></span>{{ statusLabel(o.status) }}</span>
-              @if (o.queuePosition) {
-                <span class="op__queue" title="Kuyruk sırası">
-                  <i class="pi pi-sort-numeric-down"></i> {{ o.queuePosition }}. sırada
-                </span>
-              }
+              <div class="op__status-cell">
+                <span class="st-chip st-chip--{{o.status}}"><span class="st-dot"></span>{{ statusLabel(o.status) }}</span>
+                @if (o.queuePosition) {
+                  <span class="op__queue" title="Kuyruk sırası">
+                    <i class="pi pi-sort-numeric-down"></i> {{ o.queuePosition }}. sırada
+                  </span>
+                }
+              </div>
             </td>
             <td>
               @if (o.fileSent) {
@@ -727,14 +729,17 @@ const STATUS_LABEL: Record<OrderStatus, string> = {
     /* Table */
     /* ── Sipariş listesi — bayi/kullanıcı ile birebir aynı tasarım ── */
     .op__table-wrap { background: #13151c; border: 1px solid rgba(255,255,255,0.07); border-radius: 16px; overflow-x: auto; min-width: 0; max-width: 100%; }
-    .op__table { width: 100%; border-collapse: collapse; min-width: 1040px;
-      thead th { padding: 1rem 1.1rem; font-size: 0.72rem; font-weight: 600; color: rgba(255,255,255,0.35); text-transform: uppercase; letter-spacing: 0.06em; text-align: left; border-bottom: 1px solid rgba(255,255,255,0.06); white-space: nowrap; }
+    .op__table { width: 100%; border-collapse: collapse; min-width: 940px;
+      thead th { padding: 0.9rem 0.7rem; font-size: 0.7rem; font-weight: 600; color: rgba(255,255,255,0.35); text-transform: uppercase; letter-spacing: 0.05em; text-align: left; border-bottom: 1px solid rgba(255,255,255,0.06); white-space: nowrap; }
+      thead th:first-child, .op__row td:first-child { padding-left: 1.1rem; }
+      thead th:last-child, .op__row td:last-child { padding-right: 1.1rem; }
     }
     .op__row { border-bottom: 1px solid rgba(255,255,255,0.04); cursor: pointer; transition: background 160ms;
       &:last-child { border-bottom: none; }
       &:hover { background: rgba(255,255,255,0.025); }
-      td { padding: 0.9rem 1.1rem; font-size: 0.82rem; color: rgba(255,255,255,0.7); vertical-align: middle; white-space: nowrap; }
+      td { padding: 0.8rem 0.7rem; font-size: 0.8rem; color: rgba(255,255,255,0.7); vertical-align: middle; white-space: nowrap; }
     }
+    .op__status-cell { display: inline-flex; flex-direction: column; align-items: flex-start; gap: 4px; }
     .op__veh { display: flex; align-items: center; gap: 0.625rem; }
     .op__veh-icon { width: 34px; height: 34px; border-radius: 8px; background: rgba(230,57,70,0.1); color: #e63946; display: flex; align-items: center; justify-content: center; font-size: 0.85rem; flex-shrink: 0; }
     .op__veh-name { font-weight: 600; color: rgba(255,255,255,0.9); margin: 0 0 2px; white-space: nowrap; }
@@ -767,7 +772,7 @@ const STATUS_LABEL: Record<OrderStatus, string> = {
     .st-chip--processing { background: rgba(96,165,250,0.12);  color: #60a5fa; }
     .st-chip--completed  { background: rgba(74,222,128,0.12);  color: #4ade80; }
     .st-chip--cancelled  { background: rgba(255,255,255,0.06); color: rgba(255,255,255,0.4); }
-    .op__queue { display: inline-flex; align-items: center; gap: 4px; margin-left: 0.4rem; padding: 3px 8px; border-radius: 20px; font-size: 0.68rem; font-weight: 700; background: rgba(168,85,247,0.12); color: #c084fc; white-space: nowrap; i { font-size: 0.7rem; } }
+    .op__queue { display: inline-flex; align-items: center; gap: 4px; padding: 3px 8px; border-radius: 20px; font-size: 0.66rem; font-weight: 700; background: rgba(168,85,247,0.12); color: #c084fc; white-space: nowrap; i { font-size: 0.7rem; } }
 
     .aor-table-wrap { background: #13151c; border: 1px solid rgba(255,255,255,0.07); border-radius: 20px; overflow-x: auto; min-width: 0; max-width: 100%; }
     .aor-table { width: 100%; border-collapse: collapse; font-size: 0.82rem; min-width: 1120px;
