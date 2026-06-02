@@ -150,7 +150,15 @@ const STATUS_LABEL: Record<OrderStatus, string> = {
             <td class="op__muted">{{ o.km ? o.km + ' km' : '—' }}</td>
             <td class="op__muted" style="text-transform:uppercase">{{ o.plate || '—' }}</td>
             <td>
-              <span class="s-chip s-chip--{{ stageKey(o.stage) }}">{{ o.stage }}</span>
+              <div class="op__svc">
+                <span class="s-chip s-chip--{{ stageKey(o.stage) }}">{{ o.stage }}</span>
+                @for (ex of o.extraServices.slice(0, 2); track ex) {
+                  <span class="op__svc-chip">{{ ex }}</span>
+                }
+                @if (o.extraServices.length > 2) {
+                  <span class="op__svc-chip">+{{ o.extraServices.length - 2 }}</span>
+                }
+              </div>
             </td>
             <td class="op__muted">{{ o.date }}</td>
             <td class="op__price">{{ o.price }}</td>
@@ -583,6 +591,11 @@ const STATUS_LABEL: Record<OrderStatus, string> = {
       &--s1 { background: rgba(96,165,250,0.12); color: #60a5fa; border: 1px solid rgba(96,165,250,0.25); }
       &--s2 { background: rgba(230,57,70,0.12);  color: #e63946; border: 1px solid rgba(230,57,70,0.25); }
       &--s3 { background: rgba(167,139,250,0.12);color: #a78bfa; border: 1px solid rgba(167,139,250,0.25); }
+    }
+    .op__svc { display: flex; flex-wrap: wrap; align-items: center; gap: 0.3rem; }
+    .op__svc-chip {
+      display: inline-flex; padding: 0.13rem 0.45rem; border-radius: 5px; font-size: 0.64rem; font-weight: 600;
+      background: rgba(255,255,255,0.06); color: rgba(255,255,255,0.6); border: 1px solid rgba(255,255,255,0.1); white-space: nowrap;
     }
     .st-chip { display: inline-flex; align-items: center; gap: 5px; font-size: 0.72rem; font-weight: 600; padding: 4px 10px; border-radius: 20px; white-space: nowrap; }
     .st-dot  { width: 6px; height: 6px; border-radius: 50%; background: currentColor; flex-shrink: 0; }
