@@ -829,16 +829,15 @@ export class OrdersPage implements OnInit {
     return id ? cur === id : cur !== null;
   }
 
-  async ngOnInit(): Promise<void> {
-    try {
-      const data = await this.ordersApi.listMyOrders();
-      this.orders.set(data.map(mapOrder));
-    } catch {
-      this.loadError.set('Siparişler yüklenemedi.');
-    } finally {
-      this.loading.set(false);
-      this.cdr.markForCheck();
-    }
+  ngOnInit(): void {
+    // Cache varsa anında göster (skeleton yok), her durumda arka planda tazele.
+    const cached = this.ordersApi.peekMyOrders();
+    if (cached) { this.orders.set(cached.map(mapOrder)); this.loading.set(false); }
+
+    this.ordersApi.listMyOrders()
+      .then(data => { this.orders.set(data.map(mapOrder)); this.loadError.set(''); })
+      .catch(() => { if (!cached) { this.loadError.set('Siparişler yüklenemedi.'); } })
+      .finally(() => { this.loading.set(false); this.cdr.markForCheck(); });
   }
 
   async download(o: UserOrder): Promise<void> {

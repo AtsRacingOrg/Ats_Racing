@@ -64,15 +64,14 @@ export class PaymentsPage implements OnInit {
   protected readonly statements = signal<Statement[]>([]);
   protected readonly loading = signal(true);
 
-  async ngOnInit(): Promise<void> {
+  ngOnInit(): void {
     if (!this.isDealer()) { this.loading.set(false); return; }
-    try {
-      this.statements.set(await this.paymentsApi.listStatements());
-    } catch {
-      /* sessiz */
-    } finally {
-      this.loading.set(false);
-      this.cdr.markForCheck();
-    }
+    const cached = this.paymentsApi.peekStatements();
+    if (cached) { this.statements.set(cached); this.loading.set(false); }
+
+    this.paymentsApi.listStatements()
+      .then(s => this.statements.set(s))
+      .catch(() => { /* sessiz */ })
+      .finally(() => { this.loading.set(false); this.cdr.markForCheck(); });
   }
 }

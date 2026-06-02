@@ -297,12 +297,14 @@ export class AdminTicketsPage implements OnInit {
   protected readonly loading      = signal(true);
   protected replyText = '';
 
-  async ngOnInit(): Promise<void> {
-    try {
-      const data = await this.ticketsApi.adminListTickets();
-      this.tickets.set(data.map(mapAdminTicket));
-    } catch { /* sessiz */ }
-    finally { this.loading.set(false); this.cdr.markForCheck(); }
+  ngOnInit(): void {
+    const cached = this.ticketsApi.peekAdminTickets();
+    if (cached) { this.tickets.set(cached.map(mapAdminTicket)); this.loading.set(false); }
+
+    this.ticketsApi.adminListTickets()
+      .then(data => this.tickets.set(data.map(mapAdminTicket)))
+      .catch(() => { /* sessiz */ })
+      .finally(() => { this.loading.set(false); this.cdr.markForCheck(); });
   }
 
   protected readonly active = computed(() => this.tickets().find(t => t.id === this.activeId()) ?? null);

@@ -2,6 +2,7 @@ import { Injectable, inject } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { firstValueFrom } from 'rxjs';
 import { environment } from '../../../environments/environment';
+import { Swr } from '../../shared/swr';
 
 export type OrderStatus = 'pending' | 'processing' | 'completed' | 'cancelled';
 
@@ -79,8 +80,23 @@ export class OrdersService {
   private readonly http = inject(HttpClient);
   private readonly api = environment.apiUrl;
 
+  /* Stale-while-revalidate önbellekleri — ekran açılışı anında. */
+  private readonly _myOrders = new Swr<Order[]>();
+  private readonly _adminOrders = new Swr<Order[]>();
+
+  /** Sayfa açılışında anında göstermek için son veri (yoksa null). */
+  peekMyOrders(): Order[] | null { return this._myOrders.peek(); }
+  peekAdminOrders(): Order[] | null { return this._adminOrders.peek(); }
+
+  /** Sipariş listesi değişen mutasyonlardan sonra cache'i geçersiz kıl. */
+  private invalidateOrders(): void { this._myOrders.clear(); this._adminOrders.clear(); }
+
+  /** Çıkışta tüm önbellekleri temizle. */
+  clearCache(): void { this.invalidateOrders(); }
+
   createOrder(payload: CreateOrderPayload): Promise<CreateOrderResult> {
-    return firstValueFrom(this.http.post<CreateOrderResult>(`${this.api}/orders`, payload));
+    return firstValueFrom(this.http.post<CreateOrderResult>(`${this.api}/orders`, payload))
+      .then(r => { this.invalidateOrders(); return r; });
   }
 
   uploadOriginalFile(orderId: string, file: File): Promise<{ ok: boolean; fileName: string }> {
@@ -88,11 +104,13 @@ export class OrdersService {
     form.append('file', file, file.name);
     return firstValueFrom(
       this.http.post<{ ok: boolean; fileName: string }>(`${this.api}/orders/${orderId}/file`, form),
-    );
+    ).then(r => { this.invalidateOrders(); return r; });
   }
 
   listMyOrders(): Promise<Order[]> {
-    return firstValueFrom(this.http.get<Order[]>(`${this.api}/orders`));
+    return this._myOrders.revalidate(
+      () => firstValueFrom(this.http.get<Order[]>(`${this.api}/orders`)),
+    );
   }
 
   getOrder(id: string): Promise<Order> {
@@ -101,7 +119,9 @@ export class OrdersService {
 
   /* ── Admin ── */
   adminListOrders(): Promise<Order[]> {
-    return firstValueFrom(this.http.get<Order[]>(`${this.api}/admin/orders`));
+    return this._adminOrders.revalidate(
+      () => firstValueFrom(this.http.get<Order[]>(`${this.api}/admin/orders`)),
+    );
   }
 
   adminUpdateStatus(id: string, status: OrderStatus, reason?: string): Promise<Order> {
@@ -109,20 +129,21 @@ export class OrdersService {
     if (reason && reason.trim()) { body.reason = reason.trim(); }
     return firstValueFrom(
       this.http.post<Order>(`${this.api}/admin/orders/${id}/status`, body),
-    );
+    ).then(r => { this.invalidateOrders(); return r; });
   }
 
   adminDeliverFile(id: string, file: File, note?: string): Promise<Order> {
     const form = new FormData();
     form.append('file', file, file.name);
     if (note && note.trim()) { form.append('note', note.trim()); }
-    return firstValueFrom(this.http.post<Order>(`${this.api}/admin/orders/${id}/deliver`, form));
+    return firstValueFrom(this.http.post<Order>(`${this.api}/admin/orders/${id}/deliver`, form))
+      .then(r => { this.invalidateOrders(); return r; });
   }
 
   adminUpdateDeliveredNote(id: string, note: string): Promise<Order> {
     return firstValueFrom(
       this.http.post<Order>(`${this.api}/admin/orders/${id}/delivered-note`, { note: note.trim() || null }),
-    );
+    ).then(r => { this.invalidateOrders(); return r; });
   }
 
   /** Dosya için imzalı indirme linki (kind: delivered/original). */

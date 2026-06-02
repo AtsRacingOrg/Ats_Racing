@@ -1121,16 +1121,14 @@ export class AdminOrdersPage implements OnInit {
   protected readonly loading       = signal(true);
   protected readonly loadError     = signal('');
 
-  async ngOnInit(): Promise<void> {
-    try {
-      const data = await this.ordersApi.adminListOrders();
-      this.orders.set(data.map(mapAdminOrder));
-    } catch {
-      this.loadError.set('Siparişler yüklenemedi.');
-    } finally {
-      this.loading.set(false);
-      this.cdr.markForCheck();
-    }
+  ngOnInit(): void {
+    const cached = this.ordersApi.peekAdminOrders();
+    if (cached) { this.orders.set(cached.map(mapAdminOrder)); this.loading.set(false); }
+
+    this.ordersApi.adminListOrders()
+      .then(data => { this.orders.set(data.map(mapAdminOrder)); this.loadError.set(''); })
+      .catch(() => { if (!cached) { this.loadError.set('Siparişler yüklenemedi.'); } })
+      .finally(() => { this.loading.set(false); this.cdr.markForCheck(); });
   }
 
   protected readonly files         = signal<Record<string, File | null>>({});

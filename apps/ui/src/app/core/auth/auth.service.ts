@@ -2,6 +2,9 @@ import { Injectable, computed, inject, signal } from '@angular/core';
 import { HttpClient, HttpErrorResponse } from '@angular/common/http';
 import { firstValueFrom } from 'rxjs';
 import { environment } from '../../../environments/environment';
+import { OrdersService } from '../orders/orders.service';
+import { TicketsService } from '../tickets/tickets.service';
+import { PaymentsService } from '../payments/payments.service';
 
 export type UserRole = 'admin' | 'dealer' | 'user';
 export type AccountType = 'user' | 'dealer';
@@ -38,6 +41,9 @@ const USER_KEY = 'ats_auth_user';
 export class AuthService {
   private readonly http = inject(HttpClient);
   private readonly api = environment.apiUrl;
+  private readonly orders = inject(OrdersService);
+  private readonly tickets = inject(TicketsService);
+  private readonly payments = inject(PaymentsService);
 
   private readonly _user = signal<AuthUser | null>(this.loadUser());
 
@@ -83,6 +89,10 @@ export class AuthService {
     localStorage.removeItem(REFRESH_KEY);
     localStorage.removeItem(USER_KEY);
     this._user.set(null);
+    // Önceki kullanıcının verisi yeni oturuma sızmasın.
+    this.orders.clearCache();
+    this.tickets.clearCache();
+    this.payments.clearCache();
   }
 
   /** Pull a human-readable message out of an HttpErrorResponse. */

@@ -328,7 +328,15 @@ export class OverviewPage implements OnInit {
     this.auth.currentUser()?.name?.trim().split(/\s+/)[0] ?? '',
   );
 
-  async ngOnInit(): Promise<void> {
+  ngOnInit(): void {
+    // Cache'ten anında doldur, arka planda tazele.
+    const cachedOrders = this.ordersApi.peekMyOrders();
+    if (cachedOrders) { this.orders.set(cachedOrders); this.loading.set(false); }
+
+    void this.load(!!cachedOrders);
+  }
+
+  private async load(hasCache: boolean): Promise<void> {
     try {
       const [orders, tickets] = await Promise.all([
         this.ordersApi.listMyOrders(),
@@ -343,7 +351,7 @@ export class OverviewPage implements OnInit {
         );
       }
     } catch { /* sessiz */ }
-    finally { this.loading.set(false); this.cdr.markForCheck(); }
+    finally { if (!hasCache) { this.loading.set(false); } this.cdr.markForCheck(); }
   }
 
   /* ── Türetilen istatistikler ── */

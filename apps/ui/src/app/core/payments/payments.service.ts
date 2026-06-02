@@ -2,6 +2,7 @@ import { Injectable, inject } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { firstValueFrom } from 'rxjs';
 import { environment } from '../../../environments/environment';
+import { Swr } from '../../shared/swr';
 
 export type StatementStatus = 'accruing' | 'due' | 'paid' | 'overdue';
 
@@ -31,7 +32,13 @@ export class PaymentsService {
   private readonly http = inject(HttpClient);
   private readonly api = environment.apiUrl;
 
+  private readonly _statements = new Swr<Statement[]>();
+  peekStatements(): Statement[] | null { return this._statements.peek(); }
+  clearCache(): void { this._statements.clear(); }
+
   listStatements(): Promise<Statement[]> {
-    return firstValueFrom(this.http.get<Statement[]>(`${this.api}/payments/statements`));
+    return this._statements.revalidate(
+      () => firstValueFrom(this.http.get<Statement[]>(`${this.api}/payments/statements`)),
+    );
   }
 }

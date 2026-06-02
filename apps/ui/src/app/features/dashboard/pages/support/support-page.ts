@@ -524,23 +524,30 @@ export class SupportPage implements OnInit {
   protected newSubject = '';
   protected newMessage = '';
 
-  async ngOnInit(): Promise<void> {
-    try {
-      const [tickets, orders] = await Promise.all([
-        this.ticketsApi.listMyTickets(),
-        this.ordersApi.listMyOrders(),
-      ]);
-      this.tickets.set(tickets.map(mapTicket));
-      this.orders.set(orders.map(o => ({
-        id: o.id,
-        label: `${o.orderNo} · ${[o.make, o.model].filter(Boolean).join(' ')} · ${stageLabel(o.stage)}`,
-      })));
-    } catch {
-      /* sessiz */
-    } finally {
-      this.loading.set(false);
-      this.cdr.markForCheck();
-    }
+  ngOnInit(): void {
+    // Cache'ten anında doldur.
+    const cachedTickets = this.ticketsApi.peekMyTickets();
+    const cachedOrders = this.ordersApi.peekMyOrders();
+    if (cachedTickets) { this.tickets.set(cachedTickets.map(mapTicket)); this.loading.set(false); }
+    if (cachedOrders) { this.orders.set(this.toOrderOptions(cachedOrders)); }
+
+    Promise.all([
+      this.ticketsApi.listMyTickets(),
+      this.ordersApi.listMyOrders(),
+    ])
+      .then(([tickets, orders]) => {
+        this.tickets.set(tickets.map(mapTicket));
+        this.orders.set(this.toOrderOptions(orders));
+      })
+      .catch(() => { /* sessiz */ })
+      .finally(() => { this.loading.set(false); this.cdr.markForCheck(); });
+  }
+
+  private toOrderOptions(orders: { id: string; orderNo: string; make: string | null; model: string | null; stage: string }[]): OrderOption[] {
+    return orders.map(o => ({
+      id: o.id,
+      label: `${o.orderNo} · ${[o.make, o.model].filter(Boolean).join(' ')} · ${stageLabel(o.stage)}`,
+    }));
   }
 
   private async refresh(activeId?: string): Promise<void> {
