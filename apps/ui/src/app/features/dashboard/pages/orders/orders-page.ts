@@ -255,13 +255,13 @@ const STATUS_LABEL: Record<OrderStatus, string> = {
           </div>
 
           <div class="engine-strip">
-            <div class="es__item"><span class="es__k">Marka</span><span class="es__v">{{ o.make }}</span></div>
+            <div class="es__item"><span class="es__k">Marka</span><span class="es__v">{{ o.make || '—' }}</span></div>
             <div class="es__sep"></div>
-            <div class="es__item"><span class="es__k">Model</span><span class="es__v">{{ o.model }}</span></div>
+            <div class="es__item"><span class="es__k">Model</span><span class="es__v">{{ o.model || '—' }}</span></div>
             <div class="es__sep"></div>
-            <div class="es__item"><span class="es__k">Yıl</span><span class="es__v">{{ o.year }}</span></div>
+            <div class="es__item"><span class="es__k">Yıl</span><span class="es__v">{{ o.year || '—' }}</span></div>
             <div class="es__sep"></div>
-            <div class="es__item"><span class="es__k">Motor</span><span class="es__v">{{ o.engine }}</span></div>
+            <div class="es__item"><span class="es__k">Motor</span><span class="es__v">{{ o.engine || '—' }}</span></div>
             <div class="es__sep"></div>
             <div class="es__item"><span class="es__k">Yakıt</span>
               <span class="fuel-badge fuel-badge--{{ o.fuelType === 'Benzin' ? 'petrol' : o.fuelType === 'Dizel' ? 'diesel' : 'hybrid' }}">{{ o.fuelType }}</span>
@@ -269,14 +269,11 @@ const STATUS_LABEL: Record<OrderStatus, string> = {
           </div>
 
           <div class="od__detail-row">
-            <div class="od__di"><span class="od__dk">Şanzıman</span><span class="od__dv">{{ o.transmission }}</span></div>
-            <div class="od__di"><span class="od__dk">Kilometre</span><span class="od__dv">{{ o.km }} km</span></div>
-            @if (o.plate) {
-              <div class="od__di"><span class="od__dk">Plaka</span><span class="od__dv" style="text-transform:uppercase">{{ o.plate }}</span></div>
-            }
-            @if (o.vin) {
-              <div class="od__di"><span class="od__dk">VIN / Şasi No</span><span class="od__vin">{{ o.vin }}</span></div>
-            }
+            <div class="od__di"><span class="od__dk">Şanzıman</span><span class="od__dv">{{ o.transmission || '—' }}</span></div>
+            <div class="od__di"><span class="od__dk">Kilometre</span><span class="od__dv">{{ o.km ? o.km + ' km' : '—' }}</span></div>
+            <div class="od__di"><span class="od__dk">ECU</span><span class="od__dv">{{ o.ecu || '—' }}</span></div>
+            <div class="od__di"><span class="od__dk">Plaka</span><span class="od__dv" style="text-transform:uppercase">{{ o.plate || '—' }}</span></div>
+            <div class="od__di"><span class="od__dk">VIN / Şasi No</span><span class="od__vin">{{ o.vin || '—' }}</span></div>
           </div>
         </div>
 

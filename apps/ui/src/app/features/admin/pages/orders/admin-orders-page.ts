@@ -330,22 +330,22 @@ const STATUS_LABEL: Record<OrderStatus, string> = {
           <div class="engine-info-strip">
             <div class="engine-info-item">
               <span class="engine-info-k">Marka</span>
-              <span class="engine-info-v">{{ o.make }}</span>
+              <span class="engine-info-v">{{ o.make || '—' }}</span>
             </div>
             <div class="engine-info-sep"></div>
             <div class="engine-info-item">
               <span class="engine-info-k">Model</span>
-              <span class="engine-info-v">{{ o.model }}</span>
+              <span class="engine-info-v">{{ o.model || '—' }}</span>
             </div>
             <div class="engine-info-sep"></div>
             <div class="engine-info-item">
               <span class="engine-info-k">Yıl</span>
-              <span class="engine-info-v">{{ o.year }}</span>
+              <span class="engine-info-v">{{ o.year || '—' }}</span>
             </div>
             <div class="engine-info-sep"></div>
             <div class="engine-info-item">
               <span class="engine-info-k">Motor</span>
-              <span class="engine-info-v">{{ o.engine }}</span>
+              <span class="engine-info-v">{{ o.engine || '—' }}</span>
             </div>
             <div class="engine-info-sep"></div>
             <div class="engine-info-item">
@@ -356,18 +356,20 @@ const STATUS_LABEL: Record<OrderStatus, string> = {
           <div class="aord-detail-row">
             <div class="aord-info-item">
               <span class="aord-info-item__k">Şanzıman</span>
-              <span class="aord-info-item__v">{{ o.transmission }}</span>
+              <span class="aord-info-item__v">{{ o.transmission || '—' }}</span>
             </div>
             <div class="aord-info-item">
               <span class="aord-info-item__k">Kilometre</span>
-              <span class="aord-info-item__v">{{ o.km }} km</span>
+              <span class="aord-info-item__v">{{ o.km ? o.km + ' km' : '—' }}</span>
             </div>
-            @if (o.plate) {
-              <div class="aord-info-item">
-                <span class="aord-info-item__k">Plaka</span>
-                <span class="aord-info-item__v" style="text-transform:uppercase">{{ o.plate }}</span>
-              </div>
-            }
+            <div class="aord-info-item">
+              <span class="aord-info-item__k">ECU</span>
+              <span class="aord-info-item__v">{{ o.ecu || '—' }}</span>
+            </div>
+            <div class="aord-info-item">
+              <span class="aord-info-item__k">Plaka</span>
+              <span class="aord-info-item__v" style="text-transform:uppercase">{{ o.plate || '—' }}</span>
+            </div>
             <div class="aord-info-item">
               <span class="aord-info-item__k">VIN / Şasi No</span>
               <span class="aord-vin">{{ o.vin || '—' }}</span>
@@ -1236,15 +1238,25 @@ export class AdminOrdersPage implements OnInit {
 
   async setStatus(o: AdminOrder, status: OrderStatus): Promise<void> {
     if (o.status === status) { return; }
+    const prev = o.status;
+    // Optimistik: durumu anında değiştir, ağ arka planda senkronize etsin.
+    this.applyStatus(o.dbId, status);
     try {
       const updated = mapAdminOrder(await this.ordersApi.adminUpdateStatus(o.dbId, status));
       this.orders.update(list => list.map(x => x.dbId === updated.dbId ? updated : x));
       this.selectedOrder.update(sel => sel?.dbId === updated.dbId ? updated : sel);
     } catch {
+      this.applyStatus(o.dbId, prev); // başarısızsa geri al
       this.loadError.set('Durum güncellenemedi.');
     } finally {
       this.cdr.markForCheck();
     }
+  }
+
+  /** Bir siparişin durumunu hem listede hem seçili kayıtta günceller (yerel). */
+  private applyStatus(dbId: string, status: OrderStatus): void {
+    this.orders.update(list => list.map(x => x.dbId === dbId ? { ...x, status } : x));
+    this.selectedOrder.update(sel => sel?.dbId === dbId ? { ...sel, status } : sel);
   }
 
   protected readonly cancelMode    = signal(false);
@@ -1258,13 +1270,18 @@ export class AdminOrdersPage implements OnInit {
   async confirmCancel(o: AdminOrder): Promise<void> {
     const reason = this.cancelReason().trim();
     if (!reason || this.cancelSaving()) { return; }
+    const prev = o.status;
+    // Optimistik: anında iptal göster.
+    this.orders.update(list => list.map(x => x.dbId === o.dbId ? { ...x, status: 'cancelled', cancellationReason: reason } : x));
+    this.selectedOrder.update(sel => sel?.dbId === o.dbId ? { ...sel, status: 'cancelled', cancellationReason: reason } : sel);
+    this.closeCancelForm();
     this.cancelSaving.set(true);
     try {
       const updated = mapAdminOrder(await this.ordersApi.adminUpdateStatus(o.dbId, 'cancelled', reason));
       this.orders.update(list => list.map(x => x.dbId === updated.dbId ? updated : x));
       this.selectedOrder.update(sel => sel?.dbId === updated.dbId ? updated : sel);
-      this.closeCancelForm();
     } catch {
+      this.applyStatus(o.dbId, prev); // geri al
       this.loadError.set('Sipariş iptal edilemedi.');
     } finally {
       this.cancelSaving.set(false);
