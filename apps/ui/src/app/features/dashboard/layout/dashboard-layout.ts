@@ -26,9 +26,9 @@ interface NavItem {
       <!-- SIDEBAR -->
       <aside class="dash-sidebar">
         <div class="dash-sidebar__top">
-          <a routerLink="/" class="dash-logo" aria-label="ATS Racing">
+          <div class="dash-logo" aria-label="ATS Racing">
             <img src="/logo.png" alt="ATS Racing" class="dash-logo__img" />
-          </a>
+          </div>
           <button class="dash-collapse-btn" (click)="collapsed.set(!collapsed())" aria-label="Menüyü daralt">
             <i class="pi" [class.pi-chevron-left]="!collapsed()" [class.pi-chevron-right]="collapsed()"></i>
           </button>
@@ -147,14 +147,15 @@ interface NavItem {
     .dash-logo {
       display: flex;
       align-items: center;
-      text-decoration: none;
+      justify-content: center;
       flex: 1;
       min-width: 0;
       overflow: hidden;
+      pointer-events: none;
     }
     .dash-logo__img {
       height: 36px; width: auto; max-width: 100%;
-      object-fit: contain; object-position: left center;
+      object-fit: contain; object-position: center;
       display: block;
       transition: height 200ms;
     }
