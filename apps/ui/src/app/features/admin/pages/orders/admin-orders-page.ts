@@ -137,72 +137,72 @@ const STATUS_LABEL: Record<OrderStatus, string> = {
     }
   </div>
 
-  <div class="aor-table-wrap">
-    <table class="aor-table">
+  <div class="op__table-wrap">
+    <table class="op__table">
       <thead><tr>
         <th>Araç</th><th>Yıl</th><th>Motor</th><th>ECU</th><th>Şanzıman</th><th>Plaka</th>
         <th>Servis</th><th>Tarih</th><th>Tutar</th><th>Durum</th><th>Dosya</th><th></th>
       </tr></thead>
       <tbody>
+        @if (filtered().length === 0) {
+          <tr><td colspan="12" class="op__empty"><i class="pi pi-inbox"></i><span>Sipariş bulunamadı</span></td></tr>
+        }
         @for (o of paged(); track o.id) {
-          <tr class="aor-row" (click)="openDetail(o)">
+          <tr class="op__row" (click)="openDetail(o)">
             <td>
-              <div class="aor-veh-cell">
-                <div class="aor-veh-icon"><i class="pi pi-car"></i></div>
+              <div class="op__veh">
+                <div class="op__veh-icon"><i class="pi pi-car"></i></div>
                 <div>
-                  <p class="aor-row__vehicle">{{ o.make }} {{ o.model }}</p>
-                  <p class="aor-veh-sub">{{ o.id }} · {{ o.user }}</p>
+                  <p class="op__veh-name">{{ o.make }} {{ o.model }}</p>
+                  <p class="op__veh-id">{{ o.id }} · {{ o.user }}</p>
                 </div>
               </div>
             </td>
-            <td class="aor-muted">{{ o.year || '—' }}</td>
-            <td class="aor-muted">{{ o.engine || '—' }}</td>
-            <td class="aor-muted">{{ o.ecu || '—' }}</td>
-            <td class="aor-muted">{{ o.transmission || '—' }}</td>
-            <td class="aor-muted" style="text-transform:uppercase">{{ o.plate || '—' }}</td>
+            <td class="op__muted">{{ o.year || '—' }}</td>
+            <td class="op__muted">{{ o.engine || '—' }}</td>
+            <td class="op__muted">{{ o.ecu || '—' }}</td>
+            <td class="op__muted">{{ o.transmission || '—' }}</td>
+            <td class="op__muted" style="text-transform:uppercase">{{ o.plate || '—' }}</td>
             <td>
-              <div class="aor-row__tags">
-                <span class="aor-stage aor-stage--{{stageKey(o.stage)}}">{{ o.stage }}</span>
-                @for (ex of o.extraServices.slice(0,2); track ex) {
-                  <span class="aor-extra-chip">{{ ex }}</span>
+              <div class="op__svc">
+                <span class="s-chip s-chip--{{ stageKey(o.stage) }}">{{ o.stage }}</span>
+                @for (ex of o.extraServices.slice(0, 2); track ex) {
+                  <span class="op__svc-chip">{{ ex }}</span>
                 }
                 @if (o.extraServices.length > 2) {
-                  <span class="aor-extra-chip">+{{ o.extraServices.length - 2 }}</span>
+                  <span class="op__svc-chip">+{{ o.extraServices.length - 2 }}</span>
                 }
               </div>
             </td>
-            <td class="aor-muted">{{ o.date }}</td>
-            <td class="aor-row__price">{{ o.price }}</td>
+            <td class="op__muted">{{ o.date }}</td>
+            <td class="op__price">{{ o.price }}</td>
             <td>
-              <span class="aor-status aor-status--{{o.status}}">
-                <span class="aor-status__dot"></span>{{ statusLabel(o.status) }}
-              </span>
+              <span class="st-chip st-chip--{{o.status}}"><span class="st-dot"></span>{{ statusLabel(o.status) }}</span>
               @if (o.queuePosition) {
-                <span class="aor-queue-chip" title="Kuyruk sırası">
+                <span class="op__queue" title="Kuyruk sırası">
                   <i class="pi pi-sort-numeric-down"></i> {{ o.queuePosition }}. sırada
                 </span>
               }
             </td>
             <td>
               @if (o.fileSent) {
-                <span class="aor-file-chip aor-file-chip--sent"><i class="pi pi-check-circle"></i> Gönderildi</span>
-              } @else if (o.fileUploaded) {
-                <span class="aor-file-chip aor-file-chip--ready"><i class="pi pi-file"></i> Hazır</span>
-              } @else if (o.status !== 'completed' && o.status !== 'cancelled') {
-                <span class="aor-file-chip aor-file-chip--missing"><i class="pi pi-clock"></i> Bekleniyor</span>
+                <button class="op__btn op__btn--dl" title="İndir" type="button"
+                        [disabled]="downloading(o.dbId, 'delivered')"
+                        (click)="$event.stopPropagation(); downloadFile(o, 'delivered')">
+                  <i class="pi" [class.pi-download]="!downloading(o.dbId, 'delivered')"
+                                [class.pi-spin]="downloading(o.dbId, 'delivered')"
+                                [class.pi-spinner]="downloading(o.dbId, 'delivered')"></i>
+                </button>
               } @else {
-                <span class="aor-muted">—</span>
+                <button class="op__btn op__btn--off" disabled><i class="pi pi-clock"></i></button>
               }
             </td>
             <td>
-              <button class="aor-icon-btn" type="button" (click)="$event.stopPropagation(); openDetail(o)">
+              <button class="op__btn" type="button" (click)="$event.stopPropagation(); openDetail(o)">
                 <i class="pi pi-chevron-right"></i>
               </button>
             </td>
           </tr>
-        }
-        @if (filtered().length === 0) {
-          <tr><td colspan="12" class="aor-empty-td"><i class="pi pi-inbox"></i><p>Sipariş bulunamadı</p></td></tr>
         }
       </tbody>
     </table>
@@ -725,6 +725,50 @@ const STATUS_LABEL: Record<OrderStatus, string> = {
     }
 
     /* Table */
+    /* ── Sipariş listesi — bayi/kullanıcı ile birebir aynı tasarım ── */
+    .op__table-wrap { background: #13151c; border: 1px solid rgba(255,255,255,0.07); border-radius: 16px; overflow-x: auto; min-width: 0; max-width: 100%; }
+    .op__table { width: 100%; border-collapse: collapse; min-width: 1040px;
+      thead th { padding: 1rem 1.1rem; font-size: 0.72rem; font-weight: 600; color: rgba(255,255,255,0.35); text-transform: uppercase; letter-spacing: 0.06em; text-align: left; border-bottom: 1px solid rgba(255,255,255,0.06); white-space: nowrap; }
+    }
+    .op__row { border-bottom: 1px solid rgba(255,255,255,0.04); cursor: pointer; transition: background 160ms;
+      &:last-child { border-bottom: none; }
+      &:hover { background: rgba(255,255,255,0.025); }
+      td { padding: 0.9rem 1.1rem; font-size: 0.82rem; color: rgba(255,255,255,0.7); vertical-align: middle; white-space: nowrap; }
+    }
+    .op__veh { display: flex; align-items: center; gap: 0.625rem; }
+    .op__veh-icon { width: 34px; height: 34px; border-radius: 8px; background: rgba(230,57,70,0.1); color: #e63946; display: flex; align-items: center; justify-content: center; font-size: 0.85rem; flex-shrink: 0; }
+    .op__veh-name { font-weight: 600; color: rgba(255,255,255,0.9); margin: 0 0 2px; white-space: nowrap; }
+    .op__veh-id   { font-size: 0.68rem; color: rgba(255,255,255,0.3); margin: 0; font-family: monospace; }
+    .op__muted { color: rgba(255,255,255,0.4) !important; white-space: nowrap; }
+    .op__price { font-weight: 700; color: #fff !important; white-space: nowrap; }
+    .op__empty { text-align: center; padding: 3rem !important; color: rgba(255,255,255,0.3); i { font-size: 2rem; display: block; margin-bottom: 0.5rem; } }
+    .op__btn {
+      width: 32px; height: 32px; border-radius: 8px; border: none; cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+      background: rgba(255,255,255,0.06); color: rgba(255,255,255,0.5); transition: all 180ms;
+      &:hover { background: rgba(255,255,255,0.12); color: #fff; }
+      &--dl { background: rgba(74,222,128,0.12); color: #4ade80; &:hover { background: rgba(74,222,128,0.2); } }
+      &--off { opacity: 0.35; cursor: not-allowed; }
+    }
+    .s-chip {
+      display: inline-flex; padding: 0.13rem 0.5rem; border-radius: 5px; font-size: 0.67rem; font-weight: 700;
+      &--s1 { background: rgba(96,165,250,0.12); color: #60a5fa; border: 1px solid rgba(96,165,250,0.25); }
+      &--s2 { background: rgba(230,57,70,0.12);  color: #e63946; border: 1px solid rgba(230,57,70,0.25); }
+      &--s3 { background: rgba(167,139,250,0.12);color: #a78bfa; border: 1px solid rgba(167,139,250,0.25); }
+    }
+    .op__svc { display: flex; flex-wrap: wrap; align-items: center; gap: 0.3rem; }
+    .op__svc-chip {
+      display: inline-flex; padding: 0.13rem 0.45rem; border-radius: 5px; font-size: 0.64rem; font-weight: 600;
+      background: rgba(245,158,11,0.1); color: #f59e0b; border: 1px solid rgba(245,158,11,0.2); white-space: nowrap;
+    }
+    .st-chip { display: inline-flex; align-items: center; gap: 5px; font-size: 0.72rem; font-weight: 600; padding: 4px 10px; border-radius: 20px; white-space: nowrap; }
+    .st-dot  { width: 6px; height: 6px; border-radius: 50%; background: currentColor; flex-shrink: 0; }
+    .st-chip--pending    { background: rgba(96,165,250,0.12);  color: #60a5fa; }
+    .st-chip--processing { background: rgba(96,165,250,0.12);  color: #60a5fa; }
+    .st-chip--completed  { background: rgba(74,222,128,0.12);  color: #4ade80; }
+    .st-chip--cancelled  { background: rgba(255,255,255,0.06); color: rgba(255,255,255,0.4); }
+    .op__queue { display: inline-flex; align-items: center; gap: 4px; margin-left: 0.4rem; padding: 3px 8px; border-radius: 20px; font-size: 0.68rem; font-weight: 700; background: rgba(168,85,247,0.12); color: #c084fc; white-space: nowrap; i { font-size: 0.7rem; } }
+
     .aor-table-wrap { background: #13151c; border: 1px solid rgba(255,255,255,0.07); border-radius: 20px; overflow-x: auto; min-width: 0; max-width: 100%; }
     .aor-table { width: 100%; border-collapse: collapse; font-size: 0.82rem; min-width: 1120px;
       th { color: rgba(255,255,255,0.3); font-weight: 600; text-transform: uppercase; font-size: 0.65rem; letter-spacing: .05em; padding: 1rem 1.1rem 0.75rem; text-align: left; white-space: nowrap; }

@@ -594,7 +594,7 @@ const STATUS_LABEL: Record<OrderStatus, string> = {
     .op__svc { display: flex; flex-wrap: wrap; align-items: center; gap: 0.3rem; }
     .op__svc-chip {
       display: inline-flex; padding: 0.13rem 0.45rem; border-radius: 5px; font-size: 0.64rem; font-weight: 600;
-      background: rgba(255,255,255,0.06); color: rgba(255,255,255,0.6); border: 1px solid rgba(255,255,255,0.1); white-space: nowrap;
+      background: rgba(245,158,11,0.1); color: #f59e0b; border: 1px solid rgba(245,158,11,0.2); white-space: nowrap;
     }
     .st-chip { display: inline-flex; align-items: center; gap: 5px; font-size: 0.72rem; font-weight: 600; padding: 4px 10px; border-radius: 20px; white-space: nowrap; }
     .st-dot  { width: 6px; height: 6px; border-radius: 50%; background: currentColor; flex-shrink: 0; }
