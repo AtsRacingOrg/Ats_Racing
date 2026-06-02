@@ -287,11 +287,14 @@ function mapTicket(t: ApiTicket): Ticket {
     /* ── Layout ── */
     .sp__layout {
       display: grid; grid-template-columns: 340px 1fr; gap: 1.25rem; align-items: start;
-      @media (max-width: 860px) { grid-template-columns: 1fr; }
+      height: calc(100vh - 230px); min-height: 480px;
+      @media (max-width: 860px) { grid-template-columns: 1fr; height: auto; }
     }
 
     /* ── Ticket List ── */
-    .sp__list { display: flex; flex-direction: column; gap: 0.5rem; }
+    .sp__list { display: flex; flex-direction: column; gap: 0.5rem; height: 100%; min-height: 0; overflow-y: auto; padding-right: 4px;
+      @media (max-width: 860px) { height: auto; max-height: 60vh; }
+    }
     .sp__empty {
       display: flex; flex-direction: column; align-items: center; gap: 0.75rem;
       padding: 3rem 1rem; color: rgba(255,255,255,0.2);
@@ -333,7 +336,8 @@ function mapTicket(t: ApiTicket): Ticket {
     .sp__convo {
       background: #1a1d27; border: 1px solid rgba(255,255,255,0.07);
       border-radius: 20px; overflow: hidden;
-      display: flex; flex-direction: column; min-height: 520px;
+      display: flex; flex-direction: column; height: 100%; min-height: 480px;
+      @media (max-width: 860px) { height: 70vh; }
     }
     .sp__convo-empty {
       flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 0.75rem;

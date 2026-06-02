@@ -212,10 +212,12 @@ const STATUS_LABEL: Record<TicketStatus, string> = { open: 'Açık', pending: 'B
     }
 
     /* ── Layout ── */
-    .atk__layout { display: grid; grid-template-columns: 300px 1fr; gap: 1.25rem; align-items: start; @media(max-width:860px){ grid-template-columns: 1fr; } }
+    .atk__layout { display: grid; grid-template-columns: 320px 1fr; gap: 1.25rem; align-items: start; height: calc(100vh - 230px); min-height: 480px; @media(max-width:860px){ grid-template-columns: 1fr; height: auto; } }
 
     /* ── Ticket list ── */
-    .atk__list { display: flex; flex-direction: column; gap: 0.5rem; }
+    .atk__list { display: flex; flex-direction: column; gap: 0.5rem; height: 100%; min-height: 0; overflow-y: auto; padding-right: 4px;
+      @media(max-width:860px){ height: auto; max-height: 60vh; }
+    }
     .atk__list-empty { display: flex; flex-direction: column; align-items: center; gap: 0.5rem; padding: 2.5rem; color: rgba(255,255,255,0.2); i { font-size: 2rem; } p { font-size: 0.8rem; margin: 0; } }
     .atk-row {
       width: 100%; text-align: left; cursor: pointer;
@@ -238,7 +240,7 @@ const STATUS_LABEL: Record<TicketStatus, string> = { open: 'Açık', pending: 'B
     }
 
     /* ── Conversation ── */
-    .atk__convo { background: #13151c; border: 1px solid rgba(255,255,255,0.07); border-radius: 20px; overflow: hidden; display: flex; flex-direction: column; min-height: 500px; }
+    .atk__convo { background: #13151c; border: 1px solid rgba(255,255,255,0.07); border-radius: 20px; overflow: hidden; display: flex; flex-direction: column; height: 100%; min-height: 480px; @media(max-width:860px){ height: 70vh; } }
     .atk__convo-empty { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 0.75rem; color: rgba(255,255,255,0.2); i { font-size: 3rem; } p { font-size: 0.875rem; margin: 0; } }
 
     .atk-convo__head {
