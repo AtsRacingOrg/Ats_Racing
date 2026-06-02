@@ -697,7 +697,7 @@ const STATUS_LABEL: Record<OrderStatus, string> = {
 }
   `,
   styles: [`
-    .aor { display: flex; flex-direction: column; gap: 1.25rem; }
+    .aor { display: flex; flex-direction: column; gap: 1.25rem; min-width: 0; }
     .aor__title  { font-size: 1.6rem; font-weight: 700; color: #fff; margin: 0; }
     .aor__sub    { font-size: 0.875rem; color: rgba(255,255,255,0.4); margin: 0.25rem 0 0; }
     .aor__header { display: flex; align-items: flex-start; justify-content: space-between; gap: 1rem; flex-wrap: wrap; }
@@ -733,7 +733,7 @@ const STATUS_LABEL: Record<OrderStatus, string> = {
     }
 
     /* Table */
-    .aor-table-wrap { background: #13151c; border: 1px solid rgba(255,255,255,0.07); border-radius: 20px; overflow: auto; }
+    .aor-table-wrap { background: #13151c; border: 1px solid rgba(255,255,255,0.07); border-radius: 20px; overflow-x: auto; min-width: 0; max-width: 100%; }
     .aor-table { width: 100%; border-collapse: collapse; font-size: 0.82rem; min-width: 1400px;
       th { color: rgba(255,255,255,0.3); font-weight: 600; text-transform: uppercase; font-size: 0.65rem; letter-spacing: .05em; padding: 1rem 1.1rem 0.75rem; text-align: left; white-space: nowrap; }
       td { padding: 0.8rem 1.1rem; border-top: 1px solid rgba(255,255,255,0.05); vertical-align: middle; color: rgba(255,255,255,0.8); white-space: nowrap; }

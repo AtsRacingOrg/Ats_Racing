@@ -524,7 +524,7 @@ const STATUS_LABEL: Record<OrderStatus, string> = {
 }
   `,
   styles: [`
-    .op { display: flex; flex-direction: column; gap: 1.5rem; }
+    .op { display: flex; flex-direction: column; gap: 1.5rem; min-width: 0; }
 
     /* ── LIST ── */
     .op__header { display: flex; align-items: flex-start; justify-content: space-between; flex-wrap: wrap; gap: 1rem; }
@@ -559,7 +559,7 @@ const STATUS_LABEL: Record<OrderStatus, string> = {
       &--active { background: rgba(230,57,70,0.15); border-color: rgba(230,57,70,0.4); color: #e63946; }
     }
 
-    .op__table-wrap { background: #1a1d27; border: 1px solid rgba(255,255,255,0.07); border-radius: 16px; overflow: auto; }
+    .op__table-wrap { background: #1a1d27; border: 1px solid rgba(255,255,255,0.07); border-radius: 16px; overflow-x: auto; min-width: 0; max-width: 100%; }
     .op__table { width: 100%; border-collapse: collapse; min-width: 1180px;
       thead th { padding: 1rem 1.1rem; font-size: 0.72rem; font-weight: 600; color: rgba(255,255,255,0.35); text-transform: uppercase; letter-spacing: 0.06em; text-align: left; border-bottom: 1px solid rgba(255,255,255,0.06); white-space: nowrap; }
     }
