@@ -320,7 +320,7 @@ export class OrdersService {
     const client = this.supabase.clientFor(token);
     const { data, error } = await client
       .from('dealer_statements')
-      .select('*, orders(order_no,created_at,make,model,stage,total_price)')
+      .select('*, orders(order_no,created_at,make,model,stage,total_price,status)')
       .order('period_year', { ascending: false })
       .order('period_month', { ascending: false })
       .returns<StatementRow[]>();

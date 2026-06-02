@@ -13,6 +13,7 @@ export interface StatementOrder {
   model: string | null;
   stage: string;
   amount: number;
+  status: string;
 }
 
 export interface Statement {

@@ -4,6 +4,7 @@ import { Paginator } from '../../../../shared/paginator';
 import { FormsModule } from '@angular/forms';
 import { DecimalPipe } from '@angular/common';
 import { Order, OrdersService } from '../../../../core/orders/orders.service';
+import { AuthService } from '../../../../core/auth/auth.service';
 import { fuelLabelTr, stageLabel, formatTrDateTime, formatTl, triggerDownload } from '../../../../core/orders/order-format';
 
 type OrderStatus = 'pending' | 'processing' | 'completed' | 'cancelled';
@@ -267,6 +268,15 @@ const STATUS_LABEL: Record<OrderStatus, string> = {
           @if (o.cancellationReason) {
             <p style="margin:0.25rem 0 0;font-size:0.82rem;color:rgba(255,255,255,0.7);white-space:pre-wrap">
               <strong style="color:#f87171">Sebep:</strong> {{ o.cancellationReason }}
+            </p>
+          }
+          @if (isDealer()) {
+            <p style="margin:0.25rem 0 0;font-size:0.82rem;color:#4ade80">
+              <i class="pi pi-check-circle" style="font-size:0.75rem"></i> Tutar ay sonu ekstrenizden düşülmüştür.
+            </p>
+          } @else {
+            <p style="margin:0.25rem 0 0;font-size:0.82rem;color:#4ade80">
+              <i class="pi pi-replay" style="font-size:0.75rem"></i> Ödemeniz iade edilmiştir.
             </p>
           }
         </div>
@@ -864,6 +874,7 @@ const STATUS_LABEL: Record<OrderStatus, string> = {
 export class OrdersPage implements OnInit {
   private readonly ordersApi = inject(OrdersService);
   private readonly cdr = inject(ChangeDetectorRef);
+  protected readonly isDealer = inject(AuthService).isDealer;
 
   protected readonly selectedOrder = signal<UserOrder | null>(null);
   protected readonly currentView   = signal<'list' | 'detail'>('list');

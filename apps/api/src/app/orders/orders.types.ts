@@ -141,6 +141,7 @@ export interface StatementOrderRow {
   model: string | null;
   stage: string;
   total_price: string | number;
+  status: string;
 }
 export interface StatementRow {
   id: string;
@@ -170,6 +171,7 @@ export interface StatementView {
     model: string | null;
     stage: string;
     amount: number;
+    status: string;
   }[];
 }
 
@@ -190,6 +192,7 @@ export function toStatementView(r: StatementRow): StatementView {
       model: o.model,
       stage: o.stage,
       amount: Number(o.total_price),
+      status: o.status,
     })),
   };
 }

@@ -366,7 +366,8 @@ export class OverviewPage implements OnInit {
     if (this.isDealer()) {
       cards.push({ label: 'Bekleyen Ödeme', value: formatTl(this.pendingPayment()), icon: 'pi-wallet', color: '#fbbf24' });
     } else {
-      const total = os.reduce((s, o) => s + o.totalPrice, 0);
+      // İptal edilen siparişler iade edildiği için harcamaya dahil edilmez.
+      const total = os.filter(o => o.status !== 'cancelled').reduce((s, o) => s + o.totalPrice, 0);
       cards.push({ label: 'Toplam Harcama', value: formatTl(total), icon: 'pi-wallet', color: '#fbbf24' });
     }
     return cards;
@@ -377,6 +378,7 @@ export class OverviewPage implements OnInit {
     const arr = months.map(m => ({ month: m, amount: 0 }));
     const yr = new Date().getFullYear();
     for (const o of this.orders()) {
+      if (o.status === 'cancelled') { continue; }
       const d = new Date(o.createdAt);
       if (d.getFullYear() === yr) { arr[d.getMonth()].amount += o.totalPrice; }
     }

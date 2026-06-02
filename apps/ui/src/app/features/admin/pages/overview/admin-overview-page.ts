@@ -394,9 +394,9 @@ export class AdminOverviewPage implements OnInit {
     const idxFor = (d: Date) =>
       (d.getFullYear() - start.getFullYear()) * 12 + d.getMonth() - start.getMonth();
 
-    // Bireysel kullanıcı siparişleri (peşin ödeme).
+    // Bireysel kullanıcı siparişleri (peşin ödeme; iptaller iade edildiği için hariç).
     for (const o of this.orders()) {
-      if (o.customer?.role === 'dealer') { continue; }
+      if (o.customer?.role === 'dealer' || o.status === 'cancelled') { continue; }
       const d = new Date(o.createdAt);
       if (d < start) { continue; }
       const i = idxFor(d);
@@ -419,7 +419,7 @@ export class AdminOverviewPage implements OnInit {
   /** Toplam tüm zamanların geliri (sipariş durumundan bağımsız). */
   private readonly totalRevenue = computed<number>(() => {
     const userOrders = this.orders()
-      .filter(o => o.customer?.role !== 'dealer')
+      .filter(o => o.customer?.role !== 'dealer' && o.status !== 'cancelled')
       .reduce((s, o) => s + o.totalPrice, 0);
     const dealerPaid = this.statements()
       .filter(s => s.status === 'paid')

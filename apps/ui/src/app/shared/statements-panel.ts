@@ -5,7 +5,7 @@ import { periodLabel, stageLabel, formatTrDate } from '../core/orders/order-form
 
 type DebtStatus = 'accruing' | 'due' | 'paid' | 'overdue';
 
-interface DebtOrder { id: string; date: string; vehicle: string; service: string; amount: number; }
+interface DebtOrder { id: string; date: string; vehicle: string; service: string; amount: number; cancelled: boolean; }
 interface MonthlyStatement {
   id: string; period: string; dueDate: string; status: DebtStatus;
   orders: DebtOrder[]; paidAt?: string;
@@ -31,6 +31,7 @@ function mapStatement(s: Statement): MonthlyStatement {
       vehicle: [o.make, o.model].filter(Boolean).join(' '),
       service: stageLabel(o.stage),
       amount: o.amount,
+      cancelled: o.status === 'cancelled',
     })),
   };
 }
@@ -96,12 +97,18 @@ function mapStatement(s: Statement): MonthlyStatement {
                 <thead><tr><th>Sipariş</th><th>Araç</th><th>Servis</th><th>Tarih</th><th class="ta-r">Tutar</th></tr></thead>
                 <tbody>
                   @for (o of st.orders; track o.id) {
-                    <tr>
+                    <tr [class.stmt__row--cancelled]="o.cancelled">
                       <td class="mono">{{ o.id }}</td>
                       <td>{{ o.vehicle }}</td>
                       <td class="muted">{{ o.service }}</td>
                       <td class="muted">{{ o.date }}</td>
-                      <td class="ta-r price">₺{{ o.amount | number }}</td>
+                      <td class="ta-r price">
+                        @if (o.cancelled) {
+                          <span class="stmt__refund">İade edildi</span>
+                        } @else {
+                          ₺{{ o.amount | number }}
+                        }
+                      </td>
                     </tr>
                   }
                 </tbody>
@@ -187,6 +194,8 @@ function mapStatement(s: Statement): MonthlyStatement {
     .mono { font-family: monospace; color: rgba(255,255,255,0.6) !important; }
     .muted { color: rgba(255,255,255,0.45) !important; }
     .price { font-weight: 700; color: #fff !important; }
+    .stmt__row--cancelled td:not(.ta-r) { text-decoration: line-through; opacity: 0.5; }
+    .stmt__refund { font-size: 0.72rem; font-weight: 700; color: #f59e0b; }
     .foot-lbl { font-size: 0.75rem; color: rgba(255,255,255,0.4) !important; font-weight: 600; padding-top: 0.85rem !important; }
     .foot-val { font-size: 0.95rem; font-weight: 800; color: #fff !important; padding-top: 0.85rem !important; }
     .stmt__actions { display: flex; align-items: center; justify-content: space-between; gap: 1rem; flex-wrap: wrap; margin-top: 1rem; }
@@ -237,7 +246,8 @@ export class StatementsPanel {
   }
 
   totalOf(st: MonthlyStatement): number {
-    return st.orders.reduce((sum, o) => sum + o.amount, 0);
+    // İptal edilen siparişler bakiyeye dahil edilmez (iade edilir).
+    return st.orders.reduce((sum, o) => sum + (o.cancelled ? 0 : o.amount), 0);
   }
   statusLabel(s: DebtStatus): string { return STATUS_META[s].label; }
   isOpen(id: string): boolean { return this._open().has(id); }

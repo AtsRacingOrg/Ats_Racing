@@ -91,7 +91,8 @@ export class AdminService {
         phone: p.phone,
         createdAt: p.created_at,
         orderCount: userOrders.length,
-        totalSpent: userOrders.reduce((s, o) => s + o.price, 0),
+        // İptal edilen siparişler iade edildiği için harcama toplamına girmez.
+        totalSpent: userOrders.filter((o) => o.status !== 'cancelled').reduce((s, o) => s + o.price, 0),
         orders: userOrders,
       };
     });
@@ -101,7 +102,7 @@ export class AdminService {
   async listDealerStatements(dealerId: string): Promise<StatementView[]> {
     const { data, error } = await this.supabase.admin
       .from('dealer_statements')
-      .select('*, orders(order_no,created_at,make,model,stage,total_price)')
+      .select('*, orders(order_no,created_at,make,model,stage,total_price,status)')
       .eq('dealer_id', dealerId)
       .order('period_year', { ascending: false })
       .order('period_month', { ascending: false })
@@ -117,7 +118,7 @@ export class AdminService {
   async listAllStatements(): Promise<StatementView[]> {
     const { data, error } = await this.supabase.admin
       .from('dealer_statements')
-      .select('*, orders(order_no,created_at,make,model,stage,total_price)')
+      .select('*, orders(order_no,created_at,make,model,stage,total_price,status)')
       .order('period_year', { ascending: false })
       .order('period_month', { ascending: false })
       .returns<StatementRow[]>();
