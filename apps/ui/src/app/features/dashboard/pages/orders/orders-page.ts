@@ -8,6 +8,11 @@ import { fuelLabelTr, stageLabel, formatTrDateTime, formatTl, triggerDownload } 
 
 type OrderStatus = 'pending' | 'processing' | 'completed' | 'cancelled';
 
+interface ColFilters {
+  arac: string; yil: string; motor: string; ecu: string; sanziman: string;
+  plaka: string; servis: string; tarih: string; tutar: string; dosya: string;
+}
+
 interface UserOrder {
   id: string; dbId: string; date: string;
   make: string; model: string; year: number;
@@ -124,10 +129,39 @@ const STATUS_LABEL: Record<OrderStatus, string> = {
 
   <div class="op__table-wrap">
     <table class="op__table">
-      <thead><tr>
-        <th>Araç</th><th>Yıl</th><th>Motor</th><th>ECU</th><th>Şanzıman</th><th>Plaka</th>
-        <th>Servis</th><th>Tarih</th><th>Tutar</th><th>Durum</th><th>Dosya</th><th></th>
-      </tr></thead>
+      <thead>
+        <tr>
+          <th>Araç</th><th>Yıl</th><th>Motor</th><th>ECU</th><th>Şanzıman</th><th>Plaka</th>
+          <th>Servis</th><th>Tarih</th><th>Tutar</th><th>Durum</th><th>Dosya</th><th></th>
+        </tr>
+        <tr class="op__fltr-row">
+          <th><input class="op__fltr" placeholder="Ara" [ngModel]="cf('arac')" (ngModelChange)="setColF('arac', $event)"></th>
+          <th><input class="op__fltr" placeholder="Yıl" [ngModel]="cf('yil')" (ngModelChange)="setColF('yil', $event)"></th>
+          <th><input class="op__fltr" placeholder="Motor" [ngModel]="cf('motor')" (ngModelChange)="setColF('motor', $event)"></th>
+          <th><input class="op__fltr" placeholder="ECU" [ngModel]="cf('ecu')" (ngModelChange)="setColF('ecu', $event)"></th>
+          <th><input class="op__fltr" placeholder="Şanzıman" [ngModel]="cf('sanziman')" (ngModelChange)="setColF('sanziman', $event)"></th>
+          <th><input class="op__fltr" placeholder="Plaka" [ngModel]="cf('plaka')" (ngModelChange)="setColF('plaka', $event)"></th>
+          <th><input class="op__fltr" placeholder="Servis" [ngModel]="cf('servis')" (ngModelChange)="setColF('servis', $event)"></th>
+          <th><input class="op__fltr" placeholder="Tarih" [ngModel]="cf('tarih')" (ngModelChange)="setColF('tarih', $event)"></th>
+          <th><input class="op__fltr" placeholder="Tutar" [ngModel]="cf('tutar')" (ngModelChange)="setColF('tutar', $event)"></th>
+          <th>
+            <select class="op__fltr op__fltr--sel" [ngModel]="activeFilter()" (ngModelChange)="activeFilter.set($event)">
+              <option value="all">Tümü</option>
+              <option value="pending">Hazırlanıyor</option>
+              <option value="completed">Tamamlandı</option>
+              <option value="cancelled">İptal</option>
+            </select>
+          </th>
+          <th>
+            <select class="op__fltr op__fltr--sel" [ngModel]="cf('dosya')" (ngModelChange)="setColF('dosya', $event)">
+              <option value="">Tümü</option>
+              <option value="var">Var</option>
+              <option value="yok">Yok</option>
+            </select>
+          </th>
+          <th></th>
+        </tr>
+      </thead>
       <tbody>
         @if (filtered().length === 0) {
           <tr><td colspan="12" class="op__empty"><i class="pi pi-inbox"></i><span>Sipariş bulunamadı</span></td></tr>
@@ -571,6 +605,18 @@ const STATUS_LABEL: Record<OrderStatus, string> = {
       &:hover { background: rgba(255,255,255,0.025); }
       td { padding: 0.8rem 0.7rem; font-size: 0.8rem; color: rgba(255,255,255,0.7); vertical-align: middle; white-space: nowrap; }
     }
+    .op__fltr-row th { padding: 0 0.7rem 0.7rem; border-bottom: 1px solid rgba(255,255,255,0.06); }
+    .op__fltr-row th:first-child { padding-left: 1.1rem; }
+    .op__fltr-row th:last-child { padding-right: 1.1rem; }
+    .op__fltr {
+      width: 100%; min-width: 56px; box-sizing: border-box;
+      background: #1a1d27; border: 1px solid rgba(255,255,255,0.1); border-radius: 7px;
+      padding: 0.32rem 0.5rem; color: rgba(255,255,255,0.85); font-size: 0.72rem; outline: none;
+      &::placeholder { color: rgba(255,255,255,0.28); }
+      &:focus { border-color: rgba(230,57,70,0.5); }
+    }
+    .op__fltr--sel { appearance: none; cursor: pointer; }
+    .op__fltr--sel option { background: #1a1d27; color: #fff; }
     .op__veh { display: flex; align-items: center; gap: 0.625rem; }
     .op__veh-icon { width: 34px; height: 34px; border-radius: 8px; background: rgba(230,57,70,0.1); color: #e63946; display: flex; align-items: center; justify-content: center; font-size: 0.85rem; flex-shrink: 0; }
     .op__veh-name { font-weight: 600; color: rgba(255,255,255,0.9); margin: 0 0 2px; white-space: nowrap; }
@@ -837,6 +883,12 @@ export class OrdersPage implements OnInit {
   protected readonly currentView   = signal<'list' | 'detail'>('list');
   protected readonly activeFilter  = signal<string>('all');
   protected readonly search        = signal('');
+  /** Kolon bazlı filtreler. */
+  protected readonly colF = signal<ColFilters>({
+    arac: '', yil: '', motor: '', ecu: '', sanziman: '', plaka: '', servis: '', tarih: '', tutar: '', dosya: '',
+  });
+  setColF(key: keyof ColFilters, val: string): void { this.colF.update(m => ({ ...m, [key]: val })); }
+  cf(key: keyof ColFilters): string { return this.colF()[key] ?? ''; }
   protected readonly uploadedFile  = signal<File | null>(null);
   protected readonly origReuploadMode = signal(false);
   protected readonly origSending   = signal(false);
@@ -892,12 +944,25 @@ export class OrdersPage implements OnInit {
   protected readonly filtered = computed(() => {
     const q = this.search().toLowerCase();
     const f = this.activeFilter();
+    const c = this.colF();
+    const has = (val: string, needle: string) => !needle || val.toLowerCase().includes(needle.toLowerCase());
     return this.orders().filter(o => {
       const matchQ = !q || `${o.make} ${o.model}`.toLowerCase().includes(q) || o.id.toLowerCase().includes(q);
       const matchF = f === 'all'
         || (f === 'pending' && (o.status === 'pending' || o.status === 'processing'))
         || o.status === f;
-      return matchQ && matchF;
+      const matchCols =
+        has(`${o.make} ${o.model} ${o.id}`, c.arac) &&
+        has(String(o.year ?? ''), c.yil) &&
+        has(o.engine, c.motor) &&
+        has(o.ecu, c.ecu) &&
+        has(o.transmission, c.sanziman) &&
+        has(o.plate, c.plaka) &&
+        has(`${o.stage} ${o.extraServices.join(' ')}`, c.servis) &&
+        has(o.date, c.tarih) &&
+        has(o.price, c.tutar) &&
+        (!c.dosya || (c.dosya === 'var' ? o.fileAvailable : !o.fileAvailable));
+      return matchQ && matchF && matchCols;
     });
   });
 
@@ -910,7 +975,7 @@ export class OrdersPage implements OnInit {
   });
   private readonly _resetPage = effect(() => {
     // Filtre veya arama değiştiğinde 1. sayfaya dön.
-    this.search(); this.activeFilter();
+    this.search(); this.activeFilter(); this.colF();
     this.page.set(1);
   });
 
