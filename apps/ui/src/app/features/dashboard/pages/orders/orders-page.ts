@@ -125,12 +125,12 @@ const STATUS_LABEL: Record<OrderStatus, string> = {
   <div class="op__table-wrap">
     <table class="op__table">
       <thead><tr>
-        <th>Araç</th><th>Yıl</th><th>Motor</th><th>ECU</th><th>Şanzıman</th><th>KM</th><th>Plaka</th>
+        <th>Araç</th><th>Yıl</th><th>Motor</th><th>ECU</th><th>Şanzıman</th><th>Plaka</th>
         <th>Servis</th><th>Tarih</th><th>Tutar</th><th>Durum</th><th>Dosya</th><th></th>
       </tr></thead>
       <tbody>
         @if (filtered().length === 0) {
-          <tr><td colspan="13" class="op__empty"><i class="pi pi-inbox"></i><span>Sipariş bulunamadı</span></td></tr>
+          <tr><td colspan="12" class="op__empty"><i class="pi pi-inbox"></i><span>Sipariş bulunamadı</span></td></tr>
         }
         @for (o of paged(); track o.id) {
           <tr class="op__row" (click)="openDetail(o)">
@@ -147,7 +147,6 @@ const STATUS_LABEL: Record<OrderStatus, string> = {
             <td class="op__muted">{{ o.engine || '—' }}</td>
             <td class="op__muted">{{ o.ecu || '—' }}</td>
             <td class="op__muted">{{ o.transmission || '—' }}</td>
-            <td class="op__muted">{{ o.km ? o.km + ' km' : '—' }}</td>
             <td class="op__muted" style="text-transform:uppercase">{{ o.plate || '—' }}</td>
             <td>
               <div class="op__svc">
@@ -192,8 +191,8 @@ const STATUS_LABEL: Record<OrderStatus, string> = {
         }
       </tbody>
     </table>
-    <app-paginator [total]="filtered().length" [(page)]="page" [pageSize]="pageSize" />
   </div>
+  <app-paginator [total]="filtered().length" [(page)]="page" [pageSize]="pageSize" />
 
   } @else {
   <!-- ══ DETAIL ══ -->
@@ -560,7 +559,7 @@ const STATUS_LABEL: Record<OrderStatus, string> = {
     }
 
     .op__table-wrap { background: #1a1d27; border: 1px solid rgba(255,255,255,0.07); border-radius: 16px; overflow-x: auto; min-width: 0; max-width: 100%; }
-    .op__table { width: 100%; border-collapse: collapse; min-width: 1180px;
+    .op__table { width: 100%; border-collapse: collapse; min-width: 1040px;
       thead th { padding: 1rem 1.1rem; font-size: 0.72rem; font-weight: 600; color: rgba(255,255,255,0.35); text-transform: uppercase; letter-spacing: 0.06em; text-align: left; border-bottom: 1px solid rgba(255,255,255,0.06); white-space: nowrap; }
     }
     .op__row { border-bottom: 1px solid rgba(255,255,255,0.04); cursor: pointer; transition: background 160ms;

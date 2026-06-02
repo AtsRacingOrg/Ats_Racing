@@ -214,8 +214,8 @@ const STATUS_LABEL: Record<OrderStatus, string> = {
         }
       </tbody>
     </table>
-    <app-paginator [total]="filtered().length" [(page)]="page" [pageSize]="pageSize" />
   </div>
+  <app-paginator [total]="filtered().length" [(page)]="page" [pageSize]="pageSize" />
 
   } @else {
   <!-- ══ DETAIL ══ -->
