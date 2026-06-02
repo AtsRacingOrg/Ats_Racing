@@ -226,6 +226,14 @@ const GROUP_ORDER = ['Emisyon', 'Motor', 'Performans', 'Konfor', 'Egzoz', 'Güve
 
           <!-- SUMMARY + CTA -->
           @if (selectedModules().size > 0) {
+            @if (!orderSent()) {
+              <div class="mod-note">
+                <label class="mod-note__lbl" for="mod-order-note"><i class="pi pi-comment"></i> Ekibe not (opsiyonel)</label>
+                <textarea id="mod-order-note" class="mod-note__input" rows="2" maxlength="1000"
+                  placeholder="Siparişle ilgili belirtmek istediğiniz bir şey var mı?"
+                  [ngModel]="orderNote()" (ngModelChange)="orderNote.set($event)"></textarea>
+              </div>
+            }
             <div class="order-summary">
               <div class="order-summary__left">
                 <span class="order-summary__count">{{ selectedModules().size }} modül seçildi</span>
@@ -1171,6 +1179,16 @@ const GROUP_ORDER = ['Emisyon', 'Motor', 'Performans', 'Konfor', 'Egzoz', 'Güve
                     </div>
                   }
 
+                  <!-- Müşteri notu -->
+                  @if (!orderSent()) {
+                    <div class="cs__note">
+                      <label class="cs__note-lbl" for="cs-order-note"><i class="pi pi-comment"></i> Ekibe not (opsiyonel)</label>
+                      <textarea id="cs-order-note" class="cs__note-input" rows="2" maxlength="1000"
+                        placeholder="Örn. Sadece DPF/EGR kapatın, başka değişiklik istemiyorum."
+                        [ngModel]="orderNote()" (ngModelChange)="orderNote.set($event)"></textarea>
+                    </div>
+                  }
+
                   <!-- CTA -->
                   @if (orderSent()) {
                     <!-- Sipariş alındı — sidebar da başarı gösterir -->
@@ -1300,6 +1318,7 @@ export class ToolsPage implements OnInit {
   protected readonly orderNo = signal('');
   protected readonly orderSubmitting = signal(false);
   protected readonly orderError = signal('');
+  protected readonly orderNote = signal('');
 
   protected readonly availableEcus = computed(() => {
     const b = BRANDS_MODULE.find(x => x.label === this.modBrand());
@@ -1356,7 +1375,7 @@ export class ToolsPage implements OnInit {
       ecuHw: this.selEcuHw(),
       ecuPart: this.selEcuPart(),
       ecuSw: this.selEcuSw(),
-      notes: '',
+      notes: this.orderNote().trim(),
       serviceCodes: [...this.selectedModules()],
       modifiedParts: [...this.selectedParts()],
       pcodes: this.entries().map(e => ({ pcode: e.pcode, note: e.note })),
@@ -1391,6 +1410,7 @@ export class ToolsPage implements OnInit {
     this.orderSent.set(false);
     this.orderNo.set('');
     this.orderError.set('');
+    this.orderNote.set('');
     this.uploadedFile.set(null);
     this.modBrand.set('');
     this.modEcu.set('');

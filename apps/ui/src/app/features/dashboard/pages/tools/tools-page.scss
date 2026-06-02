@@ -716,3 +716,18 @@
   &--dealer { background: rgba(96,165,250,0.07); border: 1px solid rgba(96,165,250,0.22); i { color: #60a5fa; } }
 }
 
+
+/* ── Sipariş notu (müşteri → ekip) ── */
+.cs__note { display: flex; flex-direction: column; gap: 0.4rem; margin-bottom: 0.85rem; }
+.cs__note-lbl, .mod-note__lbl {
+  font-size: 0.75rem; color: rgba(255,255,255,0.55); display: inline-flex; align-items: center; gap: 0.4rem;
+  i { color: #60a5fa; font-size: 0.8rem; }
+}
+.cs__note-input, .mod-note__input {
+  width: 100%; box-sizing: border-box; resize: vertical; min-height: 48px;
+  background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 10px; padding: 0.55rem 0.7rem; color: #fff; font: inherit; font-size: 0.8rem; line-height: 1.4;
+  &::placeholder { color: rgba(255,255,255,0.28); }
+  &:focus { outline: none; border-color: rgba(96,165,250,0.5); background: rgba(255,255,255,0.06); }
+}
+.mod-note { display: flex; flex-direction: column; gap: 0.4rem; margin-bottom: 1rem; }
