@@ -127,9 +127,13 @@ declare
   v_owner_id uuid;
   v_ticket_no text;
   v_subject text;
+  v_msg_count int;
 begin
   select user_id, ticket_no, subject into v_owner_id, v_ticket_no, v_subject
     from tickets where id = new.ticket_id;
+
+  select count(*) into v_msg_count from ticket_messages where ticket_id = new.ticket_id;
+
   if new.sender = 'support' then
     -- Müşteriye cevap geldi
     insert into notifications (user_id, type, title, body, category, link)
@@ -137,8 +141,8 @@ begin
             'Destek talebinize yanıt geldi',
             v_ticket_no || ' — ' || v_subject,
             'tickets', '/dashboard/support');
-  else
-    -- Adminlere yeni müşteri mesajı
+  elsif v_msg_count > 1 then
+    -- Adminlere yeni müşteri mesajı (ilk mesaj ticket_created ile bildirildiği için atlanır)
     insert into notifications (user_id, type, title, body, category, link)
     select p.id, 'ticket_user_replied',
            'Ticket güncellendi',

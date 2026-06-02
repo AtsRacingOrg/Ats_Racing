@@ -1,20 +1,24 @@
-import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, OnInit, computed, effect, inject, signal } from '@angular/core';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { RouterLink, RouterLinkActive, RouterOutlet, Router, NavigationEnd } from '@angular/router';
 import { filter, map, startWith } from 'rxjs/operators';
 import { AuthService } from '../../../core/auth/auth.service';
 import { PrivacyService } from '../../../core/privacy.service';
+import { NotificationsService } from '../../../core/notifications/notifications.service';
+import { NotificationBell } from '../../../shared/notification-bell';
 
 interface NavItem {
   label: string;
   icon: string;
   route: string;
+  /** Menü rozeti için bildirim kategorisi (orders / tickets). */
+  badge?: string;
 }
 
 @Component({
   selector: 'app-dashboard-layout',
   standalone: true,
-  imports: [RouterOutlet, RouterLink, RouterLinkActive],
+  imports: [RouterOutlet, RouterLink, RouterLinkActive, NotificationBell],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div class="dash-shell" [class.sidebar-collapsed]="collapsed()">
@@ -40,6 +44,9 @@ interface NavItem {
             >
               <i [class]="'pi ' + item.icon"></i>
               <span class="dash-nav__label">{{ item.label }}</span>
+              @if (item.badge && notifs.unreadFor(item.badge) > 0) {
+                <span class="dash-nav__badge">{{ notifs.unreadFor(item.badge) }}</span>
+              }
             </a>
           }
         </nav>
@@ -76,12 +83,9 @@ interface NavItem {
                 <span class="dash-priv-toggle__lbl">{{ pricesHidden() ? 'Hassas Bilgiler Kapalı' : 'Hassas Bilgiler Açık' }}</span>
               </button>
             }
-            <button class="dash-topbar__icon-btn" aria-label="Bildirimler">
-              <i class="pi pi-bell"></i>
-              <span class="dash-badge">3</span>
-            </button>
+            <app-notification-bell />
             <div class="dash-user dash-user--sm">
-              <div class="dash-user__avatar">AY</div>
+              <div class="dash-user__avatar">{{ initials() }}</div>
             </div>
           </div>
         </header>
@@ -193,6 +197,12 @@ interface NavItem {
     }
     .dash-nav__item i { font-size: 1.1rem; flex-shrink: 0; }
     .dash-nav__label { transition: opacity 200ms, width 200ms; }
+    .dash-nav__badge {
+      margin-left: auto; min-width: 18px; height: 18px; padding: 0 5px;
+      border-radius: 9px; background: #e63946; color: #fff;
+      font-size: 0.65rem; font-weight: 800; line-height: 18px; text-align: center; flex-shrink: 0;
+    }
+    .dash-shell.sidebar-collapsed .dash-nav__badge { display: none; }
 
     /* ── SIDEBAR BOTTOM ── */
     .dash-sidebar__bottom {
@@ -314,12 +324,15 @@ interface NavItem {
     }
   `],
 })
-export class DashboardLayout {
+export class DashboardLayout implements OnInit {
   private  readonly auth    = inject(AuthService);
   private  readonly router  = inject(Router);
   protected readonly privacy = inject(PrivacyService);
+  protected readonly notifs = inject(NotificationsService);
   protected readonly collapsed = signal(false);
   protected readonly mobileOpen = signal(false);
+
+  ngOnInit(): void { this.notifs.start(); }
 
   protected readonly pricesHidden = this.privacy.pricesHidden;
   private readonly currentUrl = toSignal(
@@ -334,6 +347,16 @@ export class DashboardLayout {
     this.auth.isDealer() && this.currentUrl().startsWith('/dashboard/tools'),
   );
 
+  /** İlgili sayfaya girince o kategorinin okunmamış bildirimleri temizlenir. */
+  private readonly _clearOnVisit = effect(() => {
+    const url = this.currentUrl();
+    if (url.startsWith('/dashboard/orders') && this.notifs.unreadFor('orders') > 0) {
+      void this.notifs.markAllRead('orders');
+    } else if (url.startsWith('/dashboard/support') && this.notifs.unreadFor('tickets') > 0) {
+      void this.notifs.markAllRead('tickets');
+    }
+  });
+
   protected readonly user = this.auth.currentUser;
   protected get userName(): string { return this.auth.currentUser()?.name ?? 'Kullanıcı'; }
   protected get userAvatar(): string { return this.auth.currentUser()?.avatar ?? 'AY'; }
@@ -345,19 +368,19 @@ export class DashboardLayout {
     return name.split(/\s+/).map(w => w[0]).join('').slice(0, 2).toUpperCase();
   }
 
-  logout(): void { this.auth.logout(); this.router.navigate(['/login']); }
+  logout(): void { this.notifs.stop(); this.auth.logout(); this.router.navigate(['/login']); }
 
   /** Menü öğeleri — "Ödeme Borçlarım" yalnızca bayilere gösterilir. */
   protected readonly navItems = computed<NavItem[]>(() => {
     const items: NavItem[] = [
       { label: 'Genel Bakış',  icon: 'pi-home',          route: '/dashboard/overview' },
-      { label: 'Siparişlerim', icon: 'pi-shopping-cart', route: '/dashboard/orders' },
+      { label: 'Siparişlerim', icon: 'pi-shopping-cart', route: '/dashboard/orders', badge: 'orders' },
       { label: 'Araçlar',      icon: 'pi-sliders-h',    route: '/dashboard/tools'  },
     ];
     if (this.auth.isDealer()) {
       items.push({ label: 'Ödeme Borçlarım', icon: 'pi-wallet', route: '/dashboard/payments' });
     }
-    items.push({ label: 'Destek', icon: 'pi-headphones', route: '/dashboard/support' });
+    items.push({ label: 'Destek', icon: 'pi-headphones', route: '/dashboard/support', badge: 'tickets' });
     return items;
   });
 }

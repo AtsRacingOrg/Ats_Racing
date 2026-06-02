@@ -1,14 +1,18 @@
-import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/core';
-import { RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
+import { ChangeDetectionStrategy, Component, OnInit, effect, inject, signal } from '@angular/core';
+import { toSignal } from '@angular/core/rxjs-interop';
+import { RouterLink, RouterLinkActive, RouterOutlet, NavigationEnd } from '@angular/router';
+import { filter, map, startWith } from 'rxjs/operators';
 import { AuthService } from '../../../core/auth/auth.service';
 import { Router } from '@angular/router';
+import { NotificationsService } from '../../../core/notifications/notifications.service';
+import { NotificationBell } from '../../../shared/notification-bell';
 
-interface NavItem { label: string; icon: string; route: string; }
+interface NavItem { label: string; icon: string; route: string; badge?: string; }
 
 @Component({
   selector: 'app-admin-layout',
   standalone: true,
-  imports: [RouterOutlet, RouterLink, RouterLinkActive],
+  imports: [RouterOutlet, RouterLink, RouterLinkActive, NotificationBell],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
 <div class="adm-shell" [class.adm-shell--collapsed]="collapsed()">
@@ -30,6 +34,9 @@ interface NavItem { label: string; icon: string; route: string; }
         <a class="adm-nav__item" [routerLink]="item.route" routerLinkActive="adm-nav__item--active" [title]="item.label">
           <i [class]="'pi ' + item.icon"></i>
           <span class="adm-nav__label">{{ item.label }}</span>
+          @if (item.badge && notifs.unreadFor(item.badge) > 0) {
+            <span class="adm-nav__badge">{{ notifs.unreadFor(item.badge) }}</span>
+          }
         </a>
       }
     </nav>
@@ -57,6 +64,7 @@ interface NavItem { label: string; icon: string; route: string; }
       </button>
       <span class="adm-topbar__title">Admin Panel</span>
       <div class="adm-topbar__right">
+        <app-notification-bell />
         <span class="adm-topbar__badge">
           <i class="pi pi-shield"></i> Admin
         </span>
@@ -123,6 +131,12 @@ interface NavItem { label: string; icon: string; route: string; }
       &:hover { background: rgba(255,255,255,0.06); color: rgba(255,255,255,0.9); }
       &--active { background: rgba(245,158,11,0.12); color: #f59e0b; }
     }
+    .adm-nav__badge {
+      margin-left: auto; min-width: 18px; height: 18px; padding: 0 5px;
+      border-radius: 9px; background: #e63946; color: #fff;
+      font-size: 0.65rem; font-weight: 800; line-height: 18px; text-align: center; flex-shrink: 0;
+    }
+    .adm-shell--collapsed .adm-nav__badge { display: none; }
 
     .adm-sidebar__bottom {
       padding: 0.75rem 0.6rem; border-top: 1px solid rgba(255,255,255,0.07);
@@ -158,7 +172,7 @@ interface NavItem { label: string; icon: string; route: string; }
       @media (max-width: 768px) { display: flex; }
     }
     .adm-topbar__title { font-size: 0.9rem; font-weight: 600; color: rgba(255,255,255,0.5); }
-    .adm-topbar__right { margin-left: auto; }
+    .adm-topbar__right { margin-left: auto; display: flex; align-items: center; gap: 0.75rem; }
     .adm-topbar__badge {
       display: flex; align-items: center; gap: 0.4rem;
       padding: 0.3rem 0.75rem; border-radius: 8px;
@@ -178,9 +192,10 @@ interface NavItem { label: string; icon: string; route: string; }
     }
   `],
 })
-export class AdminLayout {
+export class AdminLayout implements OnInit {
   protected readonly auth      = inject(AuthService);
   private  readonly router     = inject(Router);
+  protected readonly notifs    = inject(NotificationsService);
   protected readonly collapsed  = signal(false);
   protected readonly mobileOpen = signal(false);
 
@@ -188,11 +203,33 @@ export class AdminLayout {
     { label: 'Genel Bakış',    icon: 'pi-home',          route: '/admin/overview' },
     { label: 'Başvurular',     icon: 'pi-user-plus',     route: '/admin/registrations' },
     { label: 'Kullanıcılar',   icon: 'pi-users',         route: '/admin/users' },
-    { label: 'Siparişler',     icon: 'pi-shopping-cart', route: '/admin/orders' },
-    { label: 'Ticketlar',      icon: 'pi-comments',      route: '/admin/tickets' },
+    { label: 'Siparişler',     icon: 'pi-shopping-cart', route: '/admin/orders', badge: 'orders' },
+    { label: 'Ticketlar',      icon: 'pi-comments',      route: '/admin/tickets', badge: 'tickets' },
   ];
 
+  private readonly currentUrl = toSignal(
+    this.router.events.pipe(
+      filter((e): e is NavigationEnd => e instanceof NavigationEnd),
+      map(e => e.urlAfterRedirects),
+      startWith(this.router.url),
+    ),
+    { initialValue: this.router.url },
+  );
+
+  /** İlgili sayfaya girince o kategorinin okunmamış bildirimleri temizlenir. */
+  private readonly _clearOnVisit = effect(() => {
+    const url = this.currentUrl();
+    if (url.startsWith('/admin/orders') && this.notifs.unreadFor('orders') > 0) {
+      void this.notifs.markAllRead('orders');
+    } else if (url.startsWith('/admin/tickets') && this.notifs.unreadFor('tickets') > 0) {
+      void this.notifs.markAllRead('tickets');
+    }
+  });
+
+  ngOnInit(): void { this.notifs.start(); }
+
   logout(): void {
+    this.notifs.stop();
     this.auth.logout();
     this.router.navigate(['/login']);
   }

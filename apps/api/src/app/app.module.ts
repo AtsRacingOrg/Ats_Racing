@@ -8,6 +8,7 @@ import { AdminModule } from './admin/admin.module';
 import { CatalogModule } from './catalog/catalog.module';
 import { OrdersModule } from './orders/orders.module';
 import { TicketsModule } from './tickets/tickets.module';
+import { NotificationsModule } from './notifications/notifications.module';
 
 @Module({
   imports: [
@@ -18,6 +19,7 @@ import { TicketsModule } from './tickets/tickets.module';
     CatalogModule,
     OrdersModule,
     TicketsModule,
+    NotificationsModule,
   ],
   controllers: [AppController],
   providers: [AppService],
