@@ -8,6 +8,7 @@ import {
   signal,
 } from '@angular/core';
 import { PageLoader } from '../../../../shared/page-loader';
+import { Paginator } from '../../../../shared/paginator';
 import { DatePipe } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { TicketsService, Ticket as ApiTicket } from '../../../../core/tickets/tickets.service';
@@ -61,7 +62,7 @@ function mapTicket(t: ApiTicket): Ticket {
 @Component({
   selector: 'app-support-page',
   standalone: true,
-  imports: [DatePipe, FormsModule, PageLoader],
+  imports: [DatePipe, FormsModule, PageLoader, Paginator],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
 @if (loading()) { <app-page-loader /> } @else {
@@ -89,7 +90,7 @@ function mapTicket(t: ApiTicket): Ticket {
           <p>Henüz ticket oluşturmadınız</p>
         </div>
       }
-      @for (t of tickets(); track t.id) {
+      @for (t of pagedTickets(); track t.id) {
         <button
           type="button"
           class="tkt-row"
@@ -107,6 +108,7 @@ function mapTicket(t: ApiTicket): Ticket {
           <p class="tkt-row__preview">{{ t.messages[t.messages.length - 1].text }}</p>
         </button>
       }
+      <app-paginator [total]="tickets().length" [(page)]="page" [pageSize]="pageSize" />
     </div>
 
     <!-- ── RIGHT: Conversation ── -->
@@ -500,6 +502,12 @@ export class SupportPage implements OnInit {
 
   protected readonly orders = signal<OrderOption[]>([]);
   protected readonly tickets = signal<Ticket[]>([]);
+  protected readonly pageSize = 10;
+  protected readonly page = signal(1);
+  protected readonly pagedTickets = computed(() => {
+    const start = (this.page() - 1) * this.pageSize;
+    return this.tickets().slice(start, start + this.pageSize);
+  });
   protected readonly activeTicketId = signal<string | null>(null);
   protected readonly showNewTicket = signal(false);
   protected readonly loading = signal(true);

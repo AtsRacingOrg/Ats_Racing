@@ -46,21 +46,16 @@ function mapStatement(s: Statement): MonthlyStatement {
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <!-- ÖZET KARTLARI -->
-    <div class="pay__cards">
+    <div class="pay__cards pay__cards--3">
       <div class="sum-card sum-card--accent">
-        <span class="sum-card__lbl">Bu Ay Birikiyor</span>
+        <span class="sum-card__lbl">Birikiyor</span>
         <span class="sum-card__val">₺{{ accruingTotal() | number }}</span>
         <span class="sum-card__meta"><i class="pi pi-calendar-clock"></i> Son ödeme: {{ accruingDue() }}</span>
       </div>
       <div class="sum-card sum-card--warn">
-        <span class="sum-card__lbl">Vadesi Gelen</span>
+        <span class="sum-card__lbl">Ödemesi Gelmiş</span>
         <span class="sum-card__val">₺{{ dueTotal() | number }}</span>
         <span class="sum-card__meta"><i class="pi pi-exclamation-circle"></i> {{ dueCount() }} ekstre bekliyor</span>
-      </div>
-      <div class="sum-card">
-        <span class="sum-card__lbl">Toplam Açık Bakiye</span>
-        <span class="sum-card__val">₺{{ outstandingTotal() | number }}</span>
-        <span class="sum-card__meta"><i class="pi pi-wallet"></i> Birikiyor + vadesi gelen</span>
       </div>
       <div class="sum-card sum-card--paid">
         <span class="sum-card__lbl">Toplam Ödenen</span>
@@ -146,6 +141,7 @@ function mapStatement(s: Statement): MonthlyStatement {
   styles: [`
     :host { display: flex; flex-direction: column; gap: 1.5rem; }
     .pay__cards { display: grid; grid-template-columns: repeat(4, 1fr); gap: 1rem; @media(max-width:1024px){ grid-template-columns: repeat(2, 1fr); } @media(max-width:560px){ grid-template-columns: 1fr; } }
+    .pay__cards--3 { grid-template-columns: repeat(3, 1fr); @media(max-width:900px){ grid-template-columns: 1fr; } }
     .sum-card {
       background: #1a1d27; border: 1px solid rgba(255,255,255,0.08); border-radius: 16px; padding: 1.3rem 1.4rem;
       display: flex; flex-direction: column; gap: 0.4rem;

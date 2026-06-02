@@ -28,13 +28,41 @@ export interface UploadedFileLike {
 const ORDER_SELECT =
   '*, items:order_items(label,unit_price), pcodes:order_pcodes(pcode,note), ' +
   'events:order_events(event,actor_role,created_at), ' +
-  'files:tuning_files(kind,file_name,status,is_downloadable)';
+  'files:tuning_files(kind,file_name,status,is_downloadable,notes)';
 
 @Injectable()
 export class OrdersService {
   private readonly logger = new Logger(OrdersService.name);
 
   constructor(private readonly supabase: SupabaseService) {}
+
+  /**
+   * Tamamlanmamış (pending/processing) siparişler için 1-bazlı kuyruk sırasını hesaplar.
+   * Created_at artan sırayla — en eski = 1. Tamamlandı/iptalde sıra `null` döner.
+   */
+  private async enrichQueuePositions(views: OrderView[]): Promise<OrderView[]> {
+    if (views.length === 0) { return views; }
+    const { data } = await this.supabase.admin
+      .from('orders')
+      .select('id, created_at')
+      .in('status', ['pending', 'processing'])
+      .order('created_at', { ascending: true })
+      .returns<{ id: string; created_at: string }[]>();
+    const rows = data ?? [];
+    const total = rows.length;
+    const positionById = new Map<string, number>();
+    rows.forEach((r, idx) => positionById.set(r.id, idx + 1));
+    return views.map(v => ({
+      ...v,
+      queuePosition: positionById.get(v.id) ?? null,
+      queueTotal: total,
+    }));
+  }
+
+  private async enrichOne(view: OrderView): Promise<OrderView> {
+    const [enriched] = await this.enrichQueuePositions([view]);
+    return enriched;
+  }
 
   /** Atomik sipariş oluşturma — fiyatı server hesaplar (create_order RPC). */
   async create(token: string, dto: CreateOrderDto): Promise<{ id: string; orderNo: string; total: number }> {
@@ -112,7 +140,7 @@ export class OrdersService {
       this.logger.error(`listMine failed: ${error.message}`);
       throw new InternalServerErrorException('Siparişler getirilemedi.');
     }
-    return (data ?? []).map(toOrderView);
+    return this.enrichQueuePositions((data ?? []).map(toOrderView));
   }
 
   async getOne(token: string, id: string): Promise<OrderView> {
@@ -125,27 +153,35 @@ export class OrdersService {
     if (error || !data) {
       throw new NotFoundException('Sipariş bulunamadı.');
     }
-    return toOrderView(data);
+    return this.enrichOne(toOrderView(data));
   }
 
   /** Admin: tüm siparişler + müşteri bilgisi (service-role, RLS bypass). */
   async adminList(): Promise<OrderView[]> {
     const { data, error } = await this.supabase.admin
       .from('orders')
-      .select(`${ORDER_SELECT}, customer:profiles(full_name,email,phone)`)
+      .select(`${ORDER_SELECT}, customer:profiles(full_name,email,phone,role)`)
       .order('created_at', { ascending: false })
       .returns<OrderRow[]>();
     if (error) {
       this.logger.error(`adminList failed: ${error.message}`);
       throw new InternalServerErrorException('Siparişler getirilemedi.');
     }
-    return (data ?? []).map(toOrderView);
+    return this.enrichQueuePositions((data ?? []).map(toOrderView));
   }
 
-  async adminSetStatus(id: string, status: string, adminId: string): Promise<OrderView> {
+  async adminSetStatus(id: string, status: string, adminId: string, reason?: string | null): Promise<OrderView> {
+    const trimmedReason = (reason ?? '').trim() || null;
+    const update: Record<string, unknown> = { status, updated_at: new Date().toISOString() };
+    if (status === 'cancelled') {
+      update.cancellation_reason = trimmedReason;
+    } else {
+      // Eski iptal nedeni varsa statü tekrar açılırken temizle.
+      update.cancellation_reason = null;
+    }
     const { data, error } = await this.supabase.admin
       .from('orders')
-      .update({ status, updated_at: new Date().toISOString() })
+      .update(update)
       .eq('id', id)
       .select('id')
       .single<{ id: string }>();
@@ -155,23 +191,26 @@ export class OrdersService {
     const labels: Record<string, string> = {
       pending: 'Beklemede', processing: 'İşleme alındı', completed: 'Tamamlandı', cancelled: 'İptal edildi',
     };
+    const eventText = status === 'cancelled' && trimmedReason
+      ? `Durum: ${labels[status]} — Sebep: ${trimmedReason}`
+      : `Durum: ${labels[status] ?? status}`;
     await this.supabase.admin.from('order_events').insert({
       order_id: id,
-      event: `Durum: ${labels[status] ?? status}`,
+      event: eventText,
       actor_role: 'admin',
       actor_id: adminId,
     });
     // Güncel kaydı admin select ile döndür
     const { data: full } = await this.supabase.admin
       .from('orders')
-      .select(`${ORDER_SELECT}, customer:profiles(full_name,email,phone)`)
+      .select(`${ORDER_SELECT}, customer:profiles(full_name,email,phone,role)`)
       .eq('id', id)
       .single<OrderRow>();
-    return toOrderView(full as OrderRow);
+    return this.enrichOne(toOrderView(full as OrderRow));
   }
 
   /** Admin: hazırlanan dosyayı müşteriye teslim eder (Storage + tuning_files + event + completed). */
-  async adminDeliverFile(orderId: string, file: UploadedFileLike | undefined, adminId: string): Promise<OrderView> {
+  async adminDeliverFile(orderId: string, file: UploadedFileLike | undefined, adminId: string, note?: string | null): Promise<OrderView> {
     if (!file) {
       throw new BadRequestException('Dosya bulunamadı.');
     }
@@ -194,6 +233,7 @@ export class OrdersService {
       throw new InternalServerErrorException('Dosya yüklenemedi.');
     }
 
+    const trimmedNote = (note ?? '').trim();
     await this.supabase.admin.from('tuning_files').insert({
       order_id: orderId,
       user_id: order.user_id,
@@ -203,6 +243,7 @@ export class OrdersService {
       status: 'delivered',
       is_downloadable: true,
       delivery_date: new Date().toISOString(),
+      notes: trimmedNote ? trimmedNote : null,
     });
     await this.supabase.admin.from('orders').update({ status: 'completed', updated_at: new Date().toISOString() }).eq('id', orderId);
     await this.supabase.admin.from('order_events').insert({
@@ -214,10 +255,37 @@ export class OrdersService {
 
     const { data: full } = await this.supabase.admin
       .from('orders')
-      .select(`${ORDER_SELECT}, customer:profiles(full_name,email,phone)`)
+      .select(`${ORDER_SELECT}, customer:profiles(full_name,email,phone,role)`)
       .eq('id', orderId)
       .single<OrderRow>();
-    return toOrderView(full as OrderRow);
+    return this.enrichOne(toOrderView(full as OrderRow));
+  }
+
+  /** Admin: gönderilmiş yazılım dosyasına eklenen notu günceller (dosyayı tekrar yüklemeden). */
+  async adminUpdateDeliveredNote(orderId: string, note: string | null | undefined): Promise<OrderView> {
+    const { data: latest } = await this.supabase.admin
+      .from('tuning_files')
+      .select('id')
+      .eq('order_id', orderId)
+      .eq('kind', 'delivered')
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .maybeSingle<{ id: string }>();
+    if (!latest) {
+      throw new NotFoundException('Gönderilmiş dosya bulunamadı.');
+    }
+    const trimmed = (note ?? '').trim();
+    await this.supabase.admin
+      .from('tuning_files')
+      .update({ notes: trimmed ? trimmed : null })
+      .eq('id', latest.id);
+
+    const { data: full } = await this.supabase.admin
+      .from('orders')
+      .select(`${ORDER_SELECT}, customer:profiles(full_name,email,phone,role)`)
+      .eq('id', orderId)
+      .single<OrderRow>();
+    return this.enrichOne(toOrderView(full as OrderRow));
   }
 
   /** Dosya için imzalı indirme linki (sahip/admin RLS ile doğrulanır). */

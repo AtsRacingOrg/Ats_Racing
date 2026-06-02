@@ -32,7 +32,6 @@ import { StatementsPanel } from '../../../../shared/statements-panel';
   <div class="pay__header">
     <div>
       <h1 class="pay__title">Ödeme Borçlarım</h1>
-      <p class="pay__sub">Bayi hesabınızın aylık ekstresi — her ayın 1'inde ödenir</p>
     </div>
   </div>
 

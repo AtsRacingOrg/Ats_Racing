@@ -8,8 +8,9 @@ export interface TuningFileRow {
   file_name: string;
   status: string;
   is_downloadable: boolean;
+  notes?: string | null;
 }
-export interface ProfileLite { full_name: string | null; email: string | null; phone: string | null; }
+export interface ProfileLite { full_name: string | null; email: string | null; phone: string | null; role?: string | null; }
 
 export interface OrderRow {
   id: string;
@@ -38,6 +39,7 @@ export interface OrderRow {
   total_price: string | number;
   status: string;
   notes: string | null;
+  cancellation_reason: string | null;
   items?: OrderItemRow[];
   pcodes?: OrderPcodeRow[];
   events?: OrderEventRow[];
@@ -47,12 +49,16 @@ export interface OrderRow {
 
 export interface OrderItemView { label: string; unitPrice: number; }
 export interface OrderEventView { event: string; actorRole: string | null; createdAt: string; }
-export interface TuningFileView { kind: 'original' | 'delivered'; fileName: string; status: string; isDownloadable: boolean; }
+export interface TuningFileView { kind: 'original' | 'delivered'; fileName: string; status: string; isDownloadable: boolean; notes: string | null; }
 
 export interface OrderView {
   id: string;
   orderNo: string;
   createdAt: string;
+  /** Tamamlanmamış kuyruktaki 1-bazlı sıra. Tamamlandı/iptalde null. */
+  queuePosition: number | null;
+  /** O anda kuyrukta toplam aktif sipariş sayısı. */
+  queueTotal: number;
   make: string | null;
   model: string | null;
   year: number | null;
@@ -73,6 +79,7 @@ export interface OrderView {
   modifiedParts: string[];
   status: string;
   notes: string | null;
+  cancellationReason: string | null;
   basePrice: number;
   extrasTotal: number;
   totalPrice: number;
@@ -80,7 +87,7 @@ export interface OrderView {
   pcodes: { pcode: string | null; note: string | null }[];
   events: OrderEventView[];
   files: TuningFileView[];
-  customer?: { fullName: string | null; email: string | null; phone: string | null } | null;
+  customer?: { fullName: string | null; email: string | null; phone: string | null; role: string | null } | null;
 }
 
 export function toOrderView(r: OrderRow): OrderView {
@@ -88,6 +95,8 @@ export function toOrderView(r: OrderRow): OrderView {
     id: r.id,
     orderNo: r.order_no,
     createdAt: r.created_at,
+    queuePosition: null,
+    queueTotal: 0,
     make: r.make,
     model: r.model,
     year: r.year,
@@ -108,6 +117,7 @@ export function toOrderView(r: OrderRow): OrderView {
     modifiedParts: r.modified_parts ?? [],
     status: r.status,
     notes: r.notes,
+    cancellationReason: r.cancellation_reason ?? null,
     basePrice: Number(r.base_price),
     extrasTotal: Number(r.extras_total),
     totalPrice: Number(r.total_price),
@@ -115,10 +125,10 @@ export function toOrderView(r: OrderRow): OrderView {
     pcodes: (r.pcodes ?? []).map((p) => ({ pcode: p.pcode, note: p.note })),
     events: (r.events ?? []).map((e) => ({ event: e.event, actorRole: e.actor_role, createdAt: e.created_at })),
     files: (r.files ?? []).map((f) => ({
-      kind: f.kind, fileName: f.file_name, status: f.status, isDownloadable: f.is_downloadable,
+      kind: f.kind, fileName: f.file_name, status: f.status, isDownloadable: f.is_downloadable, notes: f.notes ?? null,
     })),
     customer: r.customer
-      ? { fullName: r.customer.full_name, email: r.customer.email, phone: r.customer.phone }
+      ? { fullName: r.customer.full_name, email: r.customer.email, phone: r.customer.phone, role: r.customer.role ?? null }
       : null,
   };
 }

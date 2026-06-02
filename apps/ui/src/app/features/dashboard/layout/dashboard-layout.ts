@@ -1,6 +1,9 @@
 import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
-import { RouterLink, RouterLinkActive, RouterOutlet, Router } from '@angular/router';
+import { toSignal } from '@angular/core/rxjs-interop';
+import { RouterLink, RouterLinkActive, RouterOutlet, Router, NavigationEnd } from '@angular/router';
+import { filter, map, startWith } from 'rxjs/operators';
 import { AuthService } from '../../../core/auth/auth.service';
+import { PrivacyService } from '../../../core/privacy.service';
 
 interface NavItem {
   label: string;
@@ -19,9 +22,8 @@ interface NavItem {
       <!-- SIDEBAR -->
       <aside class="dash-sidebar">
         <div class="dash-sidebar__top">
-          <a routerLink="/" class="dash-logo">
-            <span class="dash-logo__icon">ATS</span>
-            <span class="dash-logo__text">Racing</span>
+          <a routerLink="/" class="dash-logo" aria-label="ATS Racing">
+            <img src="/logo.png" alt="ATS Racing" class="dash-logo__img" />
           </a>
           <button class="dash-collapse-btn" (click)="collapsed.set(!collapsed())" aria-label="Menüyü daralt">
             <i class="pi" [class.pi-chevron-left]="!collapsed()" [class.pi-chevron-right]="collapsed()"></i>
@@ -64,6 +66,16 @@ interface NavItem {
             <i class="pi pi-bars"></i>
           </button>
           <div class="dash-topbar__right">
+            @if (showPrivacyToggle()) {
+              <button class="dash-priv-toggle" type="button"
+                      [class.dash-priv-toggle--on]="!pricesHidden()"
+                      [attr.aria-pressed]="!pricesHidden()"
+                      (click)="privacy.toggle()"
+                      [title]="pricesHidden() ? 'Fiyatları göstermek için tıklayın' : 'Fiyatları gizlemek için tıklayın'">
+                <i class="pi" [class.pi-eye-slash]="pricesHidden()" [class.pi-eye]="!pricesHidden()"></i>
+                <span class="dash-priv-toggle__lbl">{{ pricesHidden() ? 'Hassas Bilgiler Kapalı' : 'Hassas Bilgiler Açık' }}</span>
+              </button>
+            }
             <button class="dash-topbar__icon-btn" aria-label="Bildirimler">
               <i class="pi pi-bell"></i>
               <span class="dash-badge">3</span>
@@ -114,7 +126,6 @@ interface NavItem {
       transition: width 260ms cubic-bezier(0.4,0,0.2,1), transform 260ms ease;
     }
     .dash-shell.sidebar-collapsed .dash-sidebar { width: 64px; }
-    .dash-shell.sidebar-collapsed .dash-logo__text,
     .dash-shell.sidebar-collapsed .dash-nav__label,
     .dash-shell.sidebar-collapsed .dash-user__info,
     .dash-shell.sidebar-collapsed .dash-user__name,
@@ -132,25 +143,18 @@ interface NavItem {
     .dash-logo {
       display: flex;
       align-items: center;
-      gap: 0.625rem;
       text-decoration: none;
       flex: 1;
       min-width: 0;
+      overflow: hidden;
     }
-    .dash-logo__icon {
-      width: 36px; height: 36px;
-      background: linear-gradient(135deg, #e63946, #c1121f);
-      border-radius: 8px;
-      display: flex; align-items: center; justify-content: center;
-      font-size: 0.65rem; font-weight: 800; color: #fff;
-      letter-spacing: 0.04em;
-      flex-shrink: 0;
+    .dash-logo__img {
+      height: 36px; width: auto; max-width: 100%;
+      object-fit: contain; object-position: left center;
+      display: block;
+      transition: height 200ms;
     }
-    .dash-logo__text {
-      font-size: 1rem; font-weight: 700; color: #fff;
-      letter-spacing: 0.02em;
-      transition: opacity 200ms, width 200ms;
-    }
+    .dash-shell.sidebar-collapsed .dash-logo__img { height: 30px; }
 
     .dash-collapse-btn {
       background: transparent; border: none; cursor: pointer;
@@ -263,6 +267,23 @@ interface NavItem {
       transition: background 180ms, color 180ms;
     }
     .dash-topbar__icon-btn:hover { background: rgba(255,255,255,0.1); color: #fff; }
+    .dash-priv-toggle {
+      display: inline-flex; align-items: center; gap: 0.5rem;
+      padding: 0.5rem 0.9rem; border-radius: 999px; cursor: pointer;
+      background: rgba(230,57,70,0.12); border: 1px solid rgba(230,57,70,0.35);
+      color: #ff8a93; font-size: 0.78rem; font-weight: 600; white-space: nowrap;
+      transition: all 160ms;
+    }
+    .dash-priv-toggle i { font-size: 0.9rem; }
+    .dash-priv-toggle:hover { background: rgba(230,57,70,0.18); }
+    .dash-priv-toggle--on {
+      background: rgba(74,222,128,0.12); border-color: rgba(74,222,128,0.35); color: #4ade80;
+    }
+    .dash-priv-toggle--on:hover { background: rgba(74,222,128,0.18); }
+    @media (max-width: 640px) {
+      .dash-priv-toggle__lbl { display: none; }
+      .dash-priv-toggle { padding: 0.5rem; }
+    }
     .dash-badge {
       position: absolute; top: -4px; right: -4px;
       background: #e63946; color: #fff;
@@ -295,8 +316,22 @@ interface NavItem {
 export class DashboardLayout {
   private  readonly auth    = inject(AuthService);
   private  readonly router  = inject(Router);
+  protected readonly privacy = inject(PrivacyService);
   protected readonly collapsed = signal(false);
   protected readonly mobileOpen = signal(false);
+
+  protected readonly pricesHidden = this.privacy.pricesHidden;
+  private readonly currentUrl = toSignal(
+    this.router.events.pipe(
+      filter((e): e is NavigationEnd => e instanceof NavigationEnd),
+      map(e => e.urlAfterRedirects),
+      startWith(this.router.url),
+    ),
+    { initialValue: this.router.url },
+  );
+  protected readonly showPrivacyToggle = computed(() =>
+    this.auth.isDealer() && this.currentUrl().startsWith('/dashboard/tools'),
+  );
 
   protected readonly user = this.auth.currentUser;
   protected get userName(): string { return this.auth.currentUser()?.name ?? 'Kullanıcı'; }

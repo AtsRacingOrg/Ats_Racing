@@ -5,6 +5,7 @@ import {
   IsEnum,
   IsOptional,
   IsString,
+  MaxLength,
   ValidateNested,
 } from 'class-validator';
 import { Type } from 'class-transformer';
@@ -72,4 +73,8 @@ export class UpdateOrderStatusDto {
   @ApiProperty({ enum: ['pending', 'processing', 'completed', 'cancelled'] })
   @IsEnum({ pending: 'pending', processing: 'processing', completed: 'completed', cancelled: 'cancelled' })
   status!: 'pending' | 'processing' | 'completed' | 'cancelled';
+
+  @ApiPropertyOptional({ description: 'İptal sebebi (yalnızca cancelled durumunda).' })
+  @IsOptional() @IsString() @MaxLength(1000)
+  reason?: string;
 }

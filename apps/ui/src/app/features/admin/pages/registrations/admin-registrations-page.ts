@@ -1,14 +1,16 @@
 import {
   ChangeDetectionStrategy, ChangeDetectorRef,
-  Component, inject, OnInit, signal,
+  Component, computed, effect, inject, OnInit, signal,
 } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { AdminService, Registration, RegStatus } from '../../../../core/admin/admin.service';
+import { Paginator } from '../../../../shared/paginator';
+import { PageLoader } from '../../../../shared/page-loader';
 
 @Component({
   selector: 'app-admin-registrations',
   standalone: true,
-  imports: [FormsModule],
+  imports: [FormsModule, Paginator, PageLoader],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
 <div class="ar">
@@ -40,11 +42,7 @@ import { AdminService, Registration, RegStatus } from '../../../../core/admin/ad
 
   <!-- Loading -->
   @if (loading()) {
-    <div class="ar-skeleton-list">
-      @for (i of [1,2,3]; track i) {
-        <div class="ar-skeleton"></div>
-      }
-    </div>
+    <app-page-loader />
   }
 
   <!-- Error -->
@@ -65,7 +63,7 @@ import { AdminService, Registration, RegStatus } from '../../../../core/admin/ad
       </div>
     } @else {
       <div class="ar-list">
-        @for (reg of filtered(); track reg.id) {
+        @for (reg of paged(); track reg.id) {
           <div class="ar-card" [class.ar-card--approved]="reg.status === 'approved'" [class.ar-card--rejected]="reg.status === 'rejected'">
 
             <!-- User info -->
@@ -149,6 +147,7 @@ import { AdminService, Registration, RegStatus } from '../../../../core/admin/ad
           </div>
         }
       </div>
+      <app-paginator [total]="filtered().length" [(page)]="page" [pageSize]="pageSize" />
     }
   }
 
@@ -339,9 +338,20 @@ export class AdminRegistrationsPage implements OnInit {
 
   setFilter(s: RegStatus): void { this.statusFilter.set(s); }
 
-  protected filtered(): Registration[] {
-    return this.registrations().filter(r => r.status === this.statusFilter());
-  }
+  protected readonly filtered = computed<Registration[]>(() =>
+    this.registrations().filter(r => r.status === this.statusFilter()),
+  );
+
+  protected readonly pageSize = 10;
+  protected readonly page = signal(1);
+  protected readonly paged = computed(() => {
+    const start = (this.page() - 1) * this.pageSize;
+    return this.filtered().slice(start, start + this.pageSize);
+  });
+  private readonly _resetPage = effect(() => {
+    this.statusFilter();
+    this.page.set(1);
+  });
 
   countByStatus(s: RegStatus): number {
     return this.registrations().filter(r => r.status === s).length;

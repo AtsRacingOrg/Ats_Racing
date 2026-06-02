@@ -33,12 +33,14 @@ export interface CreateOrderPayload {
 
 export interface OrderItem { label: string; unitPrice: number; }
 export interface OrderEvent { event: string; actorRole: string | null; createdAt: string; }
-export interface OrderFile { kind: 'original' | 'delivered'; fileName: string; status: string; isDownloadable: boolean; }
+export interface OrderFile { kind: 'original' | 'delivered'; fileName: string; status: string; isDownloadable: boolean; notes: string | null; }
 
 export interface Order {
   id: string;
   orderNo: string;
   createdAt: string;
+  queuePosition: number | null;
+  queueTotal: number;
   make: string | null;
   model: string | null;
   year: number | null;
@@ -59,6 +61,7 @@ export interface Order {
   modifiedParts: string[];
   status: OrderStatus;
   notes: string | null;
+  cancellationReason: string | null;
   basePrice: number;
   extrasTotal: number;
   totalPrice: number;
@@ -66,7 +69,7 @@ export interface Order {
   pcodes: { pcode: string | null; note: string | null }[];
   events: OrderEvent[];
   files: OrderFile[];
-  customer?: { fullName: string | null; email: string | null; phone: string | null } | null;
+  customer?: { fullName: string | null; email: string | null; phone: string | null; role: string | null } | null;
 }
 
 export interface CreateOrderResult { id: string; orderNo: string; total: number; }
@@ -101,16 +104,25 @@ export class OrdersService {
     return firstValueFrom(this.http.get<Order[]>(`${this.api}/admin/orders`));
   }
 
-  adminUpdateStatus(id: string, status: OrderStatus): Promise<Order> {
+  adminUpdateStatus(id: string, status: OrderStatus, reason?: string): Promise<Order> {
+    const body: { status: OrderStatus; reason?: string } = { status };
+    if (reason && reason.trim()) { body.reason = reason.trim(); }
     return firstValueFrom(
-      this.http.post<Order>(`${this.api}/admin/orders/${id}/status`, { status }),
+      this.http.post<Order>(`${this.api}/admin/orders/${id}/status`, body),
     );
   }
 
-  adminDeliverFile(id: string, file: File): Promise<Order> {
+  adminDeliverFile(id: string, file: File, note?: string): Promise<Order> {
     const form = new FormData();
     form.append('file', file, file.name);
+    if (note && note.trim()) { form.append('note', note.trim()); }
     return firstValueFrom(this.http.post<Order>(`${this.api}/admin/orders/${id}/deliver`, form));
+  }
+
+  adminUpdateDeliveredNote(id: string, note: string): Promise<Order> {
+    return firstValueFrom(
+      this.http.post<Order>(`${this.api}/admin/orders/${id}/delivered-note`, { note: note.trim() || null }),
+    );
   }
 
   /** Dosya için imzalı indirme linki (kind: delivered/original). */

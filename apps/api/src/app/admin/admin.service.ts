@@ -113,6 +113,21 @@ export class AdminService {
     return (data ?? []).map(toStatementView);
   }
 
+  /** Tüm bayilerin ekstreleri (admin Genel Bakış kazanç hesabı için). */
+  async listAllStatements(): Promise<StatementView[]> {
+    const { data, error } = await this.supabase.admin
+      .from('dealer_statements')
+      .select('*, orders(order_no,created_at,make,model,stage,total_price)')
+      .order('period_year', { ascending: false })
+      .order('period_month', { ascending: false })
+      .returns<StatementRow[]>();
+    if (error) {
+      this.logger.error(`listAllStatements failed: ${error.message}`);
+      throw new InternalServerErrorException('Ekstreler getirilemedi.');
+    }
+    return (data ?? []).map(toStatementView);
+  }
+
   /** List registrations, optionally filtered by status (newest first). */
   async listRegistrations(status?: AccountStatus): Promise<RegistrationView[]> {
     let query = this.supabase.admin
@@ -142,6 +157,17 @@ export class AdminService {
     reason: string,
   ): Promise<RegistrationView> {
     return this.setStatus(id, adminId, 'rejected', reason);
+  }
+
+  /**
+   * Kullanıcı/bayi hesabını aktif veya pasif yapar. Pasif = 'rejected'
+   * (giriş engellenir); aktif = 'approved'.
+   */
+  async setActive(id: string, adminId: string, active: boolean): Promise<RegistrationView> {
+    if (active) {
+      return this.setStatus(id, adminId, 'approved', null);
+    }
+    return this.setStatus(id, adminId, 'rejected', 'Hesap admin tarafından pasif yapıldı.');
   }
 
   private async setStatus(

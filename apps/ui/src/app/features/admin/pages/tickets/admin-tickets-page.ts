@@ -1,5 +1,6 @@
-import { ChangeDetectionStrategy, ChangeDetectorRef, Component, OnInit, computed, inject, signal } from '@angular/core';
+import { ChangeDetectionStrategy, ChangeDetectorRef, Component, OnInit, computed, effect, inject, signal } from '@angular/core';
 import { PageLoader } from '../../../../shared/page-loader';
+import { Paginator } from '../../../../shared/paginator';
 import { FormsModule } from '@angular/forms';
 import { TicketsService, Ticket as ApiTicket } from '../../../../core/tickets/tickets.service';
 
@@ -47,7 +48,7 @@ const STATUS_LABEL: Record<TicketStatus, string> = { open: 'Açık', pending: 'B
 @Component({
   selector: 'app-admin-tickets',
   standalone: true,
-  imports: [FormsModule, PageLoader],
+  imports: [FormsModule, PageLoader, Paginator],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
 @if (loading()) { <app-page-loader /> } @else {
@@ -84,7 +85,7 @@ const STATUS_LABEL: Record<TicketStatus, string> = { open: 'Açık', pending: 'B
 
     <!-- Ticket list -->
     <div class="atk__list">
-      @for (t of filtered(); track t.id) {
+      @for (t of paged(); track t.id) {
         <button type="button" class="atk-row" [class.atk-row--active]="activeId() === t.id" (click)="activeId.set(t.id)">
           <div class="atk-row__top">
             <span class="atk-badge atk-badge--{{ t.status }}">{{ statusLabel(t.status) }}</span>
@@ -98,6 +99,7 @@ const STATUS_LABEL: Record<TicketStatus, string> = { open: 'Açık', pending: 'B
       @if (filtered().length === 0) {
         <div class="atk__list-empty"><i class="pi pi-inbox"></i><p>Ticket bulunamadı</p></div>
       }
+      <app-paginator [total]="filtered().length" [(page)]="page" [pageSize]="pageSize" />
     </div>
 
     <!-- Conversation -->
@@ -313,6 +315,17 @@ export class AdminTicketsPage implements OnInit {
     const status = this.activeStatus();
     if (status) { list = list.filter(t => t.status === status); }
     return list;
+  });
+
+  protected readonly pageSize = 10;
+  protected readonly page = signal(1);
+  protected readonly paged = computed(() => {
+    const start = (this.page() - 1) * this.pageSize;
+    return this.filtered().slice(start, start + this.pageSize);
+  });
+  private readonly _resetPage = effect(() => {
+    this.search(); this.activeStatus();
+    this.page.set(1);
   });
 
   statusLabel(s: TicketStatus): string { return STATUS_LABEL[s]; }

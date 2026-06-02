@@ -36,7 +36,7 @@ export class AdminOrdersController {
     @Body() dto: UpdateOrderStatusDto,
     @Req() req: { adminUser: { id: string } },
   ) {
-    return this.orders.adminSetStatus(id, dto.status, req.adminUser.id);
+    return this.orders.adminSetStatus(id, dto.status, req.adminUser.id, dto.reason ?? null);
   }
 
   @Post(':id/deliver')
@@ -46,8 +46,18 @@ export class AdminOrdersController {
   deliver(
     @Param('id', ParseUUIDPipe) id: string,
     @UploadedFile() file: UploadedFileLike,
+    @Body() body: { note?: string },
     @Req() req: { adminUser: { id: string } },
   ) {
-    return this.orders.adminDeliverFile(id, file, req.adminUser.id);
+    return this.orders.adminDeliverFile(id, file, req.adminUser.id, body?.note);
+  }
+
+  @Post(':id/delivered-note')
+  @ApiOperation({ summary: 'Gönderilmiş yazılım dosyasının notunu güncelle' })
+  updateDeliveredNote(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() body: { note?: string | null },
+  ) {
+    return this.orders.adminUpdateDeliveredNote(id, body?.note ?? null);
   }
 }

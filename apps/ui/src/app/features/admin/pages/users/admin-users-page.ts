@@ -1,10 +1,11 @@
-import { ChangeDetectionStrategy, ChangeDetectorRef, Component, OnInit, signal, computed, inject } from '@angular/core';
+import { ChangeDetectionStrategy, ChangeDetectorRef, Component, OnInit, effect, signal, computed, inject } from '@angular/core';
 import { PageLoader } from '../../../../shared/page-loader';
 import { FormsModule } from '@angular/forms';
 import { AdminService, AdminUserRow } from '../../../../core/admin/admin.service';
 import { Statement } from '../../../../core/payments/payments.service';
-import { stageLabel, formatTl, formatTrDate } from '../../../../core/orders/order-format';
+import { stageLabel, formatTl, formatTrDate, formatTrDateTime } from '../../../../core/orders/order-format';
 import { StatementsPanel } from '../../../../shared/statements-panel';
+import { Paginator } from '../../../../shared/paginator';
 
 type UserRole   = 'user' | 'dealer' | 'admin';
 type AccountStatus = 'approved' | 'pending' | 'rejected';
@@ -46,7 +47,7 @@ function mapAdminUser(u: AdminUserRow): AdminUser {
       id: o.orderNo,
       vehicle: o.vehicle,
       stage: stageLabel(o.stage),
-      date: formatTrDate(o.date),
+      date: formatTrDateTime(o.date),
       price: formatTl(o.price),
       status: ORDER_STATUS_LABEL[o.status] ?? o.status,
       statusKey: o.status,
@@ -59,7 +60,7 @@ const ROLE_LABEL: Record<UserRole, string> = { user: 'Kullanıcı', dealer: 'Bay
 @Component({
   selector: 'app-admin-users',
   standalone: true,
-  imports: [FormsModule, PageLoader, StatementsPanel],
+  imports: [FormsModule, PageLoader, StatementsPanel, Paginator],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
 @if (loading()) { <app-page-loader /> } @else {
@@ -111,13 +112,13 @@ const ROLE_LABEL: Record<UserRole, string> = { user: 'Kullanıcı', dealer: 'Bay
         <thead><tr>
           <th>Kullanıcı</th>
           <th>Rol</th>
-          @if (activeTab() !== 'admin') { <th>Sipariş</th><th>Toplam Ödeme</th> }
+          @if (activeTab() !== 'admin') { <th>Sipariş</th><th>Toplam Ödenen</th> }
           <th>Durum</th>
           <th>Kayıt</th>
           <th></th>
         </tr></thead>
         <tbody>
-          @for (u of filteredByTab(); track u.id) {
+          @for (u of pagedUsers(); track u.id) {
             <tr class="au-row" (click)="openDetail(u)">
               <td>
                 <div class="au-user-cell">
@@ -157,6 +158,7 @@ const ROLE_LABEL: Record<UserRole, string> = { user: 'Kullanıcı', dealer: 'Bay
           }
         </tbody>
       </table>
+      <app-paginator [total]="filteredByTab().length" [(page)]="page" [pageSize]="pageSize" />
     </div>
 
   } @else {
@@ -206,8 +208,8 @@ const ROLE_LABEL: Record<UserRole, string> = { user: 'Kullanıcı', dealer: 'Bay
                 </div>
                 <div class="au-dp-stat-divider"></div>
                 <div class="au-dp-stat">
-                  <span class="au-dp-stat__val au-dp-stat__val--green">{{ u.paymentTotal }}</span>
-                  <span class="au-dp-stat__lbl">Toplam Ödeme</span>
+                  <span class="au-dp-stat__val au-dp-stat__val--green">{{ u.role === 'dealer' ? dealerPaidTotal() : u.paymentTotal }}</span>
+                  <span class="au-dp-stat__lbl">Toplam Ödenen</span>
                 </div>
               </div>
             }
@@ -223,6 +225,25 @@ const ROLE_LABEL: Record<UserRole, string> = { user: 'Kullanıcı', dealer: 'Bay
                   <span class="au-status-hint">Onay "Kayıtlar" ekranından yapılır</span>
                 }
               </div>
+              @if (u.status !== 'pending') {
+                @if (isActive(u.status)) {
+                  <button class="au-toggle-btn au-toggle-btn--deactivate" type="button"
+                          [disabled]="togglingActive()"
+                          (click)="toggleActive(u, false)">
+                    <i class="pi" [class.pi-ban]="!togglingActive()" [class.pi-spin]="togglingActive()" [class.pi-spinner]="togglingActive()"></i>
+                    {{ togglingActive() ? 'İşleniyor…' : 'Hesabı Pasif Yap' }}
+                  </button>
+                  <p class="au-toggle-hint">Pasif hesap giriş yapamaz.</p>
+                } @else {
+                  <button class="au-toggle-btn au-toggle-btn--activate" type="button"
+                          [disabled]="togglingActive()"
+                          (click)="toggleActive(u, true)">
+                    <i class="pi" [class.pi-check-circle]="!togglingActive()" [class.pi-spin]="togglingActive()" [class.pi-spinner]="togglingActive()"></i>
+                    {{ togglingActive() ? 'İşleniyor…' : 'Hesabı Aktif Yap' }}
+                  </button>
+                  <p class="au-toggle-hint">Aktif edilince kullanıcı tekrar giriş yapabilir.</p>
+                }
+              }
             </div>
 
           </div>
@@ -231,38 +252,57 @@ const ROLE_LABEL: Record<UserRole, string> = { user: 'Kullanıcı', dealer: 'Bay
           <div class="au-detail-page__right">
 
             @if (u.role !== 'admin') {
-              <div class="au-dp-card au-dp-card--stretch">
-                <h3 class="au-dp-card__title">Sipariş Geçmişi</h3>
-                @if (u.orderHistory.length > 0) {
-                  <div class="au-order-list">
-                    @for (o of u.orderHistory; track o.id) {
-                      <div class="au-order-item">
-                        <div class="au-order-item__left">
-                          <span class="au-order-item__id">{{ o.id }}</span>
-                          <div>
-                            <p class="au-order-item__vehicle">{{ o.vehicle }}</p>
-                            <p class="au-order-item__meta">{{ o.stage }} · {{ o.date }}</p>
+              @if (u.role === 'dealer') {
+                <!-- Tab bar -->
+                <div class="au-tabs" role="tablist">
+                  <button class="au-tab" type="button" role="tab"
+                          [class.au-tab--active]="detailTab() === 'orders'"
+                          [attr.aria-selected]="detailTab() === 'orders'"
+                          (click)="detailTab.set('orders')">
+                    <i class="pi pi-shopping-cart"></i> Sipariş Geçmişi
+                  </button>
+                  <button class="au-tab" type="button" role="tab"
+                          [class.au-tab--active]="detailTab() === 'payments'"
+                          [attr.aria-selected]="detailTab() === 'payments'"
+                          (click)="detailTab.set('payments')">
+                    <i class="pi pi-wallet"></i> Ödemeler
+                  </button>
+                </div>
+              }
+
+              @if (u.role !== 'dealer' || detailTab() === 'orders') {
+                <div class="au-dp-card au-dp-card--stretch">
+                  <h3 class="au-dp-card__title">Sipariş Geçmişi</h3>
+                  @if (u.orderHistory.length > 0) {
+                    <div class="au-order-list">
+                      @for (o of u.orderHistory; track o.id) {
+                        <div class="au-order-item">
+                          <div class="au-order-item__left">
+                            <span class="au-order-item__id">{{ o.id }}</span>
+                            <div>
+                              <p class="au-order-item__vehicle">{{ o.vehicle }}</p>
+                              <p class="au-order-item__meta">{{ o.stage }} · {{ o.date }}</p>
+                            </div>
+                          </div>
+                          <div class="au-order-item__right">
+                            <span class="au-order-item__price">{{ o.price }}</span>
+                            <span class="au-obadge au-obadge--{{ o.statusKey }}">{{ o.status }}</span>
                           </div>
                         </div>
-                        <div class="au-order-item__right">
-                          <span class="au-order-item__price">{{ o.price }}</span>
-                          <span class="au-obadge au-obadge--{{ o.statusKey }}">{{ o.status }}</span>
-                        </div>
-                      </div>
-                    }
-                  </div>
-                  <!-- Totals -->
-                  <div class="au-order-total">
-                    <span>Toplam Ödeme</span>
-                    <span class="au-order-total__val">{{ u.paymentTotal }}</span>
-                  </div>
-                } @else {
-                  <div class="au-dp__empty"><i class="pi pi-inbox"></i><p>Henüz sipariş yok</p></div>
-                }
-              </div>
+                      }
+                    </div>
+                    <!-- Totals -->
+                    <div class="au-order-total">
+                      <span>Toplam Ödenen</span>
+                      <span class="au-order-total__val">{{ u.role === 'dealer' ? dealerPaidTotal() : u.paymentTotal }}</span>
+                    </div>
+                  } @else {
+                    <div class="au-dp__empty"><i class="pi pi-inbox"></i><p>Henüz sipariş yok</p></div>
+                  }
+                </div>
+              }
 
-              <!-- Bayi ödeme durumu — bayinin kendi ekranıyla aynı tasarım -->
-              @if (u.role === 'dealer') {
+              @if (u.role === 'dealer' && detailTab() === 'payments') {
                 <app-statements-panel [statements]="statements()" [readonly]="true" />
               }
             } @else {
@@ -404,6 +444,32 @@ const ROLE_LABEL: Record<UserRole, string> = { user: 'Kullanıcı', dealer: 'Bay
     .au-dp__status-row { display: flex; align-items: center; justify-content: space-between; gap: 0.75rem; }
     .au-status-hint { font-size: 0.72rem; color: rgba(255,255,255,0.35); }
     .au-toggle-btn {
+      margin-top: 0.85rem; width: 100%;
+      display: inline-flex; align-items: center; justify-content: center; gap: 0.5rem;
+      padding: 0.65rem 0.9rem; border-radius: 10px; cursor: pointer;
+      font-size: 0.82rem; font-weight: 600; border: 1px solid transparent;
+      transition: all 160ms;
+      &:disabled { opacity: 0.5; cursor: not-allowed; }
+      i { font-size: 0.85rem; }
+      &--deactivate { background: rgba(248,113,113,0.1); border-color: rgba(248,113,113,0.3); color: #f87171; &:hover:not(:disabled){ background: rgba(248,113,113,0.18); } }
+      &--activate   { background: rgba(74,222,128,0.1);  border-color: rgba(74,222,128,0.3);  color: #4ade80; &:hover:not(:disabled){ background: rgba(74,222,128,0.18); } }
+    }
+    .au-toggle-hint { margin: 0.45rem 0 0; font-size: 0.7rem; color: rgba(255,255,255,0.35); }
+    .au-tabs {
+      display: inline-flex; gap: 0.25rem; padding: 0.25rem;
+      background: #13151c; border: 1px solid rgba(255,255,255,0.08);
+      border-radius: 12px; margin-bottom: 0.85rem;
+    }
+    .au-tab {
+      display: inline-flex; align-items: center; gap: 0.45rem;
+      padding: 0.5rem 0.95rem; border-radius: 9px; cursor: pointer;
+      background: transparent; border: none; color: rgba(255,255,255,0.5);
+      font-size: 0.82rem; font-weight: 600; transition: all 160ms;
+      i { font-size: 0.85rem; }
+      &:hover { color: rgba(255,255,255,0.85); }
+      &--active { background: rgba(245,158,11,0.14); color: #f59e0b; }
+    }
+    .au-toggle-btn {
       display: flex; align-items: center; gap: 0.4rem; padding: 0.45rem 0.85rem; border-radius: 8px; border: none; cursor: pointer; font-size: 0.75rem; font-weight: 600;
       &--deactivate { background: rgba(248,113,113,0.1); color: #f87171; border: 1px solid rgba(248,113,113,0.2); &:hover { background: rgba(248,113,113,0.2); } }
       &--activate   { background: rgba(74,222,128,0.1);  color: #4ade80; border: 1px solid rgba(74,222,128,0.2);  &:hover { background: rgba(74,222,128,0.2); } }
@@ -455,6 +521,9 @@ export class AdminUsersPage implements OnInit {
   protected readonly selectedUser = signal<AdminUser | null>(null);
   protected readonly loading      = signal(true);
   protected readonly statements   = signal<Statement[]>([]);
+  protected readonly dealerPaidTotal = computed(() =>
+    formatTl(this.statements().filter(s => s.status === 'paid').reduce((sum, s) => sum + (s.total ?? 0), 0)),
+  );
 
   async ngOnInit(): Promise<void> {
     try {
@@ -481,13 +550,47 @@ export class AdminUsersPage implements OnInit {
     return list;
   });
 
+  /* ─── Sayfalama (10/sayfa) ─── */
+  protected readonly pageSize = 10;
+  protected readonly page     = signal(1);
+  protected readonly pagedUsers = computed(() => {
+    const start = (this.page() - 1) * this.pageSize;
+    return this.filteredByTab().slice(start, start + this.pageSize);
+  });
+  private readonly _resetPage = effect(() => {
+    this.activeTab(); this.search(); this.filterStatus();
+    this.page.set(1);
+  });
+
+  protected readonly detailTab = signal<'orders' | 'payments'>('orders');
+
   async openDetail(u: AdminUser): Promise<void> {
     this.selectedUser.set(u);
     this.currentView.set('detail');
+    this.detailTab.set('orders');
     this.statements.set([]);
     if (u.role === 'dealer') {
       try { this.statements.set(await this.adminApi.listDealerStatements(u.id)); }
       catch { /* sessiz */ }
+      this.cdr.markForCheck();
+    }
+  }
+
+  protected readonly togglingActive = signal(false);
+  async toggleActive(u: AdminUser, active: boolean): Promise<void> {
+    if (this.togglingActive()) { return; }
+    const verb = active ? 'aktif' : 'pasif';
+    if (!confirm(`${u.name} hesabını ${verb} yapmak istediğinize emin misiniz?`)) { return; }
+    this.togglingActive.set(true);
+    try {
+      await this.adminApi.setUserActive(u.id, active);
+      const newStatus: AccountStatus = active ? 'approved' : 'rejected';
+      this.allUsers.update(list => list.map(x => x.id === u.id ? { ...x, status: newStatus } : x));
+      this.selectedUser.update(sel => sel?.id === u.id ? { ...sel, status: newStatus } : sel);
+    } catch {
+      alert('Hesap durumu güncellenemedi.');
+    } finally {
+      this.togglingActive.set(false);
       this.cdr.markForCheck();
     }
   }

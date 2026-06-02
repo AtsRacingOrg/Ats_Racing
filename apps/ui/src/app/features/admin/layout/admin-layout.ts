@@ -16,10 +16,10 @@ interface NavItem { label: string; icon: string; route: string; }
   <!-- SIDEBAR -->
   <aside class="adm-sidebar">
     <div class="adm-sidebar__top">
-      <div class="adm-logo">
-        <span class="adm-logo__badge">ATS</span>
-        <span class="adm-logo__text">Admin Panel</span>
-      </div>
+      <a routerLink="/" class="adm-logo" aria-label="ATS Racing Admin">
+        <img src="/logo.png" alt="ATS Racing" class="adm-logo__img" />
+        <span class="adm-logo__text">Admin</span>
+      </a>
       <button class="adm-collapse-btn" (click)="collapsed.set(!collapsed())" aria-label="Daralt">
         <i class="pi" [class.pi-chevron-left]="!collapsed()" [class.pi-chevron-right]="collapsed()"></i>
       </button>
@@ -100,14 +100,10 @@ interface NavItem { label: string; icon: string; route: string; }
       display: flex; align-items: center; justify-content: space-between;
       padding: 1.25rem 1rem; border-bottom: 1px solid rgba(255,255,255,0.07); gap: 0.75rem;
     }
-    .adm-logo { display: flex; align-items: center; gap: 0.65rem; text-decoration: none; min-width: 0; }
-    .adm-logo__badge {
-      width: 32px; height: 32px; border-radius: 8px; flex-shrink: 0;
-      background: linear-gradient(135deg, #f59e0b, #d97706);
-      display: flex; align-items: center; justify-content: center;
-      font-size: 0.7rem; font-weight: 800; color: #fff;
-    }
-    .adm-logo__text { font-size: 0.875rem; font-weight: 700; color: #fff; white-space: nowrap; }
+    .adm-logo { display: flex; align-items: center; gap: 0.55rem; text-decoration: none; min-width: 0; flex: 1; overflow: hidden; }
+    .adm-logo__img { height: 32px; width: auto; max-width: 100%; object-fit: contain; object-position: left center; display: block; flex-shrink: 0; transition: height 200ms; }
+    .adm-shell--collapsed .adm-logo__img { height: 28px; }
+    .adm-logo__text { font-size: 0.78rem; font-weight: 700; color: #f59e0b; white-space: nowrap; letter-spacing: 0.06em; text-transform: uppercase; }
     .adm-collapse-btn {
       width: 28px; height: 28px; border-radius: 7px; border: none; cursor: pointer; flex-shrink: 0;
       background: rgba(255,255,255,0.05); color: rgba(255,255,255,0.4);

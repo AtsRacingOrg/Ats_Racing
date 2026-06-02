@@ -375,7 +375,7 @@ export class OverviewPage implements OnInit {
     return arr;
   });
 
-  protected readonly recentOrders = computed(() => this.orders().slice(0, 5));
+  protected readonly recentOrders = computed(() => this.orders().slice(0, 3));
 
   protected readonly quickActions = [
     { label: 'Chip Hesapla', desc: 'Aracınızın kazanımını hesaplayın', icon: 'pi-sliders-h', color: '#e63946', route: '/dashboard/tools' },

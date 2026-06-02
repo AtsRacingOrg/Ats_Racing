@@ -2,6 +2,21 @@
 .tp { display: flex; flex-direction: column; gap: 1.5rem; }
 .tp__title { font-size: 1.6rem; font-weight: 700; color: #fff; margin: 0; }
 .tp__sub   { font-size: 0.875rem; color: rgba(255,255,255,0.4); margin: 0.25rem 0 0; }
+.tp__header { display: flex; align-items: flex-start; justify-content: space-between; gap: 1rem; flex-wrap: wrap; }
+.tp__header-text { min-width: 0; }
+.tp__priv-toggle {
+  display: inline-flex; align-items: center; gap: 0.5rem;
+  padding: 0.55rem 0.95rem; border-radius: 999px; cursor: pointer;
+  background: rgba(230,57,70,0.12); border: 1px solid rgba(230,57,70,0.35);
+  color: #ff8a93; font-size: 0.8rem; font-weight: 600; white-space: nowrap;
+  transition: all 160ms;
+  i { font-size: 0.9rem; }
+  &:hover { background: rgba(230,57,70,0.18); }
+  &--on {
+    background: rgba(74,222,128,0.12); border-color: rgba(74,222,128,0.35); color: #4ade80;
+    &:hover { background: rgba(74,222,128,0.18); }
+  }
+}
 
 /* ── TABS ── */
 .tab-bar {

@@ -1,9 +1,10 @@
-import { ChangeDetectionStrategy, ChangeDetectorRef, Component, OnInit, inject, signal, computed } from '@angular/core';
+import { ChangeDetectionStrategy, ChangeDetectorRef, Component, OnInit, effect, inject, signal, computed } from '@angular/core';
 import { PageLoader } from '../../../../shared/page-loader';
+import { Paginator } from '../../../../shared/paginator';
 import { FormsModule } from '@angular/forms';
 import { DecimalPipe } from '@angular/common';
 import { Order, OrdersService } from '../../../../core/orders/orders.service';
-import { fuelLabelTr, stageLabel, formatTrDate, formatTl } from '../../../../core/orders/order-format';
+import { fuelLabelTr, stageLabel, formatTrDateTime, formatTl, triggerDownload } from '../../../../core/orders/order-format';
 
 type OrderStatus = 'pending' | 'processing' | 'completed' | 'cancelled';
 
@@ -22,9 +23,12 @@ interface UserOrder {
   pcodes: { pcode: string | null; note: string | null }[];
   modifiedParts: string[];
   originalFileUploaded: boolean; originalFileName?: string;
-  fileAvailable: boolean; fileName?: string;
+  fileAvailable: boolean; fileName?: string; fileNote?: string | null;
   priceMap: Record<string, number>;
   extrasTotalValue: number;
+  queuePosition: number | null;
+  queueTotal: number;
+  cancellationReason: string | null;
 }
 
 /** API Order → ekran modeli (UserOrder). */
@@ -35,7 +39,7 @@ function mapOrder(o: Order): UserOrder {
   return {
     id: o.orderNo,
     dbId: o.id,
-    date: formatTrDate(o.createdAt),
+    date: formatTrDateTime(o.createdAt),
     make: o.make ?? '',
     model: o.model ?? '',
     year: o.year ?? 0,
@@ -64,8 +68,12 @@ function mapOrder(o: Order): UserOrder {
     originalFileName: original?.fileName,
     fileAvailable: !!delivered && delivered.isDownloadable,
     fileName: delivered?.fileName,
+    fileNote: delivered?.notes ?? null,
     priceMap: Object.fromEntries(items.map(i => [i.label, i.unitPrice])),
     extrasTotalValue: o.extrasTotal,
+    queuePosition: o.queuePosition,
+    queueTotal: o.queueTotal,
+    cancellationReason: o.cancellationReason ?? null,
   };
 }
 
@@ -76,7 +84,7 @@ const STATUS_LABEL: Record<OrderStatus, string> = {
 @Component({
   selector: 'app-orders-page',
   standalone: true,
-  imports: [FormsModule, DecimalPipe, PageLoader],
+  imports: [FormsModule, DecimalPipe, PageLoader, Paginator],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
 @if (loading()) { <app-page-loader /> } @else {
@@ -97,6 +105,8 @@ const STATUS_LABEL: Record<OrderStatus, string> = {
       <div class="op__si op__si--yellow"><span class="op__sv">{{ countBy('pending') }}</span><span class="op__sl">Beklemede</span></div>
       <div class="op__ss"></div>
       <div class="op__si op__si--blue"><span class="op__sv">{{ countBy('processing') }}</span><span class="op__sl">İşlemde</span></div>
+      <div class="op__ss"></div>
+      <div class="op__si op__si--red"><span class="op__sv">{{ countBy('cancelled') }}</span><span class="op__sl">İptal</span></div>
     </div>
   </div>
 
@@ -123,7 +133,7 @@ const STATUS_LABEL: Record<OrderStatus, string> = {
         @if (filtered().length === 0) {
           <tr><td colspan="7" class="op__empty"><i class="pi pi-inbox"></i><span>Sipariş bulunamadı</span></td></tr>
         }
-        @for (o of filtered(); track o.id) {
+        @for (o of paged(); track o.id) {
           <tr class="op__row" (click)="openDetail(o)">
             <td>
               <div class="op__veh">
@@ -140,11 +150,22 @@ const STATUS_LABEL: Record<OrderStatus, string> = {
             </td>
             <td class="op__muted">{{ o.date }}</td>
             <td class="op__price">{{ o.price }}</td>
-            <td><span class="st-chip st-chip--{{o.status}}"><span class="st-dot"></span>{{ statusLabel(o.status) }}</span></td>
+            <td>
+              <span class="st-chip st-chip--{{o.status}}"><span class="st-dot"></span>{{ statusLabel(o.status) }}</span>
+              @if (o.queuePosition) {
+                <span class="op__queue" title="Kuyruk sıranız">
+                  <i class="pi pi-sort-numeric-down"></i> {{ o.queuePosition }}. sırada
+                </span>
+              }
+            </td>
             <td>
               @if (o.fileAvailable) {
-                <button class="op__btn op__btn--dl" title="İndir" type="button" (click)="$event.stopPropagation(); download(o)">
-                  <i class="pi pi-download"></i>
+                <button class="op__btn op__btn--dl" title="İndir" type="button"
+                        [disabled]="downloading(o.dbId)"
+                        (click)="$event.stopPropagation(); download(o)">
+                  <i class="pi" [class.pi-download]="!downloading(o.dbId)"
+                                [class.pi-spin]="downloading(o.dbId)"
+                                [class.pi-spinner]="downloading(o.dbId)"></i>
                 </button>
               } @else {
                 <button class="op__btn op__btn--off" disabled><i class="pi pi-clock"></i></button>
@@ -159,6 +180,7 @@ const STATUS_LABEL: Record<OrderStatus, string> = {
         }
       </tbody>
     </table>
+    <app-paginator [total]="filtered().length" [(page)]="page" [pageSize]="pageSize" />
   </div>
 
   } @else {
@@ -205,7 +227,17 @@ const STATUS_LABEL: Record<OrderStatus, string> = {
         }
       </div>
     } @else {
-      <div class="od__cancelled"><i class="pi pi-times-circle"></i> Bu sipariş iptal edilmiştir.</div>
+      <div class="od__cancelled">
+        <i class="pi pi-times-circle"></i>
+        <div>
+          <p style="margin:0;font-weight:600">Bu sipariş iptal edilmiştir.</p>
+          @if (o.cancellationReason) {
+            <p style="margin:0.25rem 0 0;font-size:0.82rem;color:rgba(255,255,255,0.7);white-space:pre-wrap">
+              <strong style="color:#f87171">Sebep:</strong> {{ o.cancellationReason }}
+            </p>
+          }
+        </div>
+      </div>
     }
 
     <!-- Checkout layout -->
@@ -361,6 +393,17 @@ const STATUS_LABEL: Record<OrderStatus, string> = {
       <!-- SIDEBAR (right) -->
       <div class="od__sidebar">
 
+        @if (o.queuePosition) {
+          <div class="od__queue-card">
+            <div class="od__queue-card__icon"><i class="pi pi-sort-numeric-down"></i></div>
+            <div class="od__queue-card__body">
+              <p class="od__queue-card__lbl">Kuyruk Sırası</p>
+              <p class="od__queue-card__val">{{ o.queuePosition }}<span class="od__queue-card__total">. sırada</span></p>
+              <p class="od__queue-card__hint">Siparişiniz hazırlanma kuyruğunda {{ o.queuePosition }}. sırada.</p>
+            </div>
+          </div>
+        }
+
         <!-- File download card -->
         <div class="od__file-card">
           <div class="od__file-card-head">
@@ -385,9 +428,20 @@ const STATUS_LABEL: Record<OrderStatus, string> = {
               <i class="pi pi-file"></i>
               <span>{{ o.fileName }}</span>
             </div>
-            <button class="od__dl-btn" type="button" [disabled]="downloading()" (click)="download(o)">
-              <i class="pi" [class.pi-download]="!downloading()" [class.pi-spin]="downloading()" [class.pi-spinner]="downloading()"></i>
-              {{ downloading() ? 'Hazırlanıyor…' : 'Dosyayı İndir' }}
+            @if (o.fileNote) {
+              <div class="od__file-note">
+                <i class="pi pi-comment"></i>
+                <div>
+                  <p class="od__file-note__lbl">Ekibimizden not</p>
+                  <p class="od__file-note__txt">{{ o.fileNote }}</p>
+                </div>
+              </div>
+            }
+            <button class="od__dl-btn" type="button" [disabled]="downloading(o.dbId)" (click)="download(o)">
+              <i class="pi" [class.pi-download]="!downloading(o.dbId)"
+                            [class.pi-spin]="downloading(o.dbId)"
+                            [class.pi-spinner]="downloading(o.dbId)"></i>
+              {{ downloading(o.dbId) ? 'Hazırlanıyor…' : 'Dosyayı İndir' }}
             </button>
           } @else if (o.status === 'processing') {
             <div class="od__progress-hint">
@@ -409,32 +463,44 @@ const STATUS_LABEL: Record<OrderStatus, string> = {
             </div>
           </div>
 
-          @if (o.originalFileUploaded && o.originalFileName && !uploadedFile()) {
+          @if (o.originalFileUploaded && o.originalFileName && !uploadedFile() && !origReuploadMode()) {
             <div class="od__orig-chip">
               <i class="pi pi-file-export"></i>
               <span>{{ o.originalFileName }}</span>
               <span class="od__orig-chip-badge">Yüklendi</span>
             </div>
-          }
-
-          <div class="od__upload-zone" [class.od__upload-zone--filled]="uploadedFile()"
-            (dragover)="$event.preventDefault()" (drop)="onDrop($event)">
-            @if (!uploadedFile()) {
-              <i class="pi pi-cloud-upload"></i>
-              <p>.bin · .ori · .hex</p>
-              <label class="od__upload-btn">
-                <i class="pi pi-folder-open"></i> Dosya Seç
-                <input type="file" accept=".bin,.ori,.hex,.mod" (change)="onFileSelect($event)" style="display:none" />
-              </label>
-            } @else {
-              <i class="pi pi-file" style="color:#4ade80;font-size:1.2rem;flex-shrink:0"></i>
-              <span class="od__upload-fname">{{ uploadedFile()!.name }}</span>
-              <div class="od__upload-acts">
-                <button type="button" class="od__send-btn" (click)="sendOriginalFile()"><i class="pi pi-send"></i> Gönder</button>
-                <button type="button" class="od__rm-btn" (click)="uploadedFile.set(null)"><i class="pi pi-times"></i></button>
-              </div>
+            <button class="od__change-btn" type="button" (click)="origReuploadMode.set(true)">
+              <i class="pi pi-refresh"></i> Dosyayı Değiştir
+            </button>
+          } @else {
+            @if (origReuploadMode() && o.originalFileName) {
+              <p class="od__reupload-note"><i class="pi pi-info-circle"></i> Yeni dosya yükleyerek eskisinin üzerine yazabilirsiniz.</p>
             }
-          </div>
+            <div class="od__upload-zone" [class.od__upload-zone--filled]="uploadedFile()"
+              (dragover)="$event.preventDefault()" (drop)="onDrop($event)">
+              @if (!uploadedFile()) {
+                <i class="pi pi-cloud-upload"></i>
+                <p>.bin · .ori · .hex</p>
+                <label class="od__upload-btn">
+                  <i class="pi pi-folder-open"></i> Dosya Seç
+                  <input type="file" accept=".bin,.ori,.hex,.mod" (change)="onFileSelect($event)" style="display:none" />
+                </label>
+              } @else {
+                <i class="pi pi-file" style="color:#4ade80;font-size:1.2rem;flex-shrink:0"></i>
+                <span class="od__upload-fname">{{ uploadedFile()!.name }}</span>
+                <button type="button" class="od__rm-btn" (click)="uploadedFile.set(null)"><i class="pi pi-times"></i></button>
+              }
+            </div>
+            <div class="od__upload-actions">
+              <button type="button" class="od__send-btn" [disabled]="!uploadedFile() || origSending()" (click)="sendOriginalFile(o)">
+                <i class="pi" [class.pi-send]="!origSending()" [class.pi-spin]="origSending()" [class.pi-spinner]="origSending()"></i>
+                {{ origSending() ? 'Gönderiliyor…' : (o.originalFileUploaded ? 'Dosyayı Güncelle' : 'Gönder') }}
+              </button>
+              @if (origReuploadMode()) {
+                <button type="button" class="od__cancel-btn" (click)="origReuploadMode.set(false); uploadedFile.set(null)">İptal</button>
+              }
+            </div>
+          }
 
           @if (fileSent()) {
             <div class="od__sent"><i class="pi pi-check-circle"></i> Dosyanız başarıyla gönderildi.</div>
@@ -468,6 +534,7 @@ const STATUS_LABEL: Record<OrderStatus, string> = {
     .op__si--green  .op__sv { color: #4ade80; }
     .op__si--yellow .op__sv { color: #fbbf24; }
     .op__si--blue   .op__sv { color: #60a5fa; }
+    .op__si--red    .op__sv { color: #f87171; }
 
     .op__filters { display: flex; align-items: center; gap: 1rem; flex-wrap: wrap; }
     .op__search {
@@ -524,6 +591,14 @@ const STATUS_LABEL: Record<OrderStatus, string> = {
     .st-chip--processing { background: rgba(96,165,250,0.12);  color: #60a5fa; }
     .st-chip--completed  { background: rgba(74,222,128,0.12);  color: #4ade80; }
     .st-chip--cancelled  { background: rgba(255,255,255,0.06); color: rgba(255,255,255,0.4); }
+    .op__queue { display: inline-flex; align-items: center; gap: 4px; margin-left: 0.4rem; padding: 3px 8px; border-radius: 20px; font-size: 0.68rem; font-weight: 700; background: rgba(168,85,247,0.12); color: #c084fc; white-space: nowrap; i { font-size: 0.7rem; } }
+    .od__queue-card { display: flex; gap: 0.85rem; padding: 1rem 1.1rem; border-radius: 14px; background: linear-gradient(135deg, rgba(168,85,247,0.14), rgba(168,85,247,0.05)); border: 1px solid rgba(168,85,247,0.3); margin-bottom: 1rem; }
+    .od__queue-card__icon { display: flex; align-items: center; justify-content: center; width: 42px; height: 42px; border-radius: 11px; background: rgba(168,85,247,0.2); color: #c084fc; flex-shrink: 0; i { font-size: 1.2rem; } }
+    .od__queue-card__body { min-width: 0; flex: 1; }
+    .od__queue-card__lbl { margin: 0 0 2px; font-size: 0.7rem; font-weight: 700; color: rgba(192,132,252,0.9); text-transform: uppercase; letter-spacing: 0.05em; }
+    .od__queue-card__val { margin: 0 0 4px; font-size: 1.4rem; font-weight: 800; color: #fff; line-height: 1; }
+    .od__queue-card__total { font-size: 0.85rem; font-weight: 600; color: rgba(255,255,255,0.5); margin-left: 4px; }
+    .od__queue-card__hint { margin: 0; font-size: 0.72rem; color: rgba(255,255,255,0.55); line-height: 1.35; }
 
     /* Fuel badges */
     .fuel-badge { display: inline-flex; padding: 0.15rem 0.55rem; border-radius: 6px; font-size: 0.72rem; font-weight: 700;
@@ -568,7 +643,7 @@ const STATUS_LABEL: Record<OrderStatus, string> = {
       &--active .od-ps__circle { border-color: #60a5fa; background: rgba(96,165,250,0.15); color: #60a5fa; box-shadow: 0 0 16px rgba(96,165,250,0.3); }
       &--active .od-ps__label  { color: #60a5fa; font-weight: 700; }
     }
-    .od__cancelled { display: flex; align-items: center; gap: 0.6rem; padding: 0.85rem 1.25rem; border-radius: 12px; background: rgba(248,113,113,0.08); border: 1px solid rgba(248,113,113,0.2); color: #f87171; font-size: 0.85rem; i { font-size: 1rem; } }
+    .od__cancelled { display: flex; align-items: flex-start; gap: 0.65rem; padding: 0.85rem 1.25rem; border-radius: 12px; background: rgba(248,113,113,0.08); border: 1px solid rgba(248,113,113,0.2); color: #f87171; font-size: 0.85rem; > i { font-size: 1.05rem; margin-top: 2px; flex-shrink: 0; } > div { min-width: 0; flex: 1; } }
 
     /* Checkout layout */
     .od__layout { display: grid; grid-template-columns: 1fr 340px; gap: 1.5rem; align-items: start; @media(max-width:1100px) { grid-template-columns: 1fr; } }
@@ -698,6 +773,16 @@ const STATUS_LABEL: Record<OrderStatus, string> = {
     .od__file-card-title { font-size: 0.9rem; font-weight: 700; color: #fff; margin: 0 0 3px; }
     .od__file-card-sub { font-size: 0.75rem; color: rgba(255,255,255,0.4); margin: 0; &--green { color: #4ade80; } &--blue { color: #60a5fa; } }
     .od__file-name-row { display: flex; align-items: center; gap: 0.5rem; padding: 0.65rem 0.85rem; border-radius: 10px; background: rgba(74,222,128,0.06); border: 1px solid rgba(74,222,128,0.15); margin-bottom: 0.85rem; font-size: 0.78rem; font-family: monospace; color: #fff; overflow: hidden; i { color: #4ade80; flex-shrink: 0; } span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; } }
+    .od__file-note {
+      display: flex; align-items: flex-start; gap: 0.6rem;
+      padding: 0.75rem 0.9rem; border-radius: 10px;
+      background: linear-gradient(135deg, rgba(96,165,250,0.12), rgba(96,165,250,0.05));
+      border: 1px solid rgba(96,165,250,0.28); margin-bottom: 0.85rem;
+    }
+    .od__file-note > i { color: #60a5fa; font-size: 1rem; line-height: 1.2; margin-top: 1px; flex-shrink: 0; }
+    .od__file-note > div { min-width: 0; flex: 1; }
+    .od__file-note__lbl { margin: 0 0 0.25rem; font-size: 0.68rem; font-weight: 700; color: #93c5fd; text-transform: uppercase; letter-spacing: 0.06em; }
+    .od__file-note__txt { margin: 0; font-size: 0.82rem; color: #fff; line-height: 1.5; white-space: pre-wrap; word-break: break-word; font-family: inherit; }
     .od__dl-btn { display: flex; align-items: center; justify-content: center; gap: 0.5rem; width: 100%; padding: 0.75rem; border-radius: 12px; border: none; cursor: pointer; background: linear-gradient(135deg,#4ade80,#16a34a); color: #000; font-size: 0.9rem; font-weight: 700; &:hover { opacity: 0.9; } }
     .od__progress-hint { p { font-size: 0.75rem; color: rgba(255,255,255,0.35); margin: 0.5rem 0 0; } }
     .od__progress-bar { height: 4px; background: rgba(255,255,255,0.08); border-radius: 2px; overflow: hidden; &__fill { height: 100%; width: 60%; background: linear-gradient(90deg,#60a5fa,#93c5fd); border-radius: 2px; animation: shimmer 2s ease-in-out infinite; } }
@@ -719,9 +804,13 @@ const STATUS_LABEL: Record<OrderStatus, string> = {
     .od__upload-btn { display: inline-flex; align-items: center; gap: 0.4rem; cursor: pointer; background: rgba(255,255,255,0.07); border: 1px solid rgba(255,255,255,0.12); border-radius: 8px; padding: 0.4rem 0.85rem; font-size: 0.75rem; color: rgba(255,255,255,0.7); &:hover { background: rgba(255,255,255,0.12); } }
     .od__upload-fname { flex: 1; font-size: 0.75rem; color: rgba(255,255,255,0.8); text-align: left; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-family: monospace; }
     .od__upload-acts { display: flex; align-items: center; gap: 0.4rem; flex-shrink: 0; }
-    .od__send-btn { display: flex; align-items: center; gap: 0.35rem; padding: 0.4rem 0.75rem; border-radius: 8px; border: none; background: linear-gradient(135deg,#e63946,#c1121f); color: #fff; font-size: 0.75rem; font-weight: 600; cursor: pointer; &:hover { opacity: 0.88; } }
+    .od__send-btn { flex: 1; display: flex; align-items: center; justify-content: center; gap: 0.5rem; padding: 0.65rem; border-radius: 10px; border: none; background: linear-gradient(135deg,#4ade80,#16a34a); color: #000; font-size: 0.82rem; font-weight: 700; cursor: pointer; &:hover:not(:disabled) { opacity: 0.9; } &:disabled { opacity: 0.3; cursor: not-allowed; } }
     .od__rm-btn { border: none; background: transparent; color: rgba(255,255,255,0.3); cursor: pointer; &:hover { color: #fff; } }
     .od__sent { margin-top: 0.6rem; display: flex; align-items: center; gap: 0.4rem; font-size: 0.78rem; color: #4ade80; }
+    .od__upload-actions { display: flex; gap: 0.6rem; margin-top: 0.6rem; }
+    .od__cancel-btn { padding: 0.65rem 1rem; border-radius: 10px; border: 1px solid rgba(255,255,255,0.1); background: transparent; color: rgba(255,255,255,0.55); font-size: 0.8rem; cursor: pointer; &:hover { background: rgba(255,255,255,0.06); color: #fff; } }
+    .od__change-btn { width: 100%; display: flex; align-items: center; justify-content: center; gap: 0.5rem; padding: 0.6rem; border-radius: 10px; cursor: pointer; background: transparent; border: 1px dashed rgba(255,255,255,0.15); color: rgba(255,255,255,0.65); font-size: 0.8rem; font-weight: 600; margin-top: 0.5rem; &:hover { background: rgba(255,255,255,0.05); color: #fff; border-color: rgba(255,255,255,0.25); } }
+    .od__reupload-note { font-size: 0.72rem; color: rgba(96,165,250,0.85); margin: 0 0 0.5rem; display: flex; align-items: flex-start; gap: 0.35rem; i { color: #60a5fa; flex-shrink: 0; } }
   `],
 })
 export class OrdersPage implements OnInit {
@@ -733,10 +822,16 @@ export class OrdersPage implements OnInit {
   protected readonly activeFilter  = signal<string>('all');
   protected readonly search        = signal('');
   protected readonly uploadedFile  = signal<File | null>(null);
+  protected readonly origReuploadMode = signal(false);
+  protected readonly origSending   = signal(false);
   protected readonly fileSent      = signal(false);
   protected readonly loading       = signal(true);
   protected readonly loadError     = signal('');
-  protected readonly downloading   = signal(false);
+  protected readonly downloadingId = signal<string | null>(null);
+  protected downloading(id?: string): boolean {
+    const cur = this.downloadingId();
+    return id ? cur === id : cur !== null;
+  }
 
   async ngOnInit(): Promise<void> {
     try {
@@ -751,19 +846,15 @@ export class OrdersPage implements OnInit {
   }
 
   async download(o: UserOrder): Promise<void> {
-    if (this.downloading()) { return; }
-    // window.open must be called synchronously within the user gesture (before any await)
-    // otherwise browsers block it as a popup.
-    const win = window.open('about:blank', '_blank');
-    this.downloading.set(true);
+    if (this.downloadingId()) { return; }
+    this.downloadingId.set(o.dbId);
     try {
       const res = await this.ordersApi.getDownloadUrl(o.dbId);
-      if (win) { win.location.href = res.url; }
+      await triggerDownload(res.url, res.fileName);
     } catch {
-      win?.close();
       this.loadError.set('Dosya indirilemedi.');
     } finally {
-      this.downloading.set(false);
+      this.downloadingId.set(null);
       this.cdr.markForCheck();
     }
   }
@@ -773,6 +864,7 @@ export class OrdersPage implements OnInit {
     { label: 'Beklemede',  value: 'pending'    },
     { label: 'İşlemde',    value: 'processing' },
     { label: 'Tamamlandı', value: 'completed'  },
+    { label: 'İptal',      value: 'cancelled'  },
   ];
 
   protected readonly progressSteps = [
@@ -794,6 +886,19 @@ export class OrdersPage implements OnInit {
     });
   });
 
+  /* ─── Sayfalama (10/sayfa) ─── */
+  protected readonly pageSize = 10;
+  protected readonly page     = signal(1);
+  protected readonly paged    = computed(() => {
+    const start = (this.page() - 1) * this.pageSize;
+    return this.filtered().slice(start, start + this.pageSize);
+  });
+  private readonly _resetPage = effect(() => {
+    // Filtre veya arama değiştiğinde 1. sayfaya dön.
+    this.search(); this.activeFilter();
+    this.page.set(1);
+  });
+
   countBy(s: OrderStatus): number { return this.orders().filter(o => o.status === s).length; }
   extraDesc(): string { return ''; }
   extraPrice(name: string): number { return this.selectedOrder()?.priceMap[name] ?? 0; }
@@ -807,6 +912,7 @@ export class OrdersPage implements OnInit {
     this.selectedOrder.set(o);
     this.uploadedFile.set(null);
     this.fileSent.set(false);
+    this.origReuploadMode.set(false);
     this.currentView.set('detail');
   }
   goBack(): void { this.currentView.set('list'); this.selectedOrder.set(null); }
@@ -820,5 +926,24 @@ export class OrdersPage implements OnInit {
     const file = ev.dataTransfer?.files?.[0] ?? null;
     if (file) { this.uploadedFile.set(file); this.fileSent.set(false); }
   }
-  sendOriginalFile(): void { this.uploadedFile.set(null); this.fileSent.set(true); }
+  async sendOriginalFile(o: UserOrder): Promise<void> {
+    const file = this.uploadedFile();
+    if (!file || this.origSending()) { return; }
+    this.origSending.set(true);
+    try {
+      const res = await this.ordersApi.uploadOriginalFile(o.dbId, file);
+      this.orders.update(list => list.map(x => x.dbId === o.dbId
+        ? { ...x, originalFileUploaded: true, originalFileName: res.fileName } : x));
+      this.selectedOrder.update(sel => sel?.dbId === o.dbId
+        ? { ...sel, originalFileUploaded: true, originalFileName: res.fileName } : sel);
+      this.uploadedFile.set(null);
+      this.origReuploadMode.set(false);
+      this.fileSent.set(true);
+    } catch {
+      this.loadError.set('Dosya yüklenemedi.');
+    } finally {
+      this.origSending.set(false);
+      this.cdr.markForCheck();
+    }
+  }
 }

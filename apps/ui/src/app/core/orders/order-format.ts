@@ -26,6 +26,16 @@ export function formatTrDate(iso: string | null | undefined): string {
   return `${d.getDate()} ${TR_MONTHS[d.getMonth()]} ${d.getFullYear()}`;
 }
 
+/** ISO tarih → "29 May 2026 · 14:32". */
+export function formatTrDateTime(iso: string | null | undefined): string {
+  if (!iso) { return ''; }
+  const d = new Date(iso);
+  if (isNaN(d.getTime())) { return ''; }
+  const hh = d.getHours().toString().padStart(2, '0');
+  const mm = d.getMinutes().toString().padStart(2, '0');
+  return `${d.getDate()} ${TR_MONTHS[d.getMonth()]} ${d.getFullYear()} · ${hh}:${mm}`;
+}
+
 /** (yıl, ay) → "Mayıs 2026". */
 export function periodLabel(year: number, month: number): string {
   return `${TR_MONTHS_LONG[month - 1] ?? month} ${year}`;
@@ -37,16 +47,23 @@ export function formatTl(value: number): string {
 }
 
 /**
- * Dosya indirmeyi tetikler. window.open async sonrası popup engellenebildiği
- * için gizli bir <a> öğesi oluşturup tıklatır (indirme engellenmez).
+ * Dosya indirmeyi tetikler. Yeni sekme açmadan doğrudan indirmek için
+ * URL'i blob olarak çeker ve gizli bir <a> üzerinden download tetikler.
  */
-export function triggerDownload(url: string, fileName?: string): void {
-  const a = document.createElement('a');
-  a.href = url;
-  if (fileName) { a.download = fileName; }
-  a.target = '_blank';
-  a.rel = 'noopener';
-  document.body.appendChild(a);
-  a.click();
-  a.remove();
+export async function triggerDownload(url: string, fileName?: string): Promise<void> {
+  const res = await fetch(url, { credentials: 'omit' });
+  if (!res.ok) { throw new Error(`download failed: ${res.status}`); }
+  const blob = await res.blob();
+  const blobUrl = URL.createObjectURL(blob);
+  try {
+    const a = document.createElement('a');
+    a.href = blobUrl;
+    a.download = fileName ?? '';
+    a.rel = 'noopener';
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+  } finally {
+    setTimeout(() => URL.revokeObjectURL(blobUrl), 1000);
+  }
 }

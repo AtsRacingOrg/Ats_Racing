@@ -69,7 +69,8 @@ export default class LoginPage {
     // Returning from the email verification link → ?verified=1
     if (this.route.snapshot.queryParamMap.get('verified') === '1') {
       this.success.set(
-        'E-postan doğrulandı. Hesabın admin onayından geçince giriş yapabilirsin.',
+        'E-postan doğrulandı. Şimdi giriş yapabilirsin. ' +
+        '(Bayi hesapları için admin onayı gerekir.)',
       );
     }
   }

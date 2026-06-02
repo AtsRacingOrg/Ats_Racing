@@ -1,9 +1,10 @@
-import { ChangeDetectionStrategy, ChangeDetectorRef, Component, OnInit, inject, signal, computed } from '@angular/core';
+import { ChangeDetectionStrategy, ChangeDetectorRef, Component, OnInit, effect, inject, signal, computed } from '@angular/core';
 import { PageLoader } from '../../../../shared/page-loader';
+import { Paginator } from '../../../../shared/paginator';
 import { FormsModule } from '@angular/forms';
 import { DecimalPipe } from '@angular/common';
 import { Order, OrdersService } from '../../../../core/orders/orders.service';
-import { fuelLabelTr, stageLabel, formatTrDate, formatTl } from '../../../../core/orders/order-format';
+import { fuelLabelTr, stageLabel, formatTrDate, formatTrDateTime, formatTl, triggerDownload } from '../../../../core/orders/order-format';
 
 type OrderStatus = 'pending' | 'processing' | 'completed' | 'cancelled';
 
@@ -25,7 +26,9 @@ interface AdminOrder {
   pcodes: { pcode: string | null; note: string | null }[];
   modifiedParts: string[];
   originalFileUploaded: boolean; originalFileName?: string;
-  fileUploaded: boolean; fileSent: boolean; sentFileName?: string;
+  fileUploaded: boolean; fileSent: boolean; sentFileName?: string; sentFileNote?: string | null;
+  queuePosition: number | null; queueTotal: number;
+  cancellationReason: string | null;
   timeline: TimelineEvent[];
   priceMap: Record<string, number>;
   extrasTotalValue: number;
@@ -40,7 +43,7 @@ function mapAdminOrder(o: Order): AdminOrder {
   return {
     id: o.orderNo,
     dbId: o.id,
-    date: formatTrDate(o.createdAt),
+    date: formatTrDateTime(o.createdAt),
     user: o.customer?.fullName ?? '—',
     email: o.customer?.email ?? '',
     phone: o.customer?.phone ?? undefined,
@@ -73,8 +76,12 @@ function mapAdminOrder(o: Order): AdminOrder {
     fileUploaded: !!delivered,
     fileSent: !!delivered,
     sentFileName: delivered?.fileName,
+    sentFileNote: delivered?.notes ?? null,
+    queuePosition: o.queuePosition,
+    queueTotal: o.queueTotal,
+    cancellationReason: o.cancellationReason ?? null,
     timeline: (o.events ?? []).map(e => ({
-      date: formatTrDate(e.createdAt),
+      date: formatTrDateTime(e.createdAt),
       event: e.event,
       by: e.actorRole ? (ROLE_LABEL[e.actorRole] ?? e.actorRole) : undefined,
     })),
@@ -90,7 +97,7 @@ const STATUS_LABEL: Record<OrderStatus, string> = {
 @Component({
   selector: 'app-admin-orders',
   standalone: true,
-  imports: [FormsModule, DecimalPipe, PageLoader],
+  imports: [FormsModule, DecimalPipe, PageLoader, Paginator],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
 @if (loading()) { <app-page-loader /> } @else {
@@ -138,7 +145,7 @@ const STATUS_LABEL: Record<OrderStatus, string> = {
         <th>ECU & Yöntem</th><th>Durum</th><th>Dosya</th><th>Tarih</th><th>Fiyat</th><th></th>
       </tr></thead>
       <tbody>
-        @for (o of filtered(); track o.id) {
+        @for (o of paged(); track o.id) {
           <tr class="aor-row" (click)="openDetail(o)">
             <td class="aor-row__id">{{ o.id }}</td>
             <td>
@@ -170,6 +177,11 @@ const STATUS_LABEL: Record<OrderStatus, string> = {
               <span class="aor-status aor-status--{{o.status}}">
                 <span class="aor-status__dot"></span>{{ statusLabel(o.status) }}
               </span>
+              @if (o.queuePosition) {
+                <span class="aor-queue-chip" title="Kuyruk sırası">
+                  <i class="pi pi-sort-numeric-down"></i> {{ o.queuePosition }}. sırada
+                </span>
+              }
             </td>
             <td>
               @if (o.fileSent) {
@@ -196,6 +208,7 @@ const STATUS_LABEL: Record<OrderStatus, string> = {
         }
       </tbody>
     </table>
+    <app-paginator [total]="filtered().length" [(page)]="page" [pageSize]="pageSize" />
   </div>
 
   } @else {
@@ -209,7 +222,12 @@ const STATUS_LABEL: Record<OrderStatus, string> = {
         <i class="pi pi-arrow-left"></i> Siparişler
       </button>
       <span class="aor-breadcrumb">/ {{ o.id }}</span>
-      <span class="aor-status aor-status--{{o.status}}" style="margin-left:auto">
+      @if (o.queuePosition) {
+        <span class="aor-queue-chip aor-queue-chip--lg" style="margin-left:auto" title="Kuyruk sırası">
+          <i class="pi pi-sort-numeric-down"></i> {{ o.queuePosition }}. sırada
+        </span>
+      }
+      <span class="aor-status aor-status--{{o.status}}" [style.margin-left]="o.queuePosition ? '0.6rem' : 'auto'">
         <span class="aor-status__dot"></span>{{ statusLabel(o.status) }}
       </span>
     </div>
@@ -236,7 +254,17 @@ const STATUS_LABEL: Record<OrderStatus, string> = {
         }
       </div>
     } @else {
-      <div class="aor-cancelled-banner"><i class="pi pi-times-circle"></i> Bu sipariş iptal edilmiştir.</div>
+      <div class="aor-cancelled-banner">
+        <i class="pi pi-times-circle"></i>
+        <div>
+          <p style="margin:0;font-weight:600">Bu sipariş iptal edilmiştir.</p>
+          @if (o.cancellationReason) {
+            <p style="margin:0.25rem 0 0;font-size:0.8rem;color:rgba(255,255,255,0.7);white-space:pre-wrap">
+              <strong style="color:#f87171">Sebep:</strong> {{ o.cancellationReason }}
+            </p>
+          }
+        </div>
+      </div>
     }
 
     <!-- Two-column grid -->
@@ -469,7 +497,13 @@ const STATUS_LABEL: Record<OrderStatus, string> = {
                 <p class="aor-orig-file__name">{{ o.originalFileName }}</p>
                 <p class="aor-orig-file__sub">Müşteri tarafından yüklendi</p>
               </div>
-              <button class="aor-icon-btn" type="button" title="İndir" [disabled]="downloading()" (click)="downloadFile(o, 'original')"><i class="pi pi-download"></i></button>
+              <button class="aor-icon-btn" type="button" title="İndir"
+                      [disabled]="downloading(o.dbId, 'original')"
+                      (click)="downloadFile(o, 'original')">
+                <i class="pi" [class.pi-download]="!downloading(o.dbId, 'original')"
+                              [class.pi-spin]="downloading(o.dbId, 'original')"
+                              [class.pi-spinner]="downloading(o.dbId, 'original')"></i>
+              </button>
             </div>
           } @else {
             <div class="aor-no-file"><i class="pi pi-file-excel"></i><span>Müşteri orijinal dosya yüklemedi.</span></div>
@@ -499,9 +533,29 @@ const STATUS_LABEL: Record<OrderStatus, string> = {
                 </button>
               }
             </div>
-            <button class="aor-cancel-order-btn" type="button" (click)="setStatus(o, 'cancelled')">
-              <i class="pi pi-times-circle"></i> Siparişi İptal Et
-            </button>
+            @if (!cancelMode()) {
+              <button class="aor-cancel-order-btn" type="button" (click)="openCancelForm()">
+                <i class="pi pi-times-circle"></i> Siparişi İptal Et
+              </button>
+            } @else {
+              <div class="aor-note-field" style="margin-top:0.6rem">
+                <label class="aor-note-field__lbl" [for]="'aor-cancel-' + o.id">
+                  <i class="pi pi-times-circle" style="color:#f87171"></i> İptal Sebebi (müşteriye gösterilir)
+                </label>
+                <textarea [id]="'aor-cancel-' + o.id" class="aor-note-field__input"
+                          rows="3" maxlength="1000"
+                          placeholder="Örn. Aracın ECU modeli desteklenmiyor."
+                          [value]="cancelReason()"
+                          (input)="onCancelReasonChange($event)"></textarea>
+              </div>
+              <div class="aor-upload-actions">
+                <button class="aor-cancel-confirm-btn" type="button" [disabled]="!cancelReason().trim() || cancelSaving()" (click)="confirmCancel(o)">
+                  <i class="pi" [class.pi-times-circle]="!cancelSaving()" [class.pi-spin]="cancelSaving()" [class.pi-spinner]="cancelSaving()"></i>
+                  {{ cancelSaving() ? 'İptal Ediliyor…' : 'İptali Onayla' }}
+                </button>
+                <button class="aor-cancel-btn" type="button" (click)="closeCancelForm()">Vazgeç</button>
+              </div>
+            }
           </div>
         }
 
@@ -517,8 +571,51 @@ const STATUS_LABEL: Record<OrderStatus, string> = {
                 <p class="aor-file-sent__name">{{ o.sentFileName }}</p>
                 <p class="aor-file-sent__sub">Müşteriye gönderildi</p>
               </div>
-              <button class="aor-icon-btn" type="button" title="İndir" [disabled]="downloading()" (click)="downloadFile(o, 'delivered')"><i class="pi pi-download"></i></button>
+              <button class="aor-icon-btn" type="button" title="İndir"
+                      [disabled]="downloading(o.dbId, 'delivered')"
+                      (click)="downloadFile(o, 'delivered')">
+                <i class="pi" [class.pi-download]="!downloading(o.dbId, 'delivered')"
+                              [class.pi-spin]="downloading(o.dbId, 'delivered')"
+                              [class.pi-spinner]="downloading(o.dbId, 'delivered')"></i>
+              </button>
             </div>
+            @if (!noteEditMode()) {
+              @if (o.sentFileNote) {
+                <div class="aor-file-note">
+                  <i class="pi pi-comment"></i>
+                  <div>
+                    <p class="aor-file-note__lbl">Müşteriye not</p>
+                    <p class="aor-file-note__txt">{{ o.sentFileNote }}</p>
+                  </div>
+                  <button class="aor-file-note__edit" type="button"
+                          title="Notu düzenle"
+                          (click)="startNoteEdit(o)">
+                    <i class="pi pi-pencil"></i>
+                  </button>
+                </div>
+              } @else {
+                <button class="aor-add-note-btn" type="button" (click)="startNoteEdit(o)">
+                  <i class="pi pi-comment"></i> Not Ekle
+                </button>
+              }
+            } @else {
+              <div class="aor-note-field">
+                <label class="aor-note-field__lbl" [for]="'aor-note-edit-' + o.id">
+                  <i class="pi pi-comment"></i> Müşteriye not
+                </label>
+                <textarea [id]="'aor-note-edit-' + o.id" class="aor-note-field__input"
+                          rows="3" maxlength="1000"
+                          [value]="noteEditDraft()"
+                          (input)="onNoteEditChange($event)"></textarea>
+              </div>
+              <div class="aor-upload-actions">
+                <button class="aor-send-btn" type="button" [disabled]="noteSaving()" (click)="saveNote(o)">
+                  <i class="pi" [class.pi-save]="!noteSaving()" [class.pi-spin]="noteSaving()" [class.pi-spinner]="noteSaving()"></i>
+                  {{ noteSaving() ? 'Kaydediliyor…' : 'Notu Kaydet' }}
+                </button>
+                <button class="aor-cancel-btn" type="button" (click)="cancelNoteEdit()">İptal</button>
+              </div>
+            }
             <button class="aor-change-btn" type="button" (click)="reuploadMode.set(true)">
               <i class="pi pi-refresh"></i> Dosyayı Değiştir
             </button>
@@ -540,6 +637,16 @@ const STATUS_LABEL: Record<OrderStatus, string> = {
                 <span class="aor-upload-fname">{{ selectedFile(o.id)!.name }}</span>
                 <button type="button" class="aor-remove-file" (click)="removeFile(o.id)"><i class="pi pi-times"></i></button>
               }
+            </div>
+            <div class="aor-note-field">
+              <label class="aor-note-field__lbl" [for]="'aor-note-' + o.id">
+                <i class="pi pi-comment"></i> Müşteriye not (opsiyonel)
+              </label>
+              <textarea [id]="'aor-note-' + o.id" class="aor-note-field__input"
+                        rows="3" maxlength="1000"
+                        placeholder="Örn. Dosya RaceROM ile yazıldı, ilk 500 km'de tam gaz yapmayın…"
+                        [value]="noteFor(o.id)"
+                        (input)="onNoteChange(o.id, $event)"></textarea>
             </div>
             <div class="aor-upload-actions">
               <button class="aor-send-btn" type="button" [disabled]="!selectedFile(o.id) || sending()" (click)="sendFile(o)">
@@ -657,6 +764,16 @@ const STATUS_LABEL: Record<OrderStatus, string> = {
       display: inline-flex; padding: 0.1rem 0.45rem; border-radius: 5px; font-size: 0.62rem; font-weight: 600;
       background: rgba(167,139,250,0.1); color: #a78bfa; border: 1px solid rgba(167,139,250,0.2);
     }
+    .aor-queue-chip {
+      display: inline-flex; align-items: center; gap: 4px;
+      margin-left: 0.4rem; padding: 3px 8px; border-radius: 20px;
+      font-size: 0.68rem; font-weight: 700;
+      background: rgba(168,85,247,0.14); color: #c084fc;
+      border: 1px solid rgba(168,85,247,0.3);
+      white-space: nowrap;
+      i { font-size: 0.7rem; }
+      &--lg { font-size: 0.78rem; padding: 6px 12px; gap: 6px; i { font-size: 0.85rem; } }
+    }
     .aor-status {
       display: inline-flex; align-items: center; gap: 0.4rem; font-size: 0.75rem; font-weight: 600;
       &__dot { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; background: currentColor; }
@@ -708,9 +825,17 @@ const STATUS_LABEL: Record<OrderStatus, string> = {
       &--done { background: rgba(74,222,128,0.4); }
     }
     .aor-cancelled-banner {
-      display: flex; align-items: center; gap: 0.6rem; padding: 0.85rem 1.25rem; border-radius: 12px;
+      display: flex; align-items: flex-start; gap: 0.65rem; padding: 0.85rem 1.25rem; border-radius: 12px;
       background: rgba(248,113,113,0.08); border: 1px solid rgba(248,113,113,0.2); color: #f87171; font-size: 0.85rem;
-      i { font-size: 1rem; }
+      i { font-size: 1.05rem; margin-top: 2px; flex-shrink: 0; }
+      > div { min-width: 0; flex: 1; }
+    }
+    .aor-cancel-confirm-btn {
+      flex: 1; display: flex; align-items: center; justify-content: center; gap: 0.5rem;
+      padding: 0.65rem; border-radius: 10px; border: none; cursor: pointer;
+      background: linear-gradient(135deg, #f87171, #dc2626); color: #fff; font-size: 0.85rem; font-weight: 700;
+      &:hover:not(:disabled) { opacity: 0.9; }
+      &:disabled { opacity: 0.3; cursor: not-allowed; }
     }
 
     .aor-detail__grid { display: grid; grid-template-columns: 1fr 380px; gap: 1.25rem; align-items: start; @media(max-width:1100px) { grid-template-columns: 1fr; } }
@@ -804,6 +929,22 @@ const STATUS_LABEL: Record<OrderStatus, string> = {
     .aor-send-btn { flex: 1; display: flex; align-items: center; justify-content: center; gap: 0.5rem; padding: 0.65rem; border-radius: 10px; border: none; cursor: pointer; background: linear-gradient(135deg,#4ade80,#16a34a); color: #000; font-size: 0.85rem; font-weight: 700; &:hover:not(:disabled) { opacity: 0.9; } &:disabled { opacity: 0.3; cursor: not-allowed; } }
     .aor-cancel-btn { padding: 0.65rem 1rem; border-radius: 10px; border: 1px solid rgba(255,255,255,0.1); background: transparent; color: rgba(255,255,255,0.5); font-size: 0.8rem; cursor: pointer; &:hover { background: rgba(255,255,255,0.06); color: #fff; } }
     .aor-upload-note { font-size: 0.72rem; color: rgba(255,255,255,0.3); margin: 0; display: flex; align-items: flex-start; gap: 0.4rem; i { flex-shrink: 0; color: rgba(245,158,11,0.5); } }
+    .aor-note-field { display: flex; flex-direction: column; gap: 0.4rem; margin-bottom: 0.6rem; }
+    .aor-note-field__lbl { font-size: 0.78rem; color: rgba(255,255,255,0.55); display: inline-flex; align-items: center; gap: 0.4rem; i { color: #60a5fa; } }
+    .aor-note-field__input {
+      width: 100%; resize: vertical; min-height: 64px; padding: 0.6rem 0.75rem;
+      border-radius: 10px; background: rgba(255,255,255,0.04);
+      border: 1px solid rgba(255,255,255,0.08); color: #fff;
+      font: inherit; font-size: 0.82rem; line-height: 1.4;
+      &::placeholder { color: rgba(255,255,255,0.25); }
+      &:focus { outline: none; border-color: rgba(96,165,250,0.5); background: rgba(255,255,255,0.06); }
+    }
+    .aor-file-note { display: flex; gap: 0.6rem; padding: 0.7rem 0.85rem; border-radius: 10px; background: rgba(96,165,250,0.08); border: 1px solid rgba(96,165,250,0.2); margin: 0.5rem 0 0.6rem; }
+    .aor-file-note i { color: #60a5fa; font-size: 0.95rem; margin-top: 2px; }
+    .aor-file-note__lbl { margin: 0 0 0.2rem; font-size: 0.72rem; font-weight: 600; color: rgba(96,165,250,0.9); text-transform: uppercase; letter-spacing: 0.04em; }
+    .aor-file-note__txt { margin: 0; font-size: 0.83rem; color: rgba(255,255,255,0.85); line-height: 1.45; white-space: pre-wrap; }
+    .aor-file-note__edit { background: transparent; border: 1px solid rgba(96,165,250,0.3); color: #93c5fd; width: 30px; height: 30px; border-radius: 8px; cursor: pointer; display: flex; align-items: center; justify-content: center; flex-shrink: 0; align-self: flex-start; &:hover { background: rgba(96,165,250,0.15); } i { font-size: 0.78rem; } }
+    .aor-add-note-btn { width: 100%; display: flex; align-items: center; justify-content: center; gap: 0.5rem; padding: 0.6rem; border-radius: 10px; cursor: pointer; background: rgba(96,165,250,0.08); border: 1px dashed rgba(96,165,250,0.3); color: #93c5fd; font-size: 0.82rem; font-weight: 600; margin: 0.5rem 0 0.6rem; &:hover { background: rgba(96,165,250,0.14); } }
 
     /* Timeline */
     .aor-timeline { display: flex; flex-direction: column; gap: 0; }
@@ -993,6 +1134,41 @@ export class AdminOrdersPage implements OnInit {
   }
 
   protected readonly files         = signal<Record<string, File | null>>({});
+  protected readonly fileNotes     = signal<Record<string, string>>({});
+  protected readonly noteEditMode  = signal(false);
+  protected readonly noteEditDraft = signal('');
+  protected readonly noteSaving    = signal(false);
+  noteFor(id: string): string { return this.fileNotes()[id] ?? ''; }
+  onNoteChange(orderId: string, ev: Event): void {
+    const val = (ev.target as HTMLTextAreaElement).value;
+    this.fileNotes.update(m => ({ ...m, [orderId]: val }));
+  }
+  startNoteEdit(o: AdminOrder): void {
+    this.noteEditDraft.set(o.sentFileNote ?? '');
+    this.noteEditMode.set(true);
+  }
+  onNoteEditChange(ev: Event): void {
+    this.noteEditDraft.set((ev.target as HTMLTextAreaElement).value);
+  }
+  cancelNoteEdit(): void {
+    this.noteEditMode.set(false);
+    this.noteEditDraft.set('');
+  }
+  async saveNote(o: AdminOrder): Promise<void> {
+    if (this.noteSaving()) { return; }
+    this.noteSaving.set(true);
+    try {
+      const updated = mapAdminOrder(await this.ordersApi.adminUpdateDeliveredNote(o.dbId, this.noteEditDraft()));
+      this.orders.update(list => list.map(x => x.dbId === updated.dbId ? updated : x));
+      this.selectedOrder.update(sel => sel?.dbId === updated.dbId ? updated : sel);
+      this.cancelNoteEdit();
+    } catch {
+      this.loadError.set('Not güncellenemedi.');
+    } finally {
+      this.noteSaving.set(false);
+      this.cdr.markForCheck();
+    }
+  }
   protected readonly search        = signal('');
   protected readonly filterStatus  = signal<OrderStatus | ''>('');
   protected readonly currentView   = signal<'list' | 'detail'>('list');
@@ -1026,6 +1202,18 @@ export class AdminOrdersPage implements OnInit {
     return list;
   });
 
+  /* ─── Sayfalama (10/sayfa) ─── */
+  protected readonly pageSize = 10;
+  protected readonly page     = signal(1);
+  protected readonly paged    = computed(() => {
+    const start = (this.page() - 1) * this.pageSize;
+    return this.filtered().slice(start, start + this.pageSize);
+  });
+  private readonly _resetPage = effect(() => {
+    this.search(); this.filterStatus();
+    this.page.set(1);
+  });
+
   extraDesc(): string { return ''; }
   extraPrice(name: string): number { return this.selectedOrder()?.priceMap[name] ?? 0; }
   extrasTotal(): number { return this.selectedOrder()?.extrasTotalValue ?? 0; }
@@ -1038,7 +1226,7 @@ export class AdminOrdersPage implements OnInit {
   statusRank(s: OrderStatus): number { return { pending: 0, processing: 1, completed: 2, cancelled: -1 }[s]; }
   progressRank(s: OrderStatus): number { return { pending: 1, processing: 2, completed: 4, cancelled: 0 }[s]; }
 
-  openDetail(o: AdminOrder): void { this.selectedOrder.set(o); this.reuploadMode.set(false); this.currentView.set('detail'); }
+  openDetail(o: AdminOrder): void { this.selectedOrder.set(o); this.reuploadMode.set(false); this.cancelNoteEdit(); this.closeCancelForm(); this.currentView.set('detail'); }
   goBack(): void { this.currentView.set('list'); this.selectedOrder.set(null); }
 
   async setStatus(o: AdminOrder, status: OrderStatus): Promise<void> {
@@ -1050,6 +1238,31 @@ export class AdminOrdersPage implements OnInit {
     } catch {
       this.loadError.set('Durum güncellenemedi.');
     } finally {
+      this.cdr.markForCheck();
+    }
+  }
+
+  protected readonly cancelMode    = signal(false);
+  protected readonly cancelReason  = signal('');
+  protected readonly cancelSaving  = signal(false);
+  openCancelForm(): void { this.cancelMode.set(true); this.cancelReason.set(''); }
+  closeCancelForm(): void { this.cancelMode.set(false); this.cancelReason.set(''); }
+  onCancelReasonChange(ev: Event): void {
+    this.cancelReason.set((ev.target as HTMLTextAreaElement).value);
+  }
+  async confirmCancel(o: AdminOrder): Promise<void> {
+    const reason = this.cancelReason().trim();
+    if (!reason || this.cancelSaving()) { return; }
+    this.cancelSaving.set(true);
+    try {
+      const updated = mapAdminOrder(await this.ordersApi.adminUpdateStatus(o.dbId, 'cancelled', reason));
+      this.orders.update(list => list.map(x => x.dbId === updated.dbId ? updated : x));
+      this.selectedOrder.update(sel => sel?.dbId === updated.dbId ? updated : sel);
+      this.closeCancelForm();
+    } catch {
+      this.loadError.set('Sipariş iptal edilemedi.');
+    } finally {
+      this.cancelSaving.set(false);
       this.cdr.markForCheck();
     }
   }
@@ -1066,20 +1279,24 @@ export class AdminOrdersPage implements OnInit {
   removeFile(orderId: string): void { this.files.update(m => ({ ...m, [orderId]: null })); }
 
   protected readonly sending = signal(false);
-  protected readonly downloading = signal(false);
+  protected readonly downloadingKey = signal<string | null>(null);
+  protected downloading(id?: string, kind?: 'original' | 'delivered'): boolean {
+    const cur = this.downloadingKey();
+    if (!cur) { return false; }
+    if (!id) { return true; }
+    return cur === `${id}:${kind ?? 'delivered'}`;
+  }
 
   async downloadFile(o: AdminOrder, kind: 'original' | 'delivered'): Promise<void> {
-    if (this.downloading()) { return; }
-    const win = window.open('about:blank', '_blank');
-    this.downloading.set(true);
+    if (this.downloadingKey()) { return; }
+    this.downloadingKey.set(`${o.dbId}:${kind}`);
     try {
       const res = await this.ordersApi.getDownloadUrl(o.dbId, kind);
-      if (win) { win.location.href = res.url; }
+      await triggerDownload(res.url, res.fileName);
     } catch {
-      win?.close();
       this.loadError.set('Dosya indirilemedi.');
     } finally {
-      this.downloading.set(false);
+      this.downloadingKey.set(null);
       this.cdr.markForCheck();
     }
   }
@@ -1089,10 +1306,12 @@ export class AdminOrdersPage implements OnInit {
     if (!file || this.sending()) { return; }
     this.sending.set(true);
     try {
-      const updated = mapAdminOrder(await this.ordersApi.adminDeliverFile(o.dbId, file));
+      const note = this.fileNotes()[o.id];
+      const updated = mapAdminOrder(await this.ordersApi.adminDeliverFile(o.dbId, file, note));
       this.orders.update(list => list.map(x => x.dbId === updated.dbId ? updated : x));
       this.selectedOrder.update(sel => sel?.dbId === updated.dbId ? updated : sel);
       this.files.update(m => ({ ...m, [o.id]: null }));
+      this.fileNotes.update(m => ({ ...m, [o.id]: '' }));
       this.reuploadMode.set(false);
     } catch {
       this.loadError.set('Dosya gönderilemedi.');

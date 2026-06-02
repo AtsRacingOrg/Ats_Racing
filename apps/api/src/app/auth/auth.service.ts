@@ -78,9 +78,11 @@ export class AuthService {
     }
 
     return {
-      message:
-        'Kaydın alındı. E-posta adresine gönderilen doğrulama bağlantısına tıkla. ' +
-        'Doğrulamadan sonra hesabın admin onayına düşecek; onaylanınca giriş yapabilirsin.',
+      message: role === 'dealer'
+        ? 'Bayi kaydın alındı. E-posta adresine gönderilen doğrulama bağlantısına tıkla. ' +
+          'Doğrulamadan sonra hesabın admin onayına düşecek; onaylanınca giriş yapabilirsin.'
+        : 'Kaydın alındı. E-posta adresine gönderilen doğrulama bağlantısına tıkla. ' +
+          'Doğrulamadan sonra hemen giriş yapabilirsin.',
     };
   }
 

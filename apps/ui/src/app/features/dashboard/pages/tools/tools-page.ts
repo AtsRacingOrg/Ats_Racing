@@ -3,6 +3,7 @@ import { DecimalPipe } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
 import { AuthService } from '../../../../core/auth/auth.service';
+import { PrivacyService } from '../../../../core/privacy.service';
 import {
   Brand,
   Engine,
@@ -55,7 +56,6 @@ const GROUP_ORDER = ['Emisyon', 'Motor', 'Performans', 'Konfor', 'Egzoz', 'Güve
       <!-- PAGE HEADER -->
       <div class="tp__header">
         <h1 class="tp__title">Yazılım Araçları</h1>
-        <p class="tp__sub">Modül yazılımı siparişi verin veya chip tuning kazanımınızı hesaplayın</p>
       </div>
 
       @if (catalogError()) {
@@ -216,7 +216,7 @@ const GROUP_ORDER = ['Emisyon', 'Motor', 'Performans', 'Konfor', 'Egzoz', 'Güve
                         </span>
                       </div>
                       <p class="mod-tile__desc">{{ mod.description }}</p>
-                      <span class="mod-tile__price">+{{ mod.price | number }}₺</span>
+                      @if (!pricesHidden()) { <span class="mod-tile__price">+{{ mod.price | number }}₺</span> }
                     </button>
                   }
                 </div>
@@ -236,10 +236,12 @@ const GROUP_ORDER = ['Emisyon', 'Motor', 'Performans', 'Konfor', 'Egzoz', 'Güve
                 </div>
               </div>
               <div class="order-summary__right">
-                <div class="order-summary__total">
-                  <span class="order-summary__total-lbl">Toplam</span>
-                  <span class="order-summary__total-val">{{ totalPrice() | number }}₺</span>
-                </div>
+                @if (!pricesHidden()) {
+                  <div class="order-summary__total">
+                    <span class="order-summary__total-lbl">Toplam</span>
+                    <span class="order-summary__total-val">{{ totalPrice() | number }}₺</span>
+                  </div>
+                }
                 <button class="cta-btn cta-btn--primary" type="button"
                   [disabled]="orderSubmitting()" (click)="submitOrder()">
                   <i class="pi" [class.pi-send]="!orderSubmitting()" [class.pi-spin]="orderSubmitting()" [class.pi-spinner]="orderSubmitting()"></i>
@@ -469,7 +471,7 @@ const GROUP_ORDER = ['Emisyon', 'Motor', 'Performans', 'Konfor', 'Egzoz', 'Güve
                   >
                     <span class="tune-opt__head">
                       <span class="tune-opt__badge tune-opt__badge--blue">Stage 1</span>
-                      <span class="tune-opt__price">₺{{ tuningPriceMap()['stage1'] | number }}</span>
+                      @if (!pricesHidden()) { <span class="tune-opt__price">₺{{ tuningPriceMap()['stage1'] | number }}</span> }
                     </span>
                     <span class="tune-opt__desc">Sadece yazılım — ek donanım gerektirmez</span>
                     <span class="tune-opt__gain">+{{ selEngine()!.stage1.hp - selEngine()!.stock.hp }} HP  /  +{{ selEngine()!.stage1.torque - selEngine()!.stock.torque }} Nm</span>
@@ -484,7 +486,7 @@ const GROUP_ORDER = ['Emisyon', 'Motor', 'Performans', 'Konfor', 'Egzoz', 'Güve
                     >
                       <span class="tune-opt__head">
                         <span class="tune-opt__badge tune-opt__badge--red">Stage 2</span>
-                        <span class="tune-opt__price">₺{{ tuningPriceMap()['stage2'] | number }}</span>
+                        @if (!pricesHidden()) { <span class="tune-opt__price">₺{{ tuningPriceMap()['stage2'] | number }}</span> }
                       </span>
                       <span class="tune-opt__desc">Downpipe + intercooler ile orta seviye kazanım</span>
                       <span class="tune-opt__gain">+{{ s2.hp - selEngine()!.stock.hp }} HP  /  +{{ s2.torque - selEngine()!.stock.torque }} Nm</span>
@@ -509,7 +511,7 @@ const GROUP_ORDER = ['Emisyon', 'Motor', 'Performans', 'Konfor', 'Egzoz', 'Güve
                     >
                       <span class="tune-opt__head">
                         <span class="tune-opt__badge tune-opt__badge--purple">Stage 3</span>
-                        <span class="tune-opt__price">₺{{ tuningPriceMap()['stage3'] | number }}</span>
+                        @if (!pricesHidden()) { <span class="tune-opt__price">₺{{ tuningPriceMap()['stage3'] | number }}</span> }
                       </span>
                       <span class="tune-opt__desc">Turbo + yakıt sistemi upgrade ile maksimum kazanım</span>
                       <span class="tune-opt__gain">+{{ s3.hp - selEngine()!.stock.hp }} HP  /  +{{ s3.torque - selEngine()!.stock.torque }} Nm</span>
@@ -924,7 +926,7 @@ const GROUP_ORDER = ['Emisyon', 'Motor', 'Performans', 'Konfor', 'Egzoz', 'Güve
                               <span class="mod-indicator" [class.mod-indicator--on]="isSelected(mod.code)">{{ isSelected(mod.code) ? 'ON' : 'OFF' }}</span>
                             </div>
                             <p class="mod-tile__desc">{{ mod.description }}</p>
-                            <span class="mod-tile__price">+{{ mod.price | number }}₺</span>
+                            @if (!pricesHidden()) { <span class="mod-tile__price">+{{ mod.price | number }}₺</span> }
                           </button>
                         }
                       </div>
@@ -1003,7 +1005,7 @@ const GROUP_ORDER = ['Emisyon', 'Motor', 'Performans', 'Konfor', 'Egzoz', 'Güve
                       <span class="cs__stage-badge cs__stage-badge--{{ selTune() }}">{{ tuneLabel() }}</span>
                       <span class="cs__line-desc">Chip Tuning Yazılımı</span>
                     </div>
-                    <span class="cs__line-price">₺{{ tuningPrice() | number }}</span>
+                    @if (!pricesHidden()) { <span class="cs__line-price">₺{{ tuningPrice() | number }}</span> }
                   </div>
 
                   <!-- Engine specs mini -->
@@ -1042,7 +1044,7 @@ const GROUP_ORDER = ['Emisyon', 'Motor', 'Performans', 'Konfor', 'Egzoz', 'Güve
                           <i class="pi pi-check-circle cs__mod-icon"></i>
                           <span class="cs__line-desc">{{ labelOf(code) }}</span>
                         </div>
-                        <span class="cs__line-price cs__line-price--sm">+₺{{ modPrice(code) | number }}</span>
+                        @if (!pricesHidden()) { <span class="cs__line-price cs__line-price--sm">+₺{{ modPrice(code) | number }}</span> }
                       </div>
                     }
                   }
@@ -1143,10 +1145,12 @@ const GROUP_ORDER = ['Emisyon', 'Motor', 'Performans', 'Konfor', 'Egzoz', 'Güve
                   }
 
                   <!-- Total -->
-                  <div class="cs__total">
-                    <span class="cs__total-lbl">Toplam Tutar</span>
-                    <span class="cs__total-val">₺{{ tuningGrandTotal() | number }}</span>
-                  </div>
+                  @if (!pricesHidden()) {
+                    <div class="cs__total">
+                      <span class="cs__total-lbl">Toplam Tutar</span>
+                      <span class="cs__total-val">₺{{ tuningGrandTotal() | number }}</span>
+                    </div>
+                  }
 
                   <!-- Ödeme bilgisi — role göre -->
                   @if (isDealer()) {
@@ -1236,6 +1240,8 @@ export class ToolsPage implements OnInit {
   protected readonly orderCtaLabel = computed(() =>
     this.isDealer() ? 'Siparişi Onayla' : 'Öde ve Sipariş Ver',
   );
+  /** Bayilerde müşteri yanındayken fiyatları gizlemek için (layout'taki düğme kontrol eder). */
+  protected readonly pricesHidden = inject(PrivacyService).pricesHidden;
 
   /* ─── TAB ─── */
   protected readonly activeTab = signal<TabKey>('tuning');

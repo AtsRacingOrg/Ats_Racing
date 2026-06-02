@@ -55,6 +55,16 @@ export class AdminService {
     return firstValueFrom(this.http.get<Statement[]>(`${this.api}/admin/users/${userId}/statements`));
   }
 
+  listAllStatements(): Promise<Statement[]> {
+    return firstValueFrom(this.http.get<Statement[]>(`${this.api}/admin/statements`));
+  }
+
+  setUserActive(userId: string, active: boolean): Promise<Registration> {
+    return firstValueFrom(
+      this.http.post<Registration>(`${this.api}/admin/users/${userId}/active`, { active }),
+    );
+  }
+
   listRegistrations(status?: RegStatus): Promise<Registration[]> {
     const params = status ? `?status=${status}` : '';
     return firstValueFrom(
