@@ -9,49 +9,49 @@
       <div class="chip__cell">
         <label for="chip-brand">Marka</label>
         <div class="chip__control">
-          <select id="chip-brand" [value]="brand()" (change)="onBrand($any($event.target).value)">
+          <select id="chip-brand" [value]="brandId()" (change)="onBrand($any($event.target).value)">
             <option value="">Seçiniz</option>
-            @for (b of catalog; track b.name) {
-              <option [value]="b.name">{{ b.name }}</option>
+            @for (b of brands(); track b.id) {
+              <option [value]="b.id">{{ b.name }}</option>
             }
           </select>
           <i class="pi pi-chevron-down chip__chev" aria-hidden="true"></i>
         </div>
       </div>
 
-      <div class="chip__cell" [class.is-disabled]="!brand()">
+      <div class="chip__cell" [class.is-disabled]="!brandId()">
         <label for="chip-model">Model</label>
         <div class="chip__control">
-          <select id="chip-model" [value]="model()" (change)="onModel($any($event.target).value)" [disabled]="!brand()">
+          <select id="chip-model" [value]="modelId()" (change)="onModel($any($event.target).value)" [disabled]="!brandId()">
             <option value="">Seçiniz</option>
-            @for (m of models(); track m.name) {
-              <option [value]="m.name">{{ m.name }}</option>
+            @for (m of models(); track m.id) {
+              <option [value]="m.id">{{ m.name }}</option>
             }
           </select>
           <i class="pi pi-chevron-down chip__chev" aria-hidden="true"></i>
         </div>
       </div>
 
-      <div class="chip__cell" [class.is-disabled]="!model()">
+      <div class="chip__cell" [class.is-disabled]="!modelId()">
         <label for="chip-series">Seri</label>
         <div class="chip__control">
-          <select id="chip-series" [value]="series()" (change)="onSeries($any($event.target).value)" [disabled]="!model()">
+          <select id="chip-series" [value]="seriesId()" (change)="onSeries($any($event.target).value)" [disabled]="!modelId()">
             <option value="">Seçiniz</option>
-            @for (s of seriesList(); track s.name) {
-              <option [value]="s.name">{{ s.name }}</option>
+            @for (s of seriesList(); track s.id) {
+              <option [value]="s.id">{{ s.name }}{{ s.yearLabel ? ' (' + s.yearLabel + ')' : '' }}</option>
             }
           </select>
           <i class="pi pi-chevron-down chip__chev" aria-hidden="true"></i>
         </div>
       </div>
 
-      <div class="chip__cell" [class.is-disabled]="!series()">
+      <div class="chip__cell" [class.is-disabled]="!seriesId()">
         <label for="chip-engine">Motor</label>
         <div class="chip__control">
-          <select id="chip-engine" [value]="engine()" (change)="onEngine($any($event.target).value)" [disabled]="!series()">
+          <select id="chip-engine" [value]="engineId()" (change)="onEngine($any($event.target).value)" [disabled]="!seriesId()">
             <option value="">Seçiniz</option>
-            @for (e of engines(); track e.engine) {
-              <option [value]="e.engine">{{ e.engine }}</option>
+            @for (e of engines(); track e.id) {
+              <option [value]="e.id">{{ e.label }}</option>
             }
           </select>
           <i class="pi pi-chevron-down chip__chev" aria-hidden="true"></i>
@@ -95,11 +95,11 @@
     <!-- Header -->
     <div class="cm__head">
       <div class="cm__head-left">
-        <span class="cm__brand-pill">{{ brand() }}</span>
-        <h3 id="cm-title" class="cm__title">{{ brand() }} {{ model() }} · {{ series() }}</h3>
+        <span class="cm__brand-pill">{{ brandName() }}</span>
+        <h3 id="cm-title" class="cm__title">{{ brandName() }} {{ modelName() }} · {{ seriesName() }}</h3>
         <p class="cm__engine-line">
           <span class="cm__engine-code">{{ r.engineCode }}</span>
-          {{ r.displacementCc | number }} cc · {{ r.fuel }}
+          {{ r.displacementCc ? (r.displacementCc | number) + ' cc · ' : '' }}{{ r.fuelLabel }}
         </p>
       </div>
       <button class="cm__close" (click)="closeModal()" aria-label="Kapat">
@@ -115,24 +115,24 @@
       </div>
       <div class="cm__spec">
         <span class="cm__spec-k">Silindir Hacmi</span>
-        <span class="cm__spec-v">{{ r.displacementCc | number }} cc</span>
+        <span class="cm__spec-v">{{ r.displacementCc ? (r.displacementCc | number) + ' cc' : '—' }}</span>
       </div>
       <div class="cm__spec">
         <span class="cm__spec-k">Bore × Stroke</span>
-        <span class="cm__spec-v">{{ r.bore }}</span>
+        <span class="cm__spec-v">{{ r.bore || '—' }}</span>
       </div>
       <div class="cm__spec">
         <span class="cm__spec-k">Sıkıştırma</span>
-        <span class="cm__spec-v">{{ r.compressionRatio }}</span>
+        <span class="cm__spec-v">{{ r.compressionRatio || '—' }}</span>
       </div>
       <div class="cm__spec">
         <span class="cm__spec-k">ECU</span>
-        <span class="cm__spec-v">{{ r.ecu }}</span>
+        <span class="cm__spec-v">{{ r.ecu || '—' }}</span>
       </div>
       <div class="cm__spec">
         <span class="cm__spec-k">Yakıt</span>
         <span class="cm__spec-v">
-          <span class="cm__fuel cm__fuel--{{ fuelClass(r.fuel) }}">{{ r.fuel }}</span>
+          <span class="cm__fuel cm__fuel--{{ r.fuelClass }}">{{ r.fuelLabel }}</span>
         </span>
       </div>
     </div>
@@ -161,33 +161,37 @@
         <span class="cm__stage-name">
           <span class="cm__stage-badge cm__stage-badge--blue">Stage 1</span>
         </span>
-        <span class="cm__stage-val cm__stage-val--lit">{{ r.stage1Hp }}</span>
-        <span class="cm__stage-val cm__stage-val--lit">{{ r.stage1Tq }}</span>
-        <span class="cm__stage-delta cm__stage-delta--green">+{{ r.stage1Hp - r.stockHp }}</span>
-        <span class="cm__stage-delta cm__stage-delta--green">+{{ r.stage1Tq - r.stockTq }}</span>
+        <span class="cm__stage-val cm__stage-val--lit">{{ r.stage1.hp }}</span>
+        <span class="cm__stage-val cm__stage-val--lit">{{ r.stage1.tq }}</span>
+        <span class="cm__stage-delta cm__stage-delta--green">+{{ r.stage1.hp - r.stockHp }}</span>
+        <span class="cm__stage-delta cm__stage-delta--green">+{{ r.stage1.tq - r.stockTq }}</span>
       </div>
 
       <!-- Stage 2 -->
-      <div class="cm__stage-row cm__stage-row--s2">
-        <span class="cm__stage-name">
-          <span class="cm__stage-badge cm__stage-badge--red">Stage 2</span>
-        </span>
-        <span class="cm__stage-val cm__stage-val--lit">{{ r.stage2Hp }}</span>
-        <span class="cm__stage-val cm__stage-val--lit">{{ r.stage2Tq }}</span>
-        <span class="cm__stage-delta cm__stage-delta--green">+{{ r.stage2Hp - r.stockHp }}</span>
-        <span class="cm__stage-delta cm__stage-delta--green">+{{ r.stage2Tq - r.stockTq }}</span>
-      </div>
+      @if (r.stage2; as s2) {
+        <div class="cm__stage-row cm__stage-row--s2">
+          <span class="cm__stage-name">
+            <span class="cm__stage-badge cm__stage-badge--red">Stage 2</span>
+          </span>
+          <span class="cm__stage-val cm__stage-val--lit">{{ s2.hp }}</span>
+          <span class="cm__stage-val cm__stage-val--lit">{{ s2.tq }}</span>
+          <span class="cm__stage-delta cm__stage-delta--green">+{{ s2.hp - r.stockHp }}</span>
+          <span class="cm__stage-delta cm__stage-delta--green">+{{ s2.tq - r.stockTq }}</span>
+        </div>
+      }
 
       <!-- Stage 3 -->
-      <div class="cm__stage-row cm__stage-row--s3">
-        <span class="cm__stage-name">
-          <span class="cm__stage-badge cm__stage-badge--purple">Stage 3</span>
-        </span>
-        <span class="cm__stage-val cm__stage-val--lit">{{ r.stage3Hp }}</span>
-        <span class="cm__stage-val cm__stage-val--lit">{{ r.stage3Tq }}</span>
-        <span class="cm__stage-delta cm__stage-delta--green">+{{ r.stage3Hp - r.stockHp }}</span>
-        <span class="cm__stage-delta cm__stage-delta--green">+{{ r.stage3Tq - r.stockTq }}</span>
-      </div>
+      @if (r.stage3; as s3) {
+        <div class="cm__stage-row cm__stage-row--s3">
+          <span class="cm__stage-name">
+            <span class="cm__stage-badge cm__stage-badge--purple">Stage 3</span>
+          </span>
+          <span class="cm__stage-val cm__stage-val--lit">{{ s3.hp }}</span>
+          <span class="cm__stage-val cm__stage-val--lit">{{ s3.tq }}</span>
+          <span class="cm__stage-delta cm__stage-delta--green">+{{ s3.hp - r.stockHp }}</span>
+          <span class="cm__stage-delta cm__stage-delta--green">+{{ s3.tq - r.stockTq }}</span>
+        </div>
+      }
     </div>
 
     <!-- CTA Footer -->
