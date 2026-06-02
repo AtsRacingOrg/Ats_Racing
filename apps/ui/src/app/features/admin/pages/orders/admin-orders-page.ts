@@ -105,36 +105,36 @@ const STATUS_LABEL: Record<OrderStatus, string> = {
 
   @if (currentView() === 'list') {
   <!-- ══ LIST ══ -->
-  <div class="aor__header">
+  <div class="op__header">
     <div>
-      <h1 class="aor__title">Siparişler</h1>
-      <p class="aor__sub">{{ filtered().length }} sipariş listeleniyor</p>
+      <h1 class="op__title">Siparişler</h1>
+      <p class="op__sub">{{ filtered().length }} sipariş listeleniyor</p>
     </div>
-    <div class="aor__actions">
-      <div class="aor-search">
-        <i class="pi pi-search"></i>
-        <input type="text" placeholder="Sipariş veya kullanıcı ara…"
-          [ngModel]="search()" (ngModelChange)="search.set($event)" />
-      </div>
-      <select class="aor-filter" [ngModel]="filterStatus()" (ngModelChange)="filterStatus.set($event)">
-        <option value="">Tüm Durumlar</option>
-        <option value="pending">Hazırlanıyor</option>
-        <option value="completed">Tamamlandı</option>
-        <option value="cancelled">İptal</option>
-      </select>
+    <div class="op__summary">
+      <div class="op__si"><span class="op__sv">{{ orders().length }}</span><span class="op__sl">Toplam</span></div>
+      <div class="op__ss"></div>
+      <div class="op__si op__si--green"><span class="op__sv">{{ countByStatus('completed') }}</span><span class="op__sl">Tamamlandı</span></div>
+      <div class="op__ss"></div>
+      <div class="op__si op__si--blue"><span class="op__sv">{{ countByStatus('pending') }}</span><span class="op__sl">Hazırlanıyor</span></div>
+      <div class="op__ss"></div>
+      <div class="op__si op__si--red"><span class="op__sv">{{ countByStatus('cancelled') }}</span><span class="op__sl">İptal</span></div>
     </div>
   </div>
 
-  <div class="aor__status-bar">
-    @for (s of statusTabs; track s.key) {
-      <button class="aor-stab" type="button"
-        [class.aor-stab--active]="filterStatus() === s.key"
-        (click)="filterStatus.set(filterStatus() === s.key ? '' : s.key)">
-        <span class="aor-stab__dot aor-stab__dot--{{s.key}}"></span>
-        {{ s.label }}
-        <span class="aor-stab__count">{{ countByStatus(s.key) }}</span>
-      </button>
-    }
+  <div class="op__filters">
+    <div class="op__search">
+      <i class="pi pi-search"></i>
+      <input type="text" placeholder="Sipariş veya kullanıcı ara…"
+        [ngModel]="search()" (ngModelChange)="search.set($event)" />
+    </div>
+    <div class="op__chips">
+      <button class="op__chip" type="button"
+        [class.op__chip--active]="filterStatus() === ''" (click)="filterStatus.set('')">Tümü</button>
+      @for (s of statusTabs; track s.key) {
+        <button class="op__chip" type="button"
+          [class.op__chip--active]="filterStatus() === s.key" (click)="filterStatus.set(s.key)">{{ s.label }}</button>
+      }
+    </div>
   </div>
 
   <div class="op__table-wrap">
@@ -728,6 +728,35 @@ const STATUS_LABEL: Record<OrderStatus, string> = {
 
     /* Table */
     /* ── Sipariş listesi — bayi/kullanıcı ile birebir aynı tasarım ── */
+    .op__header { display: flex; align-items: flex-start; justify-content: space-between; flex-wrap: wrap; gap: 1rem; }
+    .op__title  { font-size: 1.6rem; font-weight: 700; color: #fff; margin: 0; }
+    .op__sub    { font-size: 0.875rem; color: rgba(255,255,255,0.4); margin: 0.25rem 0 0; }
+    .op__summary {
+      display: flex; align-items: center; gap: 1.25rem;
+      background: #1a1d27; border: 1px solid rgba(255,255,255,0.08); border-radius: 14px; padding: 0.875rem 1.4rem;
+    }
+    .op__si  { display: flex; flex-direction: column; align-items: center; gap: 2px; }
+    .op__sv  { font-size: 1.15rem; font-weight: 700; color: #fff; }
+    .op__sl  { font-size: 0.68rem; color: rgba(255,255,255,0.4); white-space: nowrap; }
+    .op__ss  { width: 1px; height: 30px; background: rgba(255,255,255,0.08); }
+    .op__si--green  .op__sv { color: #4ade80; }
+    .op__si--blue   .op__sv { color: #60a5fa; }
+    .op__si--red    .op__sv { color: #f87171; }
+    .op__filters { display: flex; align-items: center; gap: 1rem; flex-wrap: wrap; }
+    .op__search {
+      display: flex; align-items: center; gap: 0.625rem;
+      background: #1a1d27; border: 1px solid rgba(255,255,255,0.08); border-radius: 10px; padding: 0.625rem 1rem;
+      flex: 1; min-width: 200px;
+      i { color: rgba(255,255,255,0.35); font-size: 0.875rem; }
+      input { background: transparent; border: none; outline: none; color: rgba(255,255,255,0.85); font-size: 0.875rem; width: 100%; &::placeholder { color: rgba(255,255,255,0.3); } }
+    }
+    .op__chips { display: flex; gap: 0.5rem; flex-wrap: wrap; }
+    .op__chip {
+      padding: 0.5rem 1rem; border-radius: 8px; border: 1px solid rgba(255,255,255,0.08);
+      background: #1a1d27; color: rgba(255,255,255,0.5); font-size: 0.8rem; cursor: pointer; transition: all 180ms;
+      &:hover { border-color: rgba(255,255,255,0.2); color: rgba(255,255,255,0.85); }
+      &--active { background: rgba(230,57,70,0.15); border-color: rgba(230,57,70,0.4); color: #e63946; }
+    }
     .op__table-wrap { background: #13151c; border: 1px solid rgba(255,255,255,0.07); border-radius: 16px; overflow-x: auto; min-width: 0; max-width: 100%; }
     .op__table { width: 100%; border-collapse: collapse; min-width: 940px;
       thead th { padding: 0.9rem 0.7rem; font-size: 0.7rem; font-weight: 600; color: rgba(255,255,255,0.35); text-transform: uppercase; letter-spacing: 0.05em; text-align: left; border-bottom: 1px solid rgba(255,255,255,0.06); white-space: nowrap; }
