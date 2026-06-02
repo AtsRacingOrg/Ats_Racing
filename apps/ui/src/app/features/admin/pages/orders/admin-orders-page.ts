@@ -140,26 +140,26 @@ const STATUS_LABEL: Record<OrderStatus, string> = {
   <div class="aor-table-wrap">
     <table class="aor-table">
       <thead><tr>
-        <th>Sipariş</th><th>Müşteri</th><th>Araç</th><th>Servis</th><th>Yıl</th><th>Motor</th>
-        <th>ECU</th><th>Şanzıman</th><th>KM</th><th>Plaka</th>
-        <th>Durum</th><th>Dosya</th><th>Tarih</th><th>Fiyat</th><th></th>
+        <th>Araç</th><th>Yıl</th><th>Motor</th><th>ECU</th><th>Şanzıman</th><th>Plaka</th>
+        <th>Servis</th><th>Tarih</th><th>Tutar</th><th>Durum</th><th>Dosya</th><th></th>
       </tr></thead>
       <tbody>
         @for (o of paged(); track o.id) {
           <tr class="aor-row" (click)="openDetail(o)">
-            <td class="aor-row__id">{{ o.id }}</td>
             <td>
-              <div class="aor-user-cell">
-                <div class="aor-avatar">{{ initials(o.user) }}</div>
+              <div class="aor-veh-cell">
+                <div class="aor-veh-icon"><i class="pi pi-car"></i></div>
                 <div>
-                  <p class="aor-user-cell__name">{{ o.user }}</p>
-                  <p class="aor-user-cell__email">{{ o.email }}</p>
+                  <p class="aor-row__vehicle">{{ o.make }} {{ o.model }}</p>
+                  <p class="aor-veh-sub">{{ o.id }} · {{ o.user }}</p>
                 </div>
               </div>
             </td>
-            <td>
-              <p class="aor-row__vehicle">{{ o.make }} {{ o.model }}</p>
-            </td>
+            <td class="aor-muted">{{ o.year || '—' }}</td>
+            <td class="aor-muted">{{ o.engine || '—' }}</td>
+            <td class="aor-muted">{{ o.ecu || '—' }}</td>
+            <td class="aor-muted">{{ o.transmission || '—' }}</td>
+            <td class="aor-muted" style="text-transform:uppercase">{{ o.plate || '—' }}</td>
             <td>
               <div class="aor-row__tags">
                 <span class="aor-stage aor-stage--{{stageKey(o.stage)}}">{{ o.stage }}</span>
@@ -171,14 +171,8 @@ const STATUS_LABEL: Record<OrderStatus, string> = {
                 }
               </div>
             </td>
-            <td class="aor-muted">{{ o.year || '—' }}</td>
-            <td class="aor-muted">{{ o.engine || '—' }}</td>
-            <td>
-              <p class="aor-row__ecu">{{ o.ecu || '—' }}</p>
-            </td>
-            <td class="aor-muted">{{ o.transmission || '—' }}</td>
-            <td class="aor-muted">{{ o.km ? o.km + ' km' : '—' }}</td>
-            <td class="aor-muted" style="text-transform:uppercase">{{ o.plate || '—' }}</td>
+            <td class="aor-muted">{{ o.date }}</td>
+            <td class="aor-row__price">{{ o.price }}</td>
             <td>
               <span class="aor-status aor-status--{{o.status}}">
                 <span class="aor-status__dot"></span>{{ statusLabel(o.status) }}
@@ -200,8 +194,6 @@ const STATUS_LABEL: Record<OrderStatus, string> = {
                 <span class="aor-muted">—</span>
               }
             </td>
-            <td class="aor-muted">{{ o.date }}</td>
-            <td class="aor-row__price">{{ o.price }}</td>
             <td>
               <button class="aor-icon-btn" type="button" (click)="$event.stopPropagation(); openDetail(o)">
                 <i class="pi pi-chevron-right"></i>
@@ -210,7 +202,7 @@ const STATUS_LABEL: Record<OrderStatus, string> = {
           </tr>
         }
         @if (filtered().length === 0) {
-          <tr><td colspan="15" class="aor-empty-td"><i class="pi pi-inbox"></i><p>Sipariş bulunamadı</p></td></tr>
+          <tr><td colspan="12" class="aor-empty-td"><i class="pi pi-inbox"></i><p>Sipariş bulunamadı</p></td></tr>
         }
       </tbody>
     </table>
@@ -734,14 +726,17 @@ const STATUS_LABEL: Record<OrderStatus, string> = {
 
     /* Table */
     .aor-table-wrap { background: #13151c; border: 1px solid rgba(255,255,255,0.07); border-radius: 20px; overflow-x: auto; min-width: 0; max-width: 100%; }
-    .aor-table { width: 100%; border-collapse: collapse; font-size: 0.82rem; min-width: 1400px;
+    .aor-table { width: 100%; border-collapse: collapse; font-size: 0.82rem; min-width: 1120px;
       th { color: rgba(255,255,255,0.3); font-weight: 600; text-transform: uppercase; font-size: 0.65rem; letter-spacing: .05em; padding: 1rem 1.1rem 0.75rem; text-align: left; white-space: nowrap; }
       td { padding: 0.8rem 1.1rem; border-top: 1px solid rgba(255,255,255,0.05); vertical-align: middle; color: rgba(255,255,255,0.8); white-space: nowrap; }
     }
     .aor-row { cursor: pointer; transition: background 140ms; &:hover td { background: rgba(255,255,255,0.025); } }
     .aor-row__id      { font-family: monospace; font-weight: 700; color: #f59e0b; }
     .aor-row__price   { font-weight: 700; color: #fff; }
-    .aor-row__vehicle { font-size: 0.84rem; font-weight: 600; color: rgba(255,255,255,0.9); margin: 0 0 4px; }
+    .aor-row__vehicle { font-size: 0.84rem; font-weight: 600; color: rgba(255,255,255,0.9); margin: 0; }
+    .aor-veh-cell { display: flex; align-items: center; gap: 0.6rem; }
+    .aor-veh-icon { width: 34px; height: 34px; border-radius: 8px; background: rgba(245,158,11,0.12); color: #f59e0b; display: flex; align-items: center; justify-content: center; font-size: 0.85rem; flex-shrink: 0; }
+    .aor-veh-sub { font-size: 0.7rem; color: rgba(255,255,255,0.4); margin: 2px 0 0; font-family: monospace; }
     .aor-row__ecu     { font-size: 0.78rem; color: rgba(255,255,255,0.6); margin: 0 0 3px; }
     .aor-row__tags    { display: flex; gap: 4px; flex-wrap: wrap; }
     .aor-user-cell { display: flex; align-items: center; gap: 0.65rem;
