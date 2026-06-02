@@ -126,22 +126,6 @@ const STATUS_LABEL: Record<OrderStatus, string> = {
     </div>
   </div>
 
-  <div class="op__filters">
-    <div class="op__search">
-      <i class="pi pi-search"></i>
-      <input type="text" placeholder="Sipariş veya kullanıcı ara…"
-        [ngModel]="search()" (ngModelChange)="search.set($event)" />
-    </div>
-    <div class="op__chips">
-      <button class="op__chip" type="button"
-        [class.op__chip--active]="filterStatus() === ''" (click)="filterStatus.set('')">Tümü</button>
-      @for (s of statusTabs; track s.key) {
-        <button class="op__chip" type="button"
-          [class.op__chip--active]="filterStatus() === s.key" (click)="filterStatus.set(s.key)">{{ s.label }}</button>
-      }
-    </div>
-  </div>
-
   <div class="op__table-wrap">
     <table class="op__table">
       <thead>
