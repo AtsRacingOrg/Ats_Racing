@@ -16,6 +16,7 @@ import { ApiBearerAuth, ApiConsumes, ApiOperation, ApiTags } from '@nestjs/swagg
 import { AuthGuard, AuthContext } from '../auth/auth.guard';
 import { OrdersService, UploadedFileLike } from './orders.service';
 import { CreateOrderDto } from './dto/create-order.dto';
+import { RateLimit } from '../common/rate-limit';
 
 interface AuthedReq {
   user: AuthContext;
@@ -30,12 +31,14 @@ export class OrdersController {
   constructor(private readonly orders: OrdersService) {}
 
   @Post('orders')
+  @RateLimit({ limit: 20, window: 60, hard: 80, block: 900, name: 'order-create' })
   @ApiOperation({ summary: 'Yeni sipariş oluştur (Araçlar ekranından)' })
   create(@Body() dto: CreateOrderDto, @Req() req: AuthedReq) {
     return this.orders.create(req.accessToken, dto);
   }
 
   @Post('orders/:id/file')
+  @RateLimit({ limit: 20, window: 60, hard: 80, block: 900, name: 'order-file' })
   @ApiConsumes('multipart/form-data')
   @ApiOperation({ summary: 'Siparişe orijinal ECU dosyası yükle' })
   @UseInterceptors(FileInterceptor('file'))

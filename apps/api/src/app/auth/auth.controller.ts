@@ -18,6 +18,7 @@ import { AuthService } from './auth.service';
 import { RegisterDto } from './dto/register.dto';
 import { LoginDto } from './dto/login.dto';
 import { ResendDto } from './dto/resend.dto';
+import { RateLimit } from '../common/rate-limit';
 
 function extractBearer(header?: string): string {
   if (!header?.startsWith('Bearer ')) {
@@ -33,6 +34,7 @@ export class AuthController {
 
   @Post('register')
   @HttpCode(HttpStatus.CREATED)
+  @RateLimit({ limit: 6, window: 60, hard: 20, block: 1800, name: 'register' })
   @ApiOperation({ summary: 'Kullanıcı veya bayi kaydı (e-posta doğrulama + admin onay gerektirir)' })
   @ApiOkResponse({ description: 'Kayıt alındı, doğrulama e-postası gönderildi.' })
   register(@Body() dto: RegisterDto) {
@@ -41,6 +43,7 @@ export class AuthController {
 
   @Post('login')
   @HttpCode(HttpStatus.OK)
+  @RateLimit({ limit: 10, window: 60, hard: 40, block: 900, name: 'login' })
   @ApiOperation({ summary: 'Giriş yap (yalnızca doğrulanmış + onaylanmış hesaplar)' })
   login(@Body() dto: LoginDto) {
     return this.auth.login(dto);
@@ -48,6 +51,7 @@ export class AuthController {
 
   @Post('resend-verification')
   @HttpCode(HttpStatus.OK)
+  @RateLimit({ limit: 5, window: 60, hard: 15, block: 900, name: 'resend' })
   @ApiOperation({ summary: 'Doğrulama e-postasını tekrar gönder' })
   resend(@Body() dto: ResendDto) {
     return this.auth.resendVerification(dto.email);

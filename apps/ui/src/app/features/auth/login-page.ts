@@ -66,11 +66,19 @@ export default class LoginPage {
   );
 
   constructor() {
+    const qp = this.route.snapshot.queryParamMap;
     // Returning from the email verification link → ?verified=1
-    if (this.route.snapshot.queryParamMap.get('verified') === '1') {
+    if (qp.get('verified') === '1') {
       this.success.set(
         'E-postan doğrulandı. Şimdi giriş yapabilirsin. ' +
         '(Bayi hesapları için admin onayı gerekir.)',
+      );
+    }
+    // Aşırı istek nedeniyle bloklandı → ?blocked=1
+    if (qp.get('blocked') === '1') {
+      this.serverError.set(
+        'Çok fazla istek nedeniyle oturumun geçici olarak kapatıldı. ' +
+        'Lütfen bir süre sonra tekrar giriş yapmayı dene.',
       );
     }
   }

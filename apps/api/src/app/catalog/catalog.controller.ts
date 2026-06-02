@@ -1,12 +1,15 @@
 import { Controller, Get, Query } from '@nestjs/common';
 import { ApiOperation, ApiQuery, ApiTags } from '@nestjs/swagger';
 import { CatalogService } from './catalog.service';
+import { RateLimit } from '../common/rate-limit';
 
 /**
  * Araç & servis kataloğu — herkese açık okuma (auth gerekmez).
  * Araçlar ekranındaki Chip Tuning sekmesini besler.
+ * Açık uç olduğundan IP başına sıkı limit (scraping'e karşı).
  */
 @ApiTags('catalog')
+@RateLimit({ limit: 100, window: 60, hard: 400, block: 900, name: 'catalog' })
 @Controller('catalog')
 export class CatalogController {
   constructor(private readonly catalog: CatalogService) {}
