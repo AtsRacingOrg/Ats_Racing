@@ -20,10 +20,9 @@ interface NavItem { label: string; icon: string; route: string; badge?: string; 
   <!-- SIDEBAR -->
   <aside class="adm-sidebar">
     <div class="adm-sidebar__top">
-      <a routerLink="/" class="adm-logo" aria-label="ATS Racing Admin">
+      <div class="adm-logo" aria-label="ATS Racing Admin">
         <img src="/logo.png" alt="ATS Racing" class="adm-logo__img" />
-        <span class="adm-logo__text">Admin</span>
-      </a>
+      </div>
       <button class="adm-collapse-btn" (click)="collapsed.set(!collapsed())" aria-label="Daralt">
         <i class="pi" [class.pi-chevron-left]="!collapsed()" [class.pi-chevron-right]="collapsed()"></i>
       </button>
@@ -65,9 +64,7 @@ interface NavItem { label: string; icon: string; route: string; badge?: string; 
       <span class="adm-topbar__title">Admin Panel</span>
       <div class="adm-topbar__right">
         <app-notification-bell />
-        <span class="adm-topbar__badge">
-          <i class="pi pi-shield"></i> Admin
-        </span>
+        <div class="adm-user__avatar adm-user__avatar--sm">{{ auth.currentUser()?.avatar }}</div>
       </div>
     </header>
     <main class="adm-content">
@@ -108,8 +105,8 @@ interface NavItem { label: string; icon: string; route: string; badge?: string; 
       display: flex; align-items: center; justify-content: space-between;
       padding: 1.25rem 1rem; border-bottom: 1px solid rgba(255,255,255,0.07); gap: 0.75rem;
     }
-    .adm-logo { display: flex; align-items: center; gap: 0.55rem; text-decoration: none; min-width: 0; flex: 1; overflow: hidden; }
-    .adm-logo__img { height: 32px; width: auto; max-width: 100%; object-fit: contain; object-position: left center; display: block; flex-shrink: 0; transition: height 200ms; }
+    .adm-logo { display: flex; align-items: center; justify-content: center; min-width: 0; flex: 1; overflow: hidden; pointer-events: none; }
+    .adm-logo__img { height: 32px; width: auto; max-width: 100%; object-fit: contain; object-position: center; display: block; flex-shrink: 0; transition: height 200ms; }
     .adm-shell--collapsed .adm-logo__img { height: 28px; }
     .adm-logo__text { font-size: 0.78rem; font-weight: 700; color: #f59e0b; white-space: nowrap; letter-spacing: 0.06em; text-transform: uppercase; }
     .adm-collapse-btn {
@@ -145,9 +142,11 @@ interface NavItem { label: string; icon: string; route: string; badge?: string; 
     .adm-user {
       display: flex; align-items: center; gap: 0.65rem; padding: 0.6rem 0.75rem; border-radius: 10px;
       &__avatar {
-        width: 34px; height: 34px; border-radius: 9px; background: rgba(245,158,11,0.15);
-        color: #f59e0b; font-size: 0.72rem; font-weight: 700; flex-shrink: 0;
+        width: 34px; height: 34px; border-radius: 50%;
+        background: linear-gradient(135deg, #f59e0b, #d97706);
+        color: #fff; font-size: 0.7rem; font-weight: 700; flex-shrink: 0;
         display: flex; align-items: center; justify-content: center;
+        &--sm { width: 36px; height: 36px; }
       }
       &__info { display: flex; flex-direction: column; min-width: 0; overflow: hidden; }
       &__name { font-size: 0.8rem; font-weight: 600; color: #fff; white-space: nowrap; }
