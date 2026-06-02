@@ -6,6 +6,7 @@ import {
   UnauthorizedException,
 } from '@nestjs/common';
 import { SupabaseService } from '../supabase/supabase.service';
+import { getCachedProfile, setCachedProfile } from './token-cache';
 
 export interface AuthContext {
   id: string;
@@ -31,6 +32,16 @@ export class AuthGuard implements CanActivate {
     }
     const token = header.slice('Bearer '.length).trim();
 
+    const cached = getCachedProfile(token);
+    if (cached) {
+      if (cached.status !== 'approved') {
+        throw new ForbiddenException('Hesabınız onaylı değil.');
+      }
+      req.user = cached;
+      req.accessToken = token;
+      return true;
+    }
+
     const { data, error } = await this.supabase.admin.auth.getUser(token);
     if (error || !data.user) {
       throw new UnauthorizedException('Geçersiz veya süresi dolmuş oturum.');
@@ -46,6 +57,7 @@ export class AuthGuard implements CanActivate {
       throw new ForbiddenException('Hesabınız onaylı değil.');
     }
 
+    setCachedProfile(token, profile);
     req.user = profile;
     req.accessToken = token;
     return true;

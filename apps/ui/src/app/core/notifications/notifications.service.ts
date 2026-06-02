@@ -74,21 +74,39 @@ export class NotificationsService {
   }
 
   async markRead(id: string): Promise<void> {
+    // Optimistik: rozet/anında güncellensin, ağ arka planda.
+    const target = this._items().find(n => n.id === id);
+    if (target && !target.read) {
+      this._items.update(list => list.map(n => n.id === id ? { ...n, read: true } : n));
+      this._summary.update(s => this.decrement(s, target.category, 1));
+    }
     try {
       await firstValueFrom(this.http.post(`${this.api}/notifications/${id}/read`, {}));
-      this._items.update(list => list.map(n => n.id === id ? { ...n, read: true } : n));
-      await this.refreshSummary();
-    } catch { /* sessiz */ }
+    } catch { void this.refreshSummary(); }
   }
 
   async markAllRead(category?: string): Promise<void> {
+    // Optimistik güncelleme.
+    this._items.update(list => list.map(n =>
+      !category || n.category === category ? { ...n, read: true } : n));
+    this._summary.update(s => {
+      if (!category) { return { total: 0, byCategory: {} }; }
+      const byCategory = { ...s.byCategory };
+      const removed = byCategory[category] ?? 0;
+      delete byCategory[category];
+      return { total: Math.max(0, s.total - removed), byCategory };
+    });
     try {
       await firstValueFrom(
         this.http.post(`${this.api}/notifications/read-all`, category ? { category } : {}),
       );
-      this._items.update(list => list.map(n =>
-        !category || n.category === category ? { ...n, read: true } : n));
-      await this.refreshSummary();
-    } catch { /* sessiz */ }
+    } catch { void this.refreshSummary(); }
+  }
+
+  private decrement(s: NotificationSummary, category: string, by: number): NotificationSummary {
+    const byCategory = { ...s.byCategory };
+    byCategory[category] = Math.max(0, (byCategory[category] ?? 0) - by);
+    if (byCategory[category] === 0) { delete byCategory[category]; }
+    return { total: Math.max(0, s.total - by), byCategory };
   }
 }

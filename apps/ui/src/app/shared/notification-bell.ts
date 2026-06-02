@@ -29,7 +29,9 @@ import { AppNotification, NotificationsService } from '../core/notifications/not
           </div>
 
           <div class="nb__list">
-            @if (notifs.items().length === 0) {
+            @if (loading() && notifs.items().length === 0) {
+              <div class="nb__empty"><i class="pi pi-spin pi-spinner"></i><p>Yükleniyor…</p></div>
+            } @else if (notifs.items().length === 0) {
               <div class="nb__empty"><i class="pi pi-inbox"></i><p>Bildirim yok</p></div>
             }
             @for (n of notifs.items(); track n.id) {
@@ -107,12 +109,17 @@ export class NotificationBell {
   private readonly host = inject(ElementRef) as ElementRef<HTMLElement>;
 
   protected readonly open = signal(false);
+  protected readonly loading = signal(false);
 
   async toggle(ev: Event): Promise<void> {
     ev.stopPropagation();
     const next = !this.open();
     this.open.set(next);
-    if (next) { await this.notifs.loadItems(); }
+    if (next) {
+      this.loading.set(true);
+      try { await this.notifs.loadItems(); }
+      finally { this.loading.set(false); }
+    }
   }
 
   @HostListener('document:click', ['$event'])
@@ -123,14 +130,15 @@ export class NotificationBell {
     }
   }
 
-  async onClick(n: AppNotification): Promise<void> {
-    if (!n.read) { await this.notifs.markRead(n.id); }
+  onClick(n: AppNotification): void {
+    // Önce kapat + yönlendir; okundu işaretleme arka planda yapılır (gecikme yaratmaz).
     this.open.set(false);
+    if (!n.read) { void this.notifs.markRead(n.id); }
     if (n.link) { void this.router.navigateByUrl(n.link); }
   }
 
-  async markAll(): Promise<void> {
-    await this.notifs.markAllRead();
+  markAll(): void {
+    void this.notifs.markAllRead();
   }
 
   icon(type: string): string {
