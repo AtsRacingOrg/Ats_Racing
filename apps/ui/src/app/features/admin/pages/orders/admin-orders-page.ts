@@ -140,8 +140,9 @@ const STATUS_LABEL: Record<OrderStatus, string> = {
   <div class="aor-table-wrap">
     <table class="aor-table">
       <thead><tr>
-        <th>Sipariş</th><th>Müşteri</th><th>Araç / Servis</th>
-        <th>ECU & Yöntem</th><th>Durum</th><th>Dosya</th><th>Tarih</th><th>Fiyat</th><th></th>
+        <th>Sipariş</th><th>Müşteri</th><th>Araç / Servis</th><th>Yıl</th><th>Motor</th>
+        <th>ECU & Yöntem</th><th>Şanzıman</th><th>KM</th><th>Plaka</th>
+        <th>Durum</th><th>Dosya</th><th>Tarih</th><th>Fiyat</th><th></th>
       </tr></thead>
       <tbody>
         @for (o of paged(); track o.id) {
@@ -157,7 +158,7 @@ const STATUS_LABEL: Record<OrderStatus, string> = {
               </div>
             </td>
             <td>
-              <p class="aor-row__vehicle">{{ o.make }} {{ o.model }} ({{ o.year }})</p>
+              <p class="aor-row__vehicle">{{ o.make }} {{ o.model }}</p>
               <div class="aor-row__tags">
                 <span class="aor-stage aor-stage--{{stageKey(o.stage)}}">{{ o.stage }}</span>
                 @for (ex of o.extraServices.slice(0,2); track ex) {
@@ -168,10 +169,15 @@ const STATUS_LABEL: Record<OrderStatus, string> = {
                 }
               </div>
             </td>
+            <td class="aor-muted">{{ o.year || '—' }}</td>
+            <td class="aor-muted">{{ o.engine || '—' }}</td>
             <td>
-              <p class="aor-row__ecu">{{ o.ecu }}</p>
+              <p class="aor-row__ecu">{{ o.ecu || '—' }}</p>
               <span class="aor-method-chip">{{ o.readMethod }}</span>
             </td>
+            <td class="aor-muted">{{ o.transmission || '—' }}</td>
+            <td class="aor-muted">{{ o.km ? o.km + ' km' : '—' }}</td>
+            <td class="aor-muted" style="text-transform:uppercase">{{ o.plate || '—' }}</td>
             <td>
               <span class="aor-status aor-status--{{o.status}}">
                 <span class="aor-status__dot"></span>{{ statusLabel(o.status) }}
@@ -203,7 +209,7 @@ const STATUS_LABEL: Record<OrderStatus, string> = {
           </tr>
         }
         @if (filtered().length === 0) {
-          <tr><td colspan="9" class="aor-empty-td"><i class="pi pi-inbox"></i><p>Sipariş bulunamadı</p></td></tr>
+          <tr><td colspan="14" class="aor-empty-td"><i class="pi pi-inbox"></i><p>Sipariş bulunamadı</p></td></tr>
         }
       </tbody>
     </table>
@@ -727,9 +733,9 @@ const STATUS_LABEL: Record<OrderStatus, string> = {
 
     /* Table */
     .aor-table-wrap { background: #13151c; border: 1px solid rgba(255,255,255,0.07); border-radius: 20px; overflow: auto; }
-    .aor-table { width: 100%; border-collapse: collapse; font-size: 0.82rem; min-width: 860px;
-      th { color: rgba(255,255,255,0.3); font-weight: 600; text-transform: uppercase; font-size: 0.65rem; letter-spacing: .05em; padding: 1rem 1.1rem 0.75rem; text-align: left; }
-      td { padding: 0.8rem 1.1rem; border-top: 1px solid rgba(255,255,255,0.05); vertical-align: middle; color: rgba(255,255,255,0.8); }
+    .aor-table { width: 100%; border-collapse: collapse; font-size: 0.82rem; min-width: 1320px;
+      th { color: rgba(255,255,255,0.3); font-weight: 600; text-transform: uppercase; font-size: 0.65rem; letter-spacing: .05em; padding: 1rem 1.1rem 0.75rem; text-align: left; white-space: nowrap; }
+      td { padding: 0.8rem 1.1rem; border-top: 1px solid rgba(255,255,255,0.05); vertical-align: middle; color: rgba(255,255,255,0.8); white-space: nowrap; }
     }
     .aor-row { cursor: pointer; transition: background 140ms; &:hover td { background: rgba(255,255,255,0.025); } }
     .aor-row__id      { font-family: monospace; font-weight: 700; color: #f59e0b; }

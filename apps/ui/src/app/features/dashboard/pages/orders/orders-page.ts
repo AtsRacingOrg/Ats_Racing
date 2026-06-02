@@ -125,11 +125,12 @@ const STATUS_LABEL: Record<OrderStatus, string> = {
   <div class="op__table-wrap">
     <table class="op__table">
       <thead><tr>
-        <th>Araç</th><th>Servis</th><th>Tarih</th><th>Tutar</th><th>Durum</th><th>Dosya</th><th></th>
+        <th>Araç</th><th>Yıl</th><th>Motor</th><th>ECU</th><th>Şanzıman</th><th>KM</th><th>Plaka</th>
+        <th>Servis</th><th>Tarih</th><th>Tutar</th><th>Durum</th><th>Dosya</th><th></th>
       </tr></thead>
       <tbody>
         @if (filtered().length === 0) {
-          <tr><td colspan="7" class="op__empty"><i class="pi pi-inbox"></i><span>Sipariş bulunamadı</span></td></tr>
+          <tr><td colspan="13" class="op__empty"><i class="pi pi-inbox"></i><span>Sipariş bulunamadı</span></td></tr>
         }
         @for (o of paged(); track o.id) {
           <tr class="op__row" (click)="openDetail(o)">
@@ -138,13 +139,18 @@ const STATUS_LABEL: Record<OrderStatus, string> = {
                 <div class="op__veh-icon"><i class="pi pi-car"></i></div>
                 <div>
                   <p class="op__veh-name">{{ o.make }} {{ o.model }}</p>
-                  <p class="op__veh-id">{{ o.id }} · {{ o.year }}</p>
+                  <p class="op__veh-id">{{ o.id }}</p>
                 </div>
               </div>
             </td>
+            <td class="op__muted">{{ o.year || '—' }}</td>
+            <td class="op__muted">{{ o.engine || '—' }}</td>
+            <td class="op__muted">{{ o.ecu || '—' }}</td>
+            <td class="op__muted">{{ o.transmission || '—' }}</td>
+            <td class="op__muted">{{ o.km ? o.km + ' km' : '—' }}</td>
+            <td class="op__muted" style="text-transform:uppercase">{{ o.plate || '—' }}</td>
             <td>
               <span class="s-chip s-chip--{{ stageKey(o.stage) }}">{{ o.stage }}</span>
-              <p class="op__ecu">{{ o.ecu }}</p>
             </td>
             <td class="op__muted">{{ o.date }}</td>
             <td class="op__price">{{ o.price }}</td>
@@ -546,13 +552,13 @@ const STATUS_LABEL: Record<OrderStatus, string> = {
     }
 
     .op__table-wrap { background: #1a1d27; border: 1px solid rgba(255,255,255,0.07); border-radius: 16px; overflow: auto; }
-    .op__table { width: 100%; border-collapse: collapse; min-width: 700px;
+    .op__table { width: 100%; border-collapse: collapse; min-width: 1180px;
       thead th { padding: 1rem 1.1rem; font-size: 0.72rem; font-weight: 600; color: rgba(255,255,255,0.35); text-transform: uppercase; letter-spacing: 0.06em; text-align: left; border-bottom: 1px solid rgba(255,255,255,0.06); white-space: nowrap; }
     }
     .op__row { border-bottom: 1px solid rgba(255,255,255,0.04); cursor: pointer; transition: background 160ms;
       &:last-child { border-bottom: none; }
       &:hover { background: rgba(255,255,255,0.025); }
-      td { padding: 0.9rem 1.1rem; font-size: 0.82rem; color: rgba(255,255,255,0.7); vertical-align: middle; }
+      td { padding: 0.9rem 1.1rem; font-size: 0.82rem; color: rgba(255,255,255,0.7); vertical-align: middle; white-space: nowrap; }
     }
     .op__veh { display: flex; align-items: center; gap: 0.625rem; }
     .op__veh-icon { width: 34px; height: 34px; border-radius: 8px; background: rgba(230,57,70,0.1); color: #e63946; display: flex; align-items: center; justify-content: center; font-size: 0.85rem; flex-shrink: 0; }
