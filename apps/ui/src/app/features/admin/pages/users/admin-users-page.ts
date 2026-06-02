@@ -22,7 +22,7 @@ interface AdminUser {
 }
 
 const ORDER_STATUS_LABEL: Record<string, string> = {
-  pending: 'Beklemede', processing: 'İşlemde', completed: 'Tamamlandı', cancelled: 'İptal',
+  pending: 'Hazırlanıyor', processing: 'Hazırlanıyor', completed: 'Tamamlandı', cancelled: 'İptal',
 };
 const STATUS_META: Record<AccountStatus, { label: string; active: boolean }> = {
   approved: { label: 'Aktif', active: true },

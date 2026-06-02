@@ -78,7 +78,7 @@ function mapOrder(o: Order): UserOrder {
 }
 
 const STATUS_LABEL: Record<OrderStatus, string> = {
-  pending: 'Beklemede', processing: 'İşlemde', completed: 'Tamamlandı', cancelled: 'İptal'
+  pending: 'Hazırlanıyor', processing: 'Hazırlanıyor', completed: 'Tamamlandı', cancelled: 'İptal'
 };
 
 @Component({
@@ -102,9 +102,7 @@ const STATUS_LABEL: Record<OrderStatus, string> = {
       <div class="op__ss"></div>
       <div class="op__si op__si--green"><span class="op__sv">{{ countBy('completed') }}</span><span class="op__sl">Tamamlandı</span></div>
       <div class="op__ss"></div>
-      <div class="op__si op__si--yellow"><span class="op__sv">{{ countBy('pending') }}</span><span class="op__sl">Beklemede</span></div>
-      <div class="op__ss"></div>
-      <div class="op__si op__si--blue"><span class="op__sv">{{ countBy('processing') }}</span><span class="op__sl">İşlemde</span></div>
+      <div class="op__si op__si--blue"><span class="op__sv">{{ countBy('pending') }}</span><span class="op__sl">Hazırlanıyor</span></div>
       <div class="op__ss"></div>
       <div class="op__si op__si--red"><span class="op__sv">{{ countBy('cancelled') }}</span><span class="op__sl">İptal</span></div>
     </div>
@@ -415,10 +413,8 @@ const STATUS_LABEL: Record<OrderStatus, string> = {
               <p class="od__file-card-title">Yazılım Dosyası</p>
               @if (o.fileAvailable) {
                 <p class="od__file-card-sub od__file-card-sub--green">Hazır — İndirebilirsiniz</p>
-              } @else if (o.status === 'processing') {
-                <p class="od__file-card-sub od__file-card-sub--blue">Hazırlanıyor…</p>
               } @else {
-                <p class="od__file-card-sub">İnceleniyor</p>
+                <p class="od__file-card-sub od__file-card-sub--blue">Hazırlanıyor…</p>
               }
             </div>
           </div>
@@ -587,7 +583,7 @@ const STATUS_LABEL: Record<OrderStatus, string> = {
     }
     .st-chip { display: inline-flex; align-items: center; gap: 5px; font-size: 0.72rem; font-weight: 600; padding: 4px 10px; border-radius: 20px; white-space: nowrap; }
     .st-dot  { width: 6px; height: 6px; border-radius: 50%; background: currentColor; flex-shrink: 0; }
-    .st-chip--pending    { background: rgba(251,191,36,0.12);  color: #fbbf24; }
+    .st-chip--pending    { background: rgba(96,165,250,0.12);  color: #60a5fa; }
     .st-chip--processing { background: rgba(96,165,250,0.12);  color: #60a5fa; }
     .st-chip--completed  { background: rgba(74,222,128,0.12);  color: #4ade80; }
     .st-chip--cancelled  { background: rgba(255,255,255,0.06); color: rgba(255,255,255,0.4); }
@@ -646,9 +642,9 @@ const STATUS_LABEL: Record<OrderStatus, string> = {
     .od__cancelled { display: flex; align-items: flex-start; gap: 0.65rem; padding: 0.85rem 1.25rem; border-radius: 12px; background: rgba(248,113,113,0.08); border: 1px solid rgba(248,113,113,0.2); color: #f87171; font-size: 0.85rem; > i { font-size: 1.05rem; margin-top: 2px; flex-shrink: 0; } > div { min-width: 0; flex: 1; } }
 
     /* Checkout layout */
-    .od__layout { display: grid; grid-template-columns: 1fr 340px; gap: 1.5rem; align-items: start; @media(max-width:1100px) { grid-template-columns: 1fr; } }
-    .od__steps  { display: flex; flex-direction: column; gap: 1.25rem; }
-    .od__sidebar { display: flex; flex-direction: column; gap: 1.25rem; }
+    .od__layout { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 340px); gap: 1.5rem; align-items: start; width: 100%; @media(max-width:1100px) { grid-template-columns: minmax(0, 1fr); } }
+    .od__steps  { display: flex; flex-direction: column; gap: 1.25rem; min-width: 0; }
+    .od__sidebar { display: flex; flex-direction: column; gap: 1.25rem; min-width: 0; }
 
     /* Step card — matches tools-page */
     .step-card {
@@ -861,17 +857,15 @@ export class OrdersPage implements OnInit {
 
   protected readonly filterOptions = [
     { label: 'Tümü',       value: 'all'        },
-    { label: 'Beklemede',  value: 'pending'    },
-    { label: 'İşlemde',    value: 'processing' },
-    { label: 'Tamamlandı', value: 'completed'  },
-    { label: 'İptal',      value: 'cancelled'  },
+    { label: 'Hazırlanıyor', value: 'pending'    },
+    { label: 'Tamamlandı',   value: 'completed'  },
+    { label: 'İptal',        value: 'cancelled'  },
   ];
 
   protected readonly progressSteps = [
     { label: 'Sipariş Alındı', icon: 'pi-check-circle', rank: 0, hint: '' },
-    { label: 'İnceleniyor',    icon: 'pi-eye',           rank: 1, hint: 'Ekibimiz inceliyor' },
-    { label: 'Hazırlanıyor',   icon: 'pi-cog',           rank: 2, hint: 'Dosya hazırlanıyor' },
-    { label: 'Tamamlandı',     icon: 'pi-check',         rank: 3, hint: '' },
+    { label: 'Hazırlanıyor',   icon: 'pi-cog',           rank: 1, hint: 'Dosya hazırlanıyor' },
+    { label: 'Tamamlandı',     icon: 'pi-check',         rank: 2, hint: '' },
   ];
 
   protected readonly orders = signal<UserOrder[]>([]);
@@ -881,7 +875,9 @@ export class OrdersPage implements OnInit {
     const f = this.activeFilter();
     return this.orders().filter(o => {
       const matchQ = !q || `${o.make} ${o.model}`.toLowerCase().includes(q) || o.id.toLowerCase().includes(q);
-      const matchF = f === 'all' || o.status === f;
+      const matchF = f === 'all'
+        || (f === 'pending' && (o.status === 'pending' || o.status === 'processing'))
+        || o.status === f;
       return matchQ && matchF;
     });
   });
@@ -899,14 +895,19 @@ export class OrdersPage implements OnInit {
     this.page.set(1);
   });
 
-  countBy(s: OrderStatus): number { return this.orders().filter(o => o.status === s).length; }
+  countBy(s: OrderStatus): number {
+    if (s === 'pending') {
+      return this.orders().filter(o => o.status === 'pending' || o.status === 'processing').length;
+    }
+    return this.orders().filter(o => o.status === s).length;
+  }
   extraDesc(): string { return ''; }
   extraPrice(name: string): number { return this.selectedOrder()?.priceMap[name] ?? 0; }
   extrasTotal(): number { return this.selectedOrder()?.extrasTotalValue ?? 0; }
 
   statusLabel(s: OrderStatus): string { return STATUS_LABEL[s]; }
   stageKey(s: string): string { return s === 'Stage 1' ? 's1' : s === 'Stage 2' ? 's2' : 's3'; }
-  progressRank(s: OrderStatus): number { return { pending: 1, processing: 2, completed: 4, cancelled: 0 }[s]; }
+  progressRank(s: OrderStatus): number { return { pending: 1, processing: 1, completed: 3, cancelled: 0 }[s]; }
 
   openDetail(o: UserOrder): void {
     this.selectedOrder.set(o);

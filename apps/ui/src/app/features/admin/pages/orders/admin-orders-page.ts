@@ -91,7 +91,7 @@ function mapAdminOrder(o: Order): AdminOrder {
 }
 
 const STATUS_LABEL: Record<OrderStatus, string> = {
-  pending: 'Beklemede', processing: 'İşlemde', completed: 'Tamamlandı', cancelled: 'İptal'
+  pending: 'Hazırlanıyor', processing: 'Hazırlanıyor', completed: 'Tamamlandı', cancelled: 'İptal'
 };
 
 @Component({
@@ -118,8 +118,7 @@ const STATUS_LABEL: Record<OrderStatus, string> = {
       </div>
       <select class="aor-filter" [ngModel]="filterStatus()" (ngModelChange)="filterStatus.set($event)">
         <option value="">Tüm Durumlar</option>
-        <option value="pending">Beklemede</option>
-        <option value="processing">İşlemde</option>
+        <option value="pending">Hazırlanıyor</option>
         <option value="completed">Tamamlandı</option>
         <option value="cancelled">İptal</option>
       </select>
@@ -716,7 +715,7 @@ const STATUS_LABEL: Record<OrderStatus, string> = {
       &:hover { border-color: rgba(255,255,255,0.15); color: rgba(255,255,255,0.85); }
       &--active { background: rgba(255,255,255,0.07); border-color: rgba(255,255,255,0.2); color: #fff; }
       &__dot { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0;
-        &--pending    { background: #fbbf24; }
+        &--pending    { background: #60a5fa; box-shadow: 0 0 4px #60a5fa88; }
         &--processing { background: #60a5fa; box-shadow: 0 0 4px #60a5fa88; }
         &--completed  { background: #4ade80; }
         &--cancelled  { background: rgba(255,255,255,0.2); }
@@ -777,7 +776,7 @@ const STATUS_LABEL: Record<OrderStatus, string> = {
     .aor-status {
       display: inline-flex; align-items: center; gap: 0.4rem; font-size: 0.75rem; font-weight: 600;
       &__dot { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; background: currentColor; }
-      &--pending    { color: #fbbf24; }
+      &--pending    { color: #60a5fa; .aor-status__dot { box-shadow: 0 0 5px #60a5fa88; } }
       &--processing { color: #60a5fa; .aor-status__dot { box-shadow: 0 0 5px #60a5fa88; } }
       &--completed  { color: #4ade80; }
       &--cancelled  { color: rgba(255,255,255,0.3); }
@@ -838,8 +837,9 @@ const STATUS_LABEL: Record<OrderStatus, string> = {
       &:disabled { opacity: 0.3; cursor: not-allowed; }
     }
 
-    .aor-detail__grid { display: grid; grid-template-columns: 1fr 380px; gap: 1.25rem; align-items: start; @media(max-width:1100px) { grid-template-columns: 1fr; } }
-    .aor-detail__left, .aor-detail__right { display: flex; flex-direction: column; gap: 1.1rem; }
+    .aor-detail { width: 100%; min-width: 0; }
+    .aor-detail__grid { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 380px); gap: 1.25rem; align-items: start; width: 100%; @media(max-width:1100px) { grid-template-columns: minmax(0, 1fr); } }
+    .aor-detail__left, .aor-detail__right { display: flex; flex-direction: column; gap: 1.1rem; min-width: 0; }
 
     .aor-dp-card {
       background: #13151c; border: 1px solid rgba(255,255,255,0.07); border-radius: 18px; padding: 1.25rem;
@@ -849,10 +849,10 @@ const STATUS_LABEL: Record<OrderStatus, string> = {
     /* Info grid */
     .aor-ig { display: grid; grid-template-columns: 1fr 1fr; gap: 0.85rem; }
     .aor-ii {
-      display: flex; flex-direction: column; gap: 3px;
+      display: flex; flex-direction: column; gap: 3px; min-width: 0;
       &--full { grid-column: 1/-1; }
       &__l { font-size: 0.65rem; color: rgba(255,255,255,0.3); text-transform: uppercase; letter-spacing: .04em; }
-      &__v { font-size: 0.85rem; color: rgba(255,255,255,0.85); font-weight: 500;
+      &__v { font-size: 0.85rem; color: rgba(255,255,255,0.85); font-weight: 500; word-break: break-word; overflow-wrap: anywhere;
         &--price { color: #fff; font-weight: 700; font-size: 1rem; }
         &--id    { font-family: monospace; color: #f59e0b; font-weight: 700; font-size: 1rem; }
         &--mono  { font-family: monospace; font-size: 0.75rem; }
@@ -898,7 +898,7 @@ const STATUS_LABEL: Record<OrderStatus, string> = {
       &--active { background: rgba(255,255,255,0.07); border-color: rgba(255,255,255,0.2); color: #fff; font-weight: 600; }
       &--done   { color: rgba(255,255,255,0.3); &:hover { border-color: rgba(255,255,255,0.07); color: rgba(255,255,255,0.3); background: transparent; } }
       &__dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0;
-        &--pending    { background: #fbbf24; }
+        &--pending    { background: #60a5fa; box-shadow: 0 0 5px #60a5fa66; }
         &--processing { background: #60a5fa; box-shadow: 0 0 5px #60a5fa66; }
         &--completed  { background: #4ade80; }
       }
@@ -1011,7 +1011,7 @@ const STATUS_LABEL: Record<OrderStatus, string> = {
       }
     }
     .aord-vin-row { display: flex; flex-direction: column; gap: 5px; }
-    .aord-vin { font-family: monospace; font-size: 0.82rem; font-weight: 700; color: #e63946; letter-spacing: 0.03em; }
+    .aord-vin { font-family: monospace; font-size: 0.82rem; font-weight: 700; color: #e63946; letter-spacing: 0.03em; overflow-wrap: anywhere; word-break: break-all; }
 
     /* Customer band */
     .aord-customer-band {
@@ -1176,21 +1176,18 @@ export class AdminOrdersPage implements OnInit {
   protected readonly reuploadMode  = signal(false);
 
   protected readonly statusTabs = [
-    { key: 'pending'    as OrderStatus, label: 'Beklemede'  },
-    { key: 'processing' as OrderStatus, label: 'İşlemde'    },
-    { key: 'completed'  as OrderStatus, label: 'Tamamlandı' },
-    { key: 'cancelled'  as OrderStatus, label: 'İptal'      },
+    { key: 'pending'    as OrderStatus, label: 'Hazırlanıyor' },
+    { key: 'completed'  as OrderStatus, label: 'Tamamlandı'   },
+    { key: 'cancelled'  as OrderStatus, label: 'İptal'        },
   ];
   protected readonly statusSteps = [
-    { key: 'pending'    as OrderStatus, label: 'Beklemede'  },
-    { key: 'processing' as OrderStatus, label: 'İşlemde'    },
-    { key: 'completed'  as OrderStatus, label: 'Tamamlandı' },
+    { key: 'pending'    as OrderStatus, label: 'Hazırlanıyor' },
+    { key: 'completed'  as OrderStatus, label: 'Tamamlandı'   },
   ];
   protected readonly progressSteps = [
     { label: 'Sipariş Alındı', icon: 'pi-check-circle', rank: 0 },
-    { label: 'İnceleniyor',    icon: 'pi-eye',           rank: 1 },
-    { label: 'Hazırlanıyor',   icon: 'pi-cog',           rank: 2 },
-    { label: 'Tamamlandı',     icon: 'pi-check',         rank: 3 },
+    { label: 'Hazırlanıyor',   icon: 'pi-cog',           rank: 1 },
+    { label: 'Tamamlandı',     icon: 'pi-check',         rank: 2 },
   ];
 
   protected readonly filtered = computed(() => {
@@ -1198,7 +1195,12 @@ export class AdminOrdersPage implements OnInit {
     const q = this.search().toLowerCase();
     if (q) { list = list.filter(o => o.id.toLowerCase().includes(q) || o.user.toLowerCase().includes(q) || `${o.make} ${o.model}`.toLowerCase().includes(q)); }
     const s = this.filterStatus();
-    if (s) { list = list.filter(o => o.status === s); }
+    if (s === 'pending') {
+      // "Hazırlanıyor" filtresi geriye dönük uyumluluk için processing'i de kapsar.
+      list = list.filter(o => o.status === 'pending' || o.status === 'processing');
+    } else if (s) {
+      list = list.filter(o => o.status === s);
+    }
     return list;
   });
 
@@ -1219,12 +1221,17 @@ export class AdminOrdersPage implements OnInit {
   extrasTotal(): number { return this.selectedOrder()?.extrasTotalValue ?? 0; }
 
   statusLabel(s: OrderStatus): string { return STATUS_LABEL[s]; }
-  countByStatus(s: OrderStatus): number { return this.orders().filter(o => o.status === s).length; }
+  countByStatus(s: OrderStatus): number {
+    if (s === 'pending') {
+      return this.orders().filter(o => o.status === 'pending' || o.status === 'processing').length;
+    }
+    return this.orders().filter(o => o.status === s).length;
+  }
   initials(name: string): string { return name.split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase(); }
   stageKey(stage: string): string { return stage === 'Stage 1' ? 's1' : stage === 'Stage 2' ? 's2' : 's3'; }
   selectedFile(id: string): File | null { return this.files()[id] ?? null; }
-  statusRank(s: OrderStatus): number { return { pending: 0, processing: 1, completed: 2, cancelled: -1 }[s]; }
-  progressRank(s: OrderStatus): number { return { pending: 1, processing: 2, completed: 4, cancelled: 0 }[s]; }
+  statusRank(s: OrderStatus): number { return { pending: 0, processing: 0, completed: 1, cancelled: -1 }[s]; }
+  progressRank(s: OrderStatus): number { return { pending: 1, processing: 1, completed: 3, cancelled: 0 }[s]; }
 
   openDetail(o: AdminOrder): void { this.selectedOrder.set(o); this.reuploadMode.set(false); this.cancelNoteEdit(); this.closeCancelForm(); this.currentView.set('detail'); }
   goBack(): void { this.currentView.set('list'); this.selectedOrder.set(null); }

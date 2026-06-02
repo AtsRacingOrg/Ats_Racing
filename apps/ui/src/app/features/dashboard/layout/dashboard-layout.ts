@@ -240,6 +240,7 @@ interface NavItem {
       flex: 1;
       margin-left: 240px;
       min-height: 100vh;
+      min-width: 0;
       display: flex;
       flex-direction: column;
       transition: margin-left 260ms cubic-bezier(0.4,0,0.2,1);

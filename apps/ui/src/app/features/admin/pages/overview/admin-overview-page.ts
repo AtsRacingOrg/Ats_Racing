@@ -555,7 +555,7 @@ export class AdminOverviewPage implements OnInit {
 }
 
 const STATUS_LABEL: Record<string, string> = {
-  pending: 'Beklemede', processing: 'İşlemde', completed: 'Tamamlandı', cancelled: 'İptal',
+  pending: 'Hazırlanıyor', processing: 'Hazırlanıyor', completed: 'Tamamlandı', cancelled: 'İptal',
 };
 const STAGE_LABEL: Record<string, string> = {
   stage1: 'Stage 1', stage2: 'Stage 2', stage3: 'Stage 3',

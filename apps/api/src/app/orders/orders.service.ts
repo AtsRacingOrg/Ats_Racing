@@ -189,7 +189,7 @@ export class OrdersService {
       throw new NotFoundException('Sipariş bulunamadı veya güncellenemedi.');
     }
     const labels: Record<string, string> = {
-      pending: 'Beklemede', processing: 'İşleme alındı', completed: 'Tamamlandı', cancelled: 'İptal edildi',
+      pending: 'Hazırlanıyor', processing: 'Hazırlanıyor', completed: 'Tamamlandı', cancelled: 'İptal edildi',
     };
     const eventText = status === 'cancelled' && trimmedReason
       ? `Durum: ${labels[status]} — Sebep: ${trimmedReason}`
