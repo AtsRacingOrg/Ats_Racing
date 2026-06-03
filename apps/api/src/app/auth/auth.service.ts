@@ -32,7 +32,15 @@ export class AuthService {
     private readonly config: ConfigService,
   ) {}
 
-  private get appUrl(): string {
+  /**
+   * E-posta doğrulama sonrası yönlendirme adresi.
+   * Önce isteğin geldiği origin (kullanıcının üzerinde olduğu site), yoksa
+   * APP_URL env'i, o da yoksa localhost. Supabase ayrıca kendi "Redirect URLs"
+   * allowlist'iyle doğruladığı için bu güvenli (açık yönlendirme riski yok).
+   */
+  private redirectBase(origin?: string): string {
+    const clean = (origin ?? '').trim().replace(/\/+$/, '');
+    if (/^https?:\/\//i.test(clean)) { return clean; }
     return this.config.get<string>('APP_URL') ?? 'http://localhost:4200';
   }
 
@@ -41,7 +49,7 @@ export class AuthService {
    * triggers Supabase's email-verification flow. Never grants a session —
    * the user must (1) confirm their email and (2) be approved by an admin.
    */
-  async register(dto: RegisterDto): Promise<{ message: string }> {
+  async register(dto: RegisterDto, origin?: string): Promise<{ message: string }> {
     // Defensive: role is derived server-side; clients can never self-assign admin.
     const role: 'user' | 'dealer' =
       dto.accountType === AccountType.dealer ? 'dealer' : 'user';
@@ -54,7 +62,7 @@ export class AuthService {
       email: dto.email,
       password: dto.password,
       options: {
-        emailRedirectTo: `${this.appUrl}/login?verified=1`,
+        emailRedirectTo: `${this.redirectBase(origin)}/login?verified=1`,
         data: {
           role,
           full_name: dto.fullName,
@@ -164,11 +172,11 @@ export class AuthService {
   }
 
   /** Re-send the signup confirmation email. */
-  async resendVerification(email: string): Promise<{ message: string }> {
+  async resendVerification(email: string, origin?: string): Promise<{ message: string }> {
     const { error } = await this.supabase.anon.auth.resend({
       type: 'signup',
       email,
-      options: { emailRedirectTo: `${this.appUrl}/login?verified=1` },
+      options: { emailRedirectTo: `${this.redirectBase(origin)}/login?verified=1` },
     });
     if (error) {
       this.logger.warn(`resend failed: ${error.message}`);

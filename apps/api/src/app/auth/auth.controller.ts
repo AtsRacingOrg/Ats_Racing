@@ -37,8 +37,8 @@ export class AuthController {
   @RateLimit({ limit: 6, window: 60, hard: 20, block: 1800, name: 'register' })
   @ApiOperation({ summary: 'Kullanıcı veya bayi kaydı (e-posta doğrulama + admin onay gerektirir)' })
   @ApiOkResponse({ description: 'Kayıt alındı, doğrulama e-postası gönderildi.' })
-  register(@Body() dto: RegisterDto) {
-    return this.auth.register(dto);
+  register(@Body() dto: RegisterDto, @Headers('origin') origin?: string) {
+    return this.auth.register(dto, origin);
   }
 
   @Post('login')
@@ -53,8 +53,8 @@ export class AuthController {
   @HttpCode(HttpStatus.OK)
   @RateLimit({ limit: 5, window: 60, hard: 15, block: 900, name: 'resend' })
   @ApiOperation({ summary: 'Doğrulama e-postasını tekrar gönder' })
-  resend(@Body() dto: ResendDto) {
-    return this.auth.resendVerification(dto.email);
+  resend(@Body() dto: ResendDto, @Headers('origin') origin?: string) {
+    return this.auth.resendVerification(dto.email, origin);
   }
 
   @Get('me')
