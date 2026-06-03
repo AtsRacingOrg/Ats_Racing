@@ -101,6 +101,10 @@ export default class LoginPage {
 
   protected readonly submitting = signal(false);
   protected readonly serverError = signal<string | null>(null);
+  /** E-posta doğrulanmamış hatasında "tekrar gönder" akışı. */
+  protected readonly unverifiedEmail = signal<string | null>(null);
+  protected readonly resending = signal(false);
+  protected readonly resendSent = signal(false);
   protected readonly success = signal<string | null>(null);
 
   protected setTab(t: AuthTab): void {
@@ -133,6 +137,8 @@ export default class LoginPage {
   protected async submit(): Promise<void> {
     this.serverError.set(null);
     this.success.set(null);
+    this.unverifiedEmail.set(null);
+    this.resendSent.set(false);
     const f = this.form();
     f.markAllAsTouched();
     if (f.invalid) return;
@@ -161,9 +167,28 @@ export default class LoginPage {
         this.success.set(message);
       }
     } catch (err) {
-      this.serverError.set(AuthService.messageFrom(err));
+      const msg = AuthService.messageFrom(err);
+      this.serverError.set(msg);
+      // E-posta doğrulanmamış hatasında "tekrar gönder" butonu göster.
+      if (this.tab() === 'login' && /doğrulan/i.test(msg)) {
+        this.unverifiedEmail.set(this.loginForm.getRawValue().email);
+      }
     } finally {
       this.submitting.set(false);
+    }
+  }
+
+  protected async resendVerification(): Promise<void> {
+    const email = this.unverifiedEmail();
+    if (!email || this.resending()) { return; }
+    this.resending.set(true);
+    try {
+      await this.auth.resendVerification(email);
+      this.resendSent.set(true);
+    } catch {
+      this.serverError.set('Doğrulama e-postası gönderilemedi. Lütfen tekrar dene.');
+    } finally {
+      this.resending.set(false);
     }
   }
 }

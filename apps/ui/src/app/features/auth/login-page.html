@@ -76,6 +76,16 @@
           @if (serverError(); as err) {
             <p class="auth__err" role="alert"><i class="pi pi-exclamation-triangle"></i> {{ err }}</p>
           }
+          @if (unverifiedEmail()) {
+            @if (resendSent()) {
+              <p class="auth__ok" role="status"><i class="pi pi-check-circle"></i> Doğrulama e-postası tekrar gönderildi. Gelen kutunu (ve Spam) kontrol et.</p>
+            } @else {
+              <button type="button" class="auth__resend" [disabled]="resending()" (click)="resendVerification()">
+                <i class="pi" [class.pi-envelope]="!resending()" [class.pi-spin]="resending()" [class.pi-spinner]="resending()"></i>
+                {{ resending() ? 'Gönderiliyor…' : 'Doğrulama e-postasını tekrar gönder' }}
+              </button>
+            }
+          }
           @if (success(); as msg) {
             <p class="auth__ok" role="status"><i class="pi pi-check-circle"></i> {{ msg }}</p>
           }
