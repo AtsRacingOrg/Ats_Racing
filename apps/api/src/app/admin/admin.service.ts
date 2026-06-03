@@ -134,6 +134,8 @@ export class AdminService {
     let query = this.supabase.admin
       .from('profiles')
       .select('*')
+      // E-postası doğrulanmamış "pending" başvurular admin önüne çıkmaz.
+      .or('status.neq.pending,email_confirmed.eq.true')
       .order('created_at', { ascending: false });
 
     if (status) {
