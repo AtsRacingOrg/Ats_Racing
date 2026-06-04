@@ -83,44 +83,78 @@ import { PageLoader } from '../../../../shared/page-loader';
         }
       </h2>
 
-      <div class="pr__type">
-        <button type="button" class="pr__type-btn" [class.pr__type-btn--active]="bType() === 'individual'" (click)="bType.set('individual')">
-          <i class="pi pi-user"></i> Bireysel
-        </button>
-        <button type="button" class="pr__type-btn" [class.pr__type-btn--active]="bType() === 'corporate'" (click)="bType.set('corporate')">
-          <i class="pi pi-building"></i> Kurumsal
-        </button>
-      </div>
-
-      <div class="pr__brow">
-        @if (bType() === 'individual') {
-          <div class="pr__field"><label>Ad Soyad *</label><input class="pr__input" [(ngModel)]="bFullName" placeholder="Ad Soyad" /></div>
-          <div class="pr__field"><label>T.C. Kimlik No *</label><input class="pr__input" [(ngModel)]="bTcNo" maxlength="11" placeholder="11 haneli" /></div>
-        } @else {
-          <div class="pr__field"><label>Firma Ünvanı *</label><input class="pr__input" [(ngModel)]="bCompany" placeholder="Firma ünvanı" /></div>
-          <div class="pr__field"><label>Vergi Dairesi *</label><input class="pr__input" [(ngModel)]="bTaxOffice" placeholder="Vergi dairesi" /></div>
-          <div class="pr__field"><label>Vergi No *</label><input class="pr__input" [(ngModel)]="bTaxNumber" placeholder="Vergi numarası" /></div>
-        }
-        <div class="pr__field"><label>Telefon</label><input class="pr__input" [(ngModel)]="bPhone" placeholder="Telefon" /></div>
-        <div class="pr__field"><label>İl *</label><input class="pr__input" [(ngModel)]="bCity" placeholder="İl" /></div>
-        <div class="pr__field"><label>İlçe</label><input class="pr__input" [(ngModel)]="bDistrict" placeholder="İlçe" /></div>
-        <div class="pr__field pr__field--full"><label>Adres *</label><textarea class="pr__input" rows="2" [(ngModel)]="bAddress" placeholder="Açık adres"></textarea></div>
-      </div>
-
-      <div class="pr__brow-actions">
-        <button class="pr__btn pr__btn--primary" type="button" [disabled]="savingBilling()" (click)="saveBilling()">
-          <i class="pi" [class.pi-save]="!savingBilling()" [class.pi-spin]="savingBilling()" [class.pi-spinner]="savingBilling()"></i>
-          {{ savingBilling() ? 'Kaydediliyor…' : 'Fatura Bilgilerini Kaydet' }}
-        </button>
-        @if (account()?.billing) {
-          <button class="pr__btn pr__btn--danger" type="button" [disabled]="deletingBilling()" (click)="deleteBilling()">
-            <i class="pi" [class.pi-trash]="!deletingBilling()" [class.pi-spin]="deletingBilling()" [class.pi-spinner]="deletingBilling()"></i>
-            Sil
+      @if (showBillingForm()) {
+        <!-- DÜZENLEME / İLK KAYIT FORMU -->
+        <div class="pr__type">
+          <button type="button" class="pr__type-btn" [class.pr__type-btn--active]="bType() === 'individual'" (click)="switchType('individual')">
+            <i class="pi pi-user"></i> Bireysel
           </button>
-        }
-      </div>
-      @if (billingError()) { <p class="pr__err">{{ billingError() }}</p> }
-      @if (billingMsg()) { <p class="pr__ok">{{ billingMsg() }}</p> }
+          <button type="button" class="pr__type-btn" [class.pr__type-btn--active]="bType() === 'corporate'" (click)="switchType('corporate')">
+            <i class="pi pi-building"></i> Kurumsal
+          </button>
+        </div>
+
+        <div class="pr__brow">
+          @if (bType() === 'individual') {
+            <div class="pr__field"><label>Ad Soyad *</label><input class="pr__input" [(ngModel)]="bFullName" placeholder="Ad Soyad" /></div>
+            <div class="pr__field"><label>T.C. Kimlik No *</label><input class="pr__input" [(ngModel)]="bTcNo" maxlength="11" placeholder="11 haneli" /></div>
+          } @else {
+            <div class="pr__field"><label>Firma Ünvanı *</label><input class="pr__input" [(ngModel)]="bCompany" placeholder="Firma ünvanı" /></div>
+            <div class="pr__field"><label>Vergi Dairesi *</label><input class="pr__input" [(ngModel)]="bTaxOffice" placeholder="Vergi dairesi" /></div>
+            <div class="pr__field"><label>Vergi No *</label><input class="pr__input" [(ngModel)]="bTaxNumber" placeholder="Vergi numarası" /></div>
+          }
+          <div class="pr__field"><label>Telefon</label><input class="pr__input" [(ngModel)]="bPhone" placeholder="Telefon" /></div>
+          <div class="pr__field"><label>İl *</label><input class="pr__input" [(ngModel)]="bCity" placeholder="İl" /></div>
+          <div class="pr__field"><label>İlçe</label><input class="pr__input" [(ngModel)]="bDistrict" placeholder="İlçe" /></div>
+          <div class="pr__field pr__field--full"><label>Adres *</label><textarea class="pr__input" rows="2" [(ngModel)]="bAddress" placeholder="Açık adres"></textarea></div>
+        </div>
+
+        <div class="pr__brow-actions">
+          <button class="pr__btn pr__btn--primary" type="button" [disabled]="savingBilling()" (click)="saveBilling()">
+            <i class="pi" [class.pi-save]="!savingBilling()" [class.pi-spin]="savingBilling()" [class.pi-spinner]="savingBilling()"></i>
+            {{ savingBilling() ? 'Kaydediliyor…' : 'Fatura Bilgilerini Kaydet' }}
+          </button>
+          @if (account()?.billing) {
+            <button class="pr__btn" type="button" (click)="cancelEdit()">
+              <i class="pi pi-times"></i> Vazgeç
+            </button>
+          }
+        </div>
+        @if (billingError()) { <p class="pr__err">{{ billingError() }}</p> }
+        @if (billingMsg()) { <p class="pr__ok">{{ billingMsg() }}</p> }
+      } @else {
+        <!-- ÖZET (OKUMA) GÖRÜNÜMÜ -->
+        <div class="pr__summary">
+          <span class="pr__btype">
+            <i class="pi" [class.pi-user]="account()?.billing?.type === 'individual'" [class.pi-building]="account()?.billing?.type === 'corporate'"></i>
+            {{ account()?.billing?.type === 'corporate' ? 'Kurumsal' : 'Bireysel' }}
+          </span>
+          <div class="pr__sgrid">
+            @if (account()?.billing?.type === 'individual') {
+              <div class="pr__srow"><span>Ad Soyad</span><b>{{ account()?.billing?.fullName || '—' }}</b></div>
+              <div class="pr__srow"><span>T.C. Kimlik No</span><b>{{ account()?.billing?.tcNo || '—' }}</b></div>
+            } @else {
+              <div class="pr__srow"><span>Firma Ünvanı</span><b>{{ account()?.billing?.companyName || '—' }}</b></div>
+              <div class="pr__srow"><span>Vergi Dairesi</span><b>{{ account()?.billing?.taxOffice || '—' }}</b></div>
+              <div class="pr__srow"><span>Vergi No</span><b>{{ account()?.billing?.taxNumber || '—' }}</b></div>
+            }
+            <div class="pr__srow"><span>Telefon</span><b>{{ account()?.billing?.phone || '—' }}</b></div>
+            <div class="pr__srow"><span>İl / İlçe</span><b>{{ account()?.billing?.city || '—' }}{{ account()?.billing?.district ? ' / ' + account()?.billing?.district : '' }}</b></div>
+            <div class="pr__srow pr__srow--full"><span>Adres</span><b>{{ account()?.billing?.address || '—' }}</b></div>
+          </div>
+          <div class="pr__brow-actions">
+            <button class="pr__btn pr__btn--primary" type="button" (click)="startEdit()">
+              <i class="pi pi-pencil"></i> Düzenle
+            </button>
+            <button class="pr__btn pr__btn--danger" type="button" [disabled]="deletingBilling()" (click)="deleteBilling()">
+              <i class="pi" [class.pi-trash]="!deletingBilling()" [class.pi-spin]="deletingBilling()" [class.pi-spinner]="deletingBilling()"></i>
+              Sil
+            </button>
+          </div>
+          @if (billingMsg()) { <p class="pr__ok">{{ billingMsg() }}</p> }
+          @if (billingError()) { <p class="pr__err">{{ billingError() }}</p> }
+        </div>
+      }
     </section>
 
   </div>
@@ -166,6 +200,12 @@ import { PageLoader } from '../../../../shared/page-loader';
     .pr__type-btn { display: inline-flex; align-items: center; gap: 0.45rem; padding: 0.5rem 1rem; border-radius: 9px; border: none; cursor: pointer; background: transparent; color: rgba(255,255,255,0.5); font-size: 0.82rem; font-weight: 600;
       &:hover { color: #fff; } &--active { background: rgba(230,57,70,0.15); color: #e63946; } }
     .pr__brow { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 0.9rem; @media(max-width:680px){ grid-template-columns: 1fr; } }
+    .pr__summary { display: flex; flex-direction: column; gap: 1rem; }
+    .pr__btype { align-self: flex-start; display: inline-flex; align-items: center; gap: 0.45rem; padding: 0.35rem 0.85rem; border-radius: 20px; font-size: 0.78rem; font-weight: 700; background: rgba(230,57,70,0.12); color: #e63946; i { font-size: 0.85rem; } }
+    .pr__sgrid { display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem 1.5rem; @media(max-width:680px){ grid-template-columns: 1fr; } }
+    .pr__srow { display: flex; flex-direction: column; gap: 3px; &--full { grid-column: 1 / -1; }
+      span { font-size: 0.7rem; font-weight: 600; color: rgba(255,255,255,0.4); text-transform: uppercase; letter-spacing: 0.04em; }
+      b { font-size: 0.9rem; font-weight: 600; color: #fff; word-break: break-word; } }
   `],
 })
 export class ProfilePage implements OnInit {
@@ -183,6 +223,10 @@ export class ProfilePage implements OnInit {
   protected dealershipName = '';
   protected newPassword = '';
   protected newPassword2 = '';
+
+  protected readonly editingBilling = signal(false);
+  /** Form göster: fatura kayıtlı değilse ya da düzenleme modundaysa. */
+  protected readonly showBillingForm = computed(() => !this.account()?.billing || this.editingBilling());
 
   protected readonly bType = signal<BillingType>('individual');
   protected bFullName = ''; protected bTcNo = '';
@@ -218,6 +262,29 @@ export class ProfilePage implements OnInit {
       this.bCompany = b.companyName ?? ''; this.bTaxOffice = b.taxOffice ?? ''; this.bTaxNumber = b.taxNumber ?? '';
       this.bPhone = b.phone ?? ''; this.bAddress = b.address ?? ''; this.bCity = b.city ?? ''; this.bDistrict = b.district ?? '';
     }
+  }
+
+  /** Tip değiştirince diğer tipe özel alanları temizle (paylaşılan alanlar kalır). */
+  switchType(t: BillingType): void {
+    if (this.bType() === t) { return; }
+    this.bType.set(t);
+    if (t === 'individual') {
+      this.bCompany = ''; this.bTaxOffice = ''; this.bTaxNumber = '';
+    } else {
+      this.bFullName = ''; this.bTcNo = '';
+    }
+  }
+
+  startEdit(): void {
+    this.billingMsg.set(''); this.billingError.set('');
+    this.hydrate();
+    this.editingBilling.set(true);
+  }
+
+  cancelEdit(): void {
+    this.billingMsg.set(''); this.billingError.set('');
+    this.hydrate();
+    this.editingBilling.set(false);
   }
 
   async saveProfile(): Promise<void> {
@@ -277,6 +344,8 @@ export class ProfilePage implements OnInit {
     };
     try {
       await this.accountSvc.saveBilling(payload);
+      this.hydrate();
+      this.editingBilling.set(false);
       this.billingMsg.set('Fatura bilgilerin kaydedildi.');
     } catch { this.billingError.set('Kaydedilemedi. Tekrar dene.'); }
     finally { this.savingBilling.set(false); this.cdr.markForCheck(); }
