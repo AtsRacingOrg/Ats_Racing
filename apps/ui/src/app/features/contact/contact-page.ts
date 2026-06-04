@@ -1,6 +1,7 @@
 import { ChangeDetectionStrategy, Component } from '@angular/core';
 import { RevealDirective } from '../../shared/directives/reveal.directive';
 import { MarqueeBand } from '../../shared/ui/marquee-band/marquee-band';
+import { TranslatePipe } from '../../core/i18n/translate.pipe';
 import { ContactForm } from './sections/contact-form';
 import { ContactHero } from './sections/contact-hero';
 import { ContactHoursFaq } from './sections/hours-faq';
@@ -10,7 +11,7 @@ import { ContactMap } from './sections/contact-map';
 @Component({
   selector: 'app-contact-page',
   standalone: true,
-  imports: [ContactHero, ContactForm, ContactInfo, ContactHoursFaq, ContactMap, MarqueeBand, RevealDirective],
+  imports: [ContactHero, ContactForm, ContactInfo, ContactHoursFaq, ContactMap, MarqueeBand, RevealDirective, TranslatePipe],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <app-contact-hero></app-contact-hero>
@@ -22,7 +23,7 @@ import { ContactMap } from './sections/contact-map';
       </div>
     </section>
 
-    <app-marquee-band text="Teklif Al · Randevu Oluştur · Konuş"></app-marquee-band>
+    <app-marquee-band [text]="'contact.marquee' | t"></app-marquee-band>
 
     <app-contact-hours-faq></app-contact-hours-faq>
     <app-contact-map></app-contact-map>

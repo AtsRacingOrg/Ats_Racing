@@ -1,6 +1,7 @@
 import { ChangeDetectionStrategy, Component } from '@angular/core';
 import { DomSanitizer, SafeResourceUrl } from '@angular/platform-browser';
 import { inject } from '@angular/core';
+import { TranslatePipe } from '../../../core/i18n/translate.pipe';
 
 const MAP_QUERY = 'Kadıköy, İstanbul';
 const MAP_EMBED_URL = `https://www.google.com/maps?q=${encodeURIComponent(MAP_QUERY)}&output=embed&z=15`;
@@ -10,6 +11,7 @@ const MAP_DIRECTIONS_URL = `https://www.google.com/maps/dir/?api=1&destination=$
 @Component({
   selector: 'app-contact-map',
   standalone: true,
+  imports: [TranslatePipe],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <section class="map-band" aria-label="Atölye konumu">
@@ -26,18 +28,18 @@ const MAP_DIRECTIONS_URL = `https://www.google.com/maps/dir/?api=1&destination=$
       <div class="map-band__footer">
         <div class="map-band__inner">
           <div class="map-band__copy">
-            <p class="map-band__eyebrow">Bizi Ziyaret Et</p>
+            <p class="map-band__eyebrow">{{ 'contact.map.eyebrow' | t }}</p>
             <h2 class="map-band__title">Atatürk Mah. Performans Cad. No:42</h2>
-            <p class="map-band__sub">Kadıköy · İstanbul · Pzt–Cum 09:00–19:00</p>
+            <p class="map-band__sub">{{ 'contact.map.sub' | t }}</p>
           </div>
           <div class="map-band__actions">
             <a class="mb-btn mb-btn--ghost" [href]="searchUrl" target="_blank" rel="noopener">
               <i class="pi pi-map"></i>
-              <span>Haritada Aç</span>
+              <span>{{ 'contact.map.open' | t }}</span>
             </a>
             <a class="mb-btn mb-btn--primary" [href]="directionsUrl" target="_blank" rel="noopener">
               <i class="pi pi-compass"></i>
-              <span>Yol Tarifi Al</span>
+              <span>{{ 'contact.map.directions' | t }}</span>
             </a>
           </div>
         </div>

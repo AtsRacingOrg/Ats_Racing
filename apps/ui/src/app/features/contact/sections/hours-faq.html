@@ -1,40 +1,40 @@
 <section class="hf">
   <div class="hf__inner">
     <div class="hf__hours">
-      <p class="hf__eyebrow">Çalışma Saatleri</p>
-      <h2 class="hf__title">Buradayız.</h2>
-      <p class="hf__lead">Atölyemiz hafta içi her gün açık, hafta sonu randevu öncelikli.</p>
+      <p class="hf__eyebrow">{{ 'contact.hf.hoursEyebrow' | t }}</p>
+      <h2 class="hf__title">{{ 'contact.hf.hoursTitle' | t }}</h2>
+      <p class="hf__lead">{{ 'contact.hf.hoursLead' | t }}</p>
 
       <ul class="hf__hours-list" role="list">
-        @for (h of hours; track h.day) {
+        @for (h of hours; track h.dayKey) {
           <li>
-            <span class="hf__day">{{ h.day }}</span>
+            <span class="hf__day">{{ h.dayKey | t }}</span>
             <span class="hf__dotline" aria-hidden="true"></span>
-            <span class="hf__time">{{ h.time }}</span>
+            <span class="hf__time">{{ h.timeKey ? (h.timeKey | t) : h.time }}</span>
           </li>
         }
       </ul>
 
       <p class="hf__note">
         <i class="pi pi-info-circle"></i>
-        Tatil ve özel günlerde değişiklik için
+        {{ 'contact.hf.note' | t }}
         <a href="tel:+902120000000">+90 (212) 000 00 00</a>
       </p>
     </div>
 
     <div class="hf__faq">
-      <p class="hf__eyebrow">Sıkça Sorulanlar</p>
-      <h2 class="hf__title">Bilmek istediklerin</h2>
+      <p class="hf__eyebrow">{{ 'contact.hf.faqEyebrow' | t }}</p>
+      <h2 class="hf__title">{{ 'contact.hf.faqTitle' | t }}</h2>
 
       <ul class="hf__faq-list" role="list">
-        @for (f of faqs; track f.q; let i = $index) {
+        @for (f of faqs; track f.qKey; let i = $index) {
           <li>
             <details [attr.open]="i === 0 ? '' : null">
               <summary>
-                <span>{{ f.q }}</span>
+                <span>{{ f.qKey | t }}</span>
                 <i class="pi pi-plus hf__faq-icon" aria-hidden="true"></i>
               </summary>
-              <p>{{ f.a }}</p>
+              <p>{{ f.aKey | t }}</p>
             </details>
           </li>
         }

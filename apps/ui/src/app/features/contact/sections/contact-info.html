@@ -1,13 +1,13 @@
 <aside class="cinfo">
-  <h2 class="cinfo__title">İletişim Bilgileri</h2>
-  <p class="cinfo__lead">Doğrudan iletişim mi tercih edersin? Kanallarımızı kullanabilirsin.</p>
+  <h2 class="cinfo__title">{{ 'contact.info.title' | t }}</h2>
+  <p class="cinfo__lead">{{ 'contact.info.lead' | t }}</p>
 
   <ul class="cinfo__list" role="list">
-    @for (item of items; track item.label) {
+    @for (item of items; track item.labelKey) {
       <li class="cinfo__item">
         <span class="cinfo__icon" aria-hidden="true"><i [class]="item.icon"></i></span>
         <div>
-          <p class="cinfo__label">{{ item.label }}</p>
+          <p class="cinfo__label">{{ item.labelKey | t }}</p>
           @if (item.href) {
             <a class="cinfo__value" [href]="item.href">{{ item.value }}</a>
           } @else {
@@ -19,7 +19,7 @@
   </ul>
 
   <div class="cinfo__socials">
-    <p class="cinfo__label">Takip Et</p>
+    <p class="cinfo__label">{{ 'contact.info.follow' | t }}</p>
     <ul role="list">
       @for (s of socials; track s.label) {
         <li>

@@ -3,14 +3,13 @@
   <div class="chero__overlay" aria-hidden="true"></div>
 
   <div class="chero__inner">
-    <p class="chero__eyebrow">Bize Ulaş · Teklif Al · Randevu Oluştur</p>
+    <p class="chero__eyebrow">{{ 'contact.hero.eyebrow' | t }}</p>
     <h1 id="chero-title" class="chero__title">
-      <span class="chero__line chero__line--1">Konuşalım.</span>
-      <span class="chero__line chero__line--2">Aracın için en doğru planı kuralım.</span>
+      <span class="chero__line chero__line--1">{{ 'contact.hero.line1' | t }}</span>
+      <span class="chero__line chero__line--2">{{ 'contact.hero.line2' | t }}</span>
     </h1>
     <p class="chero__lead">
-      Sorularını, projelerini, randevu taleplerini ya da sadece bir merhaba demek için
-      birkaç saniye yeterli — birkaç dakika içinde dönüş yapıyoruz.
+      {{ 'contact.hero.lead' | t }}
     </p>
 
     <ul class="chero__quick" aria-label="Hızlı erişim">
@@ -18,7 +17,7 @@
         <a href="tel:+902120000000" class="chero__quick-card">
           <span class="chero__quick-icon"><i class="pi pi-phone"></i></span>
           <span class="chero__quick-body">
-            <span class="chero__quick-lbl">Bizi Ara</span>
+            <span class="chero__quick-lbl">{{ 'contact.hero.call' | t }}</span>
             <span class="chero__quick-val">+90 (212) 000 00 00</span>
           </span>
         </a>
@@ -27,8 +26,8 @@
         <a href="https://wa.me/902120000000" target="_blank" rel="noopener" class="chero__quick-card">
           <span class="chero__quick-icon chero__quick-icon--accent"><i class="pi pi-whatsapp"></i></span>
           <span class="chero__quick-body">
-            <span class="chero__quick-lbl">WhatsApp</span>
-            <span class="chero__quick-val">Anında yanıt</span>
+            <span class="chero__quick-lbl">{{ 'contact.hero.wa' | t }}</span>
+            <span class="chero__quick-val">{{ 'contact.hero.waVal' | t }}</span>
           </span>
         </a>
       </li>
@@ -36,7 +35,7 @@
         <a href="mailto:mapping@atsracing.com.tr" class="chero__quick-card">
           <span class="chero__quick-icon"><i class="pi pi-envelope"></i></span>
           <span class="chero__quick-body">
-            <span class="chero__quick-lbl">E-posta</span>
+            <span class="chero__quick-lbl">{{ 'contact.hero.email' | t }}</span>
             <span class="chero__quick-val">mapping&#64;atsracing.com.tr</span>
           </span>
         </a>

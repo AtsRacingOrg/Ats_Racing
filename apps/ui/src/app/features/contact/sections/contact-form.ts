@@ -3,17 +3,20 @@ import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { ButtonModule } from 'primeng/button';
 import { InputTextModule } from 'primeng/inputtext';
 import { TextareaModule } from 'primeng/textarea';
+import { TranslatePipe } from '../../../core/i18n/translate.pipe';
+import { I18nService } from '../../../core/i18n/i18n.service';
 
 @Component({
   selector: 'app-contact-form',
   standalone: true,
-  imports: [ReactiveFormsModule, InputTextModule, TextareaModule, ButtonModule],
+  imports: [ReactiveFormsModule, InputTextModule, TextareaModule, ButtonModule, TranslatePipe],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './contact-form.html',
   styleUrl: './contact-form.scss',
 })
 export class ContactForm {
   private readonly fb = inject(FormBuilder);
+  private readonly i18n = inject(I18nService);
 
   protected readonly form = this.fb.nonNullable.group({
     name:    ['', [Validators.required, Validators.minLength(2)]],
@@ -35,10 +38,10 @@ export class ContactForm {
   protected errorOf(control: keyof typeof this.form.controls): string | null {
     const c = this.form.controls[control];
     if (!c.errors || !(c.touched || c.dirty)) return null;
-    if (c.errors['required']) return 'Bu alan zorunlu.';
-    if (c.errors['email']) return 'Geçerli bir e-posta gir.';
-    if (c.errors['minlength']) return `En az ${c.errors['minlength'].requiredLength} karakter olmalı.`;
-    return 'Geçersiz değer.';
+    if (c.errors['required']) return this.i18n.t('auth.err.required');
+    if (c.errors['email']) return this.i18n.t('auth.err.email');
+    if (c.errors['minlength']) return this.i18n.t('auth.err.minlength', { n: c.errors['minlength'].requiredLength });
+    return this.i18n.t('auth.err.invalid');
   }
 
   protected async submit(): Promise<void> {
@@ -52,7 +55,7 @@ export class ContactForm {
       this.submitted.set(true);
       this.form.reset();
     } catch {
-      this.error.set('Mesaj gönderilemedi. Lütfen tekrar dene.');
+      this.error.set(this.i18n.t('contact.form.fail'));
     } finally {
       this.submitting.set(false);
     }

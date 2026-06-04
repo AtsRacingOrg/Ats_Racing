@@ -1,19 +1,19 @@
 <form class="cform" [formGroup]="form" (ngSubmit)="submit()" novalidate>
   <header class="cform__head">
-    <p class="cform__eyebrow">Mesaj Bırak</p>
-    <h2 class="cform__title">Birkaç dakika içinde dönüyoruz</h2>
-    <p class="cform__lead">Aracın için teklif, randevu veya sadece bir sohbet — formu doldur, sana ulaşalım.</p>
+    <p class="cform__eyebrow">{{ 'contact.form.eyebrow' | t }}</p>
+    <h2 class="cform__title">{{ 'contact.form.title' | t }}</h2>
+    <p class="cform__lead">{{ 'contact.form.lead' | t }}</p>
   </header>
 
   <div class="cform__row">
     <div class="cform__field" [class.is-invalid]="hasError('name')">
-      <label for="cf-name">Ad Soyad</label>
+      <label for="cf-name">{{ 'contact.form.name' | t }}</label>
       <input id="cf-name" pInputText formControlName="name" autocomplete="name" />
       @if (errorOf('name'); as msg) { <small role="alert">{{ msg }}</small> }
     </div>
 
     <div class="cform__field" [class.is-invalid]="hasError('email')">
-      <label for="cf-email">E-posta</label>
+      <label for="cf-email">{{ 'contact.form.email' | t }}</label>
       <input id="cf-email" pInputText type="email" formControlName="email" autocomplete="email" />
       @if (errorOf('email'); as msg) { <small role="alert">{{ msg }}</small> }
     </div>
@@ -21,20 +21,20 @@
 
   <div class="cform__row">
     <div class="cform__field" [class.is-invalid]="hasError('phone')">
-      <label for="cf-phone">Telefon</label>
+      <label for="cf-phone">{{ 'contact.form.phone' | t }}</label>
       <input id="cf-phone" pInputText type="tel" formControlName="phone" autocomplete="tel" />
       @if (errorOf('phone'); as msg) { <small role="alert">{{ msg }}</small> }
     </div>
 
     <div class="cform__field" [class.is-invalid]="hasError('subject')">
-      <label for="cf-subject">Konu</label>
+      <label for="cf-subject">{{ 'contact.form.subject' | t }}</label>
       <input id="cf-subject" pInputText formControlName="subject" />
       @if (errorOf('subject'); as msg) { <small role="alert">{{ msg }}</small> }
     </div>
   </div>
 
   <div class="cform__field" [class.is-invalid]="hasError('message')">
-    <label for="cf-message">Mesaj</label>
+    <label for="cf-message">{{ 'contact.form.message' | t }}</label>
     <textarea id="cf-message" pTextarea rows="6" formControlName="message"></textarea>
     @if (errorOf('message'); as msg) { <small role="alert">{{ msg }}</small> }
   </div>
@@ -42,13 +42,13 @@
   <div class="cform__actions">
     <p-button
       type="submit"
-      [label]="submitting() ? 'Gönderiliyor…' : 'Mesajı Gönder'"
+      [label]="submitting() ? ('contact.form.sending' | t) : ('contact.form.submit' | t)"
       [disabled]="submitting()"
     ></p-button>
 
     @if (submitted()) {
       <p class="cform__ok" role="status">
-        <i class="pi pi-check-circle"></i> Teşekkürler — en kısa sürede dönüş yapacağız.
+        <i class="pi pi-check-circle"></i> {{ 'contact.form.ok' | t }}
       </p>
     } @else if (error()) {
       <p class="cform__err" role="alert">{{ error() }}</p>
