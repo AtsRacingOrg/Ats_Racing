@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Post, Put, Req, UseGuards } from '@nestjs/common';
+import { Body, Controller, Delete, Get, Post, Put, Req, UseGuards } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { AuthGuard, AuthContext } from '../auth/auth.guard';
 import { ProfileService } from './profile.service';
@@ -40,5 +40,11 @@ export class ProfileController {
   @ApiOperation({ summary: 'Fatura bilgilerini kaydet (bireysel/kurumsal)' })
   upsertBilling(@Body() dto: UpsertBillingDto, @Req() req: AuthedReq) {
     return this.profile.upsertBilling(req.user.id, dto);
+  }
+
+  @Delete('billing')
+  @ApiOperation({ summary: 'Fatura bilgilerini sil' })
+  deleteBilling(@Req() req: AuthedReq) {
+    return this.profile.deleteBilling(req.user.id);
   }
 }

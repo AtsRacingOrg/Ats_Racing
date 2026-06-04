@@ -4,6 +4,19 @@ import { firstValueFrom } from 'rxjs';
 import { environment } from '../../../environments/environment';
 import { Statement } from '../payments/payments.service';
 
+export interface UserBilling {
+  type: 'individual' | 'corporate';
+  fullName: string | null;
+  tcNo: string | null;
+  companyName: string | null;
+  taxOffice: string | null;
+  taxNumber: string | null;
+  phone: string | null;
+  address: string | null;
+  city: string | null;
+  district: string | null;
+}
+
 export type RegStatus = 'pending' | 'approved' | 'rejected';
 
 export interface Registration {
@@ -53,6 +66,10 @@ export class AdminService {
 
   listDealerStatements(userId: string): Promise<Statement[]> {
     return firstValueFrom(this.http.get<Statement[]>(`${this.api}/admin/users/${userId}/statements`));
+  }
+
+  getUserBilling(userId: string): Promise<UserBilling | null> {
+    return firstValueFrom(this.http.get<UserBilling | null>(`${this.api}/admin/users/${userId}/billing`));
   }
 
   listAllStatements(): Promise<Statement[]> {

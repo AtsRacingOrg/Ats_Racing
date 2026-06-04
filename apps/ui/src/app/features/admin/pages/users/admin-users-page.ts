@@ -1,7 +1,7 @@
 import { ChangeDetectionStrategy, ChangeDetectorRef, Component, OnInit, effect, signal, computed, inject } from '@angular/core';
 import { PageLoader } from '../../../../shared/page-loader';
 import { FormsModule } from '@angular/forms';
-import { AdminService, AdminUserRow } from '../../../../core/admin/admin.service';
+import { AdminService, AdminUserRow, UserBilling } from '../../../../core/admin/admin.service';
 import { Statement } from '../../../../core/payments/payments.service';
 import { stageLabel, formatTl, formatTrDate, formatTrDateTime } from '../../../../core/orders/order-format';
 import { StatementsPanel } from '../../../../shared/statements-panel';
@@ -245,6 +245,33 @@ const ROLE_LABEL: Record<UserRole, string> = { user: 'Kullanıcı', dealer: 'Bay
                 }
               }
             </div>
+
+            <!-- Fatura bilgileri -->
+            @if (u.role !== 'admin') {
+              <div class="au-dp-card">
+                <h3 class="au-dp-card__title">Fatura Bilgileri</h3>
+                @if (billing(); as b) {
+                  <div class="au-bill">
+                    <div class="au-bill__row"><span>Tür</span><b>{{ b.type === 'corporate' ? 'Kurumsal' : 'Bireysel' }}</b></div>
+                    @if (b.type === 'corporate') {
+                      <div class="au-bill__row"><span>Ünvan</span><b>{{ b.companyName || '—' }}</b></div>
+                      <div class="au-bill__row"><span>Vergi Dairesi</span><b>{{ b.taxOffice || '—' }}</b></div>
+                      <div class="au-bill__row"><span>Vergi No</span><b>{{ b.taxNumber || '—' }}</b></div>
+                    } @else {
+                      <div class="au-bill__row"><span>Ad Soyad</span><b>{{ b.fullName || '—' }}</b></div>
+                      <div class="au-bill__row"><span>T.C. No</span><b>{{ b.tcNo || '—' }}</b></div>
+                    }
+                    @if (b.phone) { <div class="au-bill__row"><span>Telefon</span><b>{{ b.phone }}</b></div> }
+                    <div class="au-bill__row"><span>İl / İlçe</span><b>{{ b.city || '—' }}{{ b.district ? ' / ' + b.district : '' }}</b></div>
+                    <div class="au-bill__row au-bill__row--addr"><span>Adres</span><b>{{ b.address || '—' }}</b></div>
+                  </div>
+                } @else if (billingLoaded()) {
+                  <div class="au-dp__empty"><i class="pi pi-file"></i><p>Fatura bilgisi girilmemiş</p></div>
+                } @else {
+                  <p class="au-status-hint">Yükleniyor…</p>
+                }
+              </div>
+            }
 
           </div>
 
@@ -507,6 +534,12 @@ const ROLE_LABEL: Record<UserRole, string> = { user: 'Kullanıcı', dealer: 'Bay
       &__val { font-size: 1rem; font-weight: 800; color: #4ade80; }
     }
     .au-dp__empty { display: flex; flex-direction: column; align-items: center; gap: 0.5rem; padding: 1.5rem; color: rgba(255,255,255,0.2); i { font-size: 1.75rem; } p { font-size: 0.8rem; margin: 0; text-align: center; } }
+    .au-bill { display: flex; flex-direction: column; gap: 0.5rem; }
+    .au-bill__row { display: flex; justify-content: space-between; gap: 1rem; font-size: 0.8rem;
+      span { color: rgba(255,255,255,0.4); white-space: nowrap; }
+      b { color: rgba(255,255,255,0.85); font-weight: 600; text-align: right; }
+      &--addr b { text-align: right; white-space: pre-wrap; }
+    }
   `],
 })
 export class AdminUsersPage implements OnInit {
@@ -521,6 +554,8 @@ export class AdminUsersPage implements OnInit {
   protected readonly selectedUser = signal<AdminUser | null>(null);
   protected readonly loading      = signal(true);
   protected readonly statements   = signal<Statement[]>([]);
+  protected readonly billing      = signal<UserBilling | null>(null);
+  protected readonly billingLoaded = signal(false);
   protected readonly dealerPaidTotal = computed(() =>
     formatTl(this.statements().filter(s => s.status === 'paid').reduce((sum, s) => sum + (s.total ?? 0), 0)),
   );
@@ -569,6 +604,14 @@ export class AdminUsersPage implements OnInit {
     this.currentView.set('detail');
     this.detailTab.set('orders');
     this.statements.set([]);
+    this.billing.set(null);
+    this.billingLoaded.set(false);
+    if (u.role !== 'admin') {
+      this.adminApi.getUserBilling(u.id)
+        .then(b => { this.billing.set(b); })
+        .catch(() => {})
+        .finally(() => { this.billingLoaded.set(true); this.cdr.markForCheck(); });
+    }
     if (u.role === 'dealer') {
       try { this.statements.set(await this.adminApi.listDealerStatements(u.id)); }
       catch { /* sessiz */ }

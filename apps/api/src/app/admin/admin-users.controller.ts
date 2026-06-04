@@ -22,6 +22,12 @@ export class AdminUsersController {
     return this.admin.listDealerStatements(id);
   }
 
+  @Get(':id/billing')
+  @ApiOperation({ summary: 'Kullanıcının fatura bilgisi' })
+  billing(@Param('id', ParseUUIDPipe) id: string) {
+    return this.admin.getUserBilling(id);
+  }
+
   @Post(':id/active')
   @ApiOperation({ summary: 'Kullanıcı/bayi hesabını aktif veya pasif yap' })
   setActive(

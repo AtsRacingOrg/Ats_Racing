@@ -101,10 +101,18 @@ import { PageLoader } from '../../../../shared/page-loader';
         <div class="pr__field pr__field--full"><label>Adres *</label><textarea class="pr__input" rows="2" [(ngModel)]="bAddress" placeholder="Açık adres"></textarea></div>
       </div>
 
-      <button class="pr__btn pr__btn--primary" type="button" [disabled]="savingBilling()" (click)="saveBilling()">
-        <i class="pi" [class.pi-save]="!savingBilling()" [class.pi-spin]="savingBilling()" [class.pi-spinner]="savingBilling()"></i>
-        {{ savingBilling() ? 'Kaydediliyor…' : 'Fatura Bilgilerini Kaydet' }}
-      </button>
+      <div class="pr__brow-actions">
+        <button class="pr__btn pr__btn--primary" type="button" [disabled]="savingBilling()" (click)="saveBilling()">
+          <i class="pi" [class.pi-save]="!savingBilling()" [class.pi-spin]="savingBilling()" [class.pi-spinner]="savingBilling()"></i>
+          {{ savingBilling() ? 'Kaydediliyor…' : 'Fatura Bilgilerini Kaydet' }}
+        </button>
+        @if (account()?.billing) {
+          <button class="pr__btn pr__btn--danger" type="button" [disabled]="deletingBilling()" (click)="deleteBilling()">
+            <i class="pi" [class.pi-trash]="!deletingBilling()" [class.pi-spin]="deletingBilling()" [class.pi-spinner]="deletingBilling()"></i>
+            Sil
+          </button>
+        }
+      </div>
       @if (billingError()) { <p class="pr__err">{{ billingError() }}</p> }
       @if (billingMsg()) { <p class="pr__ok">{{ billingMsg() }}</p> }
     </section>
@@ -141,7 +149,9 @@ import { PageLoader } from '../../../../shared/page-loader';
       background: rgba(255,255,255,0.06); color: #fff; font-size: 0.85rem; font-weight: 600;
       &:hover:not(:disabled){ background: rgba(255,255,255,0.12); } &:disabled{ opacity: 0.5; cursor: not-allowed; }
       &--primary { background: linear-gradient(135deg,#e63946,#c1121f); border: none; }
+      &--danger { background: rgba(248,113,113,0.1); border-color: rgba(248,113,113,0.35); color: #f87171; &:hover:not(:disabled){ background: rgba(248,113,113,0.18); } }
     }
+    .pr__brow-actions { display: flex; gap: 0.6rem; flex-wrap: wrap; }
     .pr__ok { margin: 0; font-size: 0.8rem; color: #4ade80; }
     .pr__err { margin: 0; font-size: 0.8rem; color: #f87171; }
     .pr__badge { margin-left: auto; font-size: 0.68rem; font-weight: 700; padding: 3px 9px; border-radius: 20px; display: inline-flex; align-items: center; gap: 4px;
@@ -173,6 +183,7 @@ export class ProfilePage implements OnInit {
   protected readonly savingProfile = signal(false);
   protected readonly savingPw = signal(false);
   protected readonly savingBilling = signal(false);
+  protected readonly deletingBilling = signal(false);
   protected readonly profileMsg = signal('');
   protected readonly pwMsg = signal('');
   protected readonly pwError = signal('');
@@ -255,5 +266,21 @@ export class ProfilePage implements OnInit {
       this.billingMsg.set('Fatura bilgilerin kaydedildi.');
     } catch { this.billingError.set('Kaydedilemedi. Tekrar dene.'); }
     finally { this.savingBilling.set(false); this.cdr.markForCheck(); }
+  }
+
+  async deleteBilling(): Promise<void> {
+    if (this.deletingBilling()) { return; }
+    if (!confirm('Fatura bilgilerini silmek istediğine emin misin? Silersen sipariş veremezsin.')) { return; }
+    this.deletingBilling.set(true);
+    this.billingError.set(''); this.billingMsg.set('');
+    try {
+      await this.accountSvc.deleteBilling();
+      // Formu temizle
+      this.bType.set('individual');
+      this.bFullName = ''; this.bTcNo = ''; this.bCompany = ''; this.bTaxOffice = '';
+      this.bTaxNumber = ''; this.bPhone = ''; this.bAddress = ''; this.bCity = ''; this.bDistrict = '';
+      this.billingMsg.set('Fatura bilgilerin silindi.');
+    } catch { this.billingError.set('Silinemedi. Tekrar dene.'); }
+    finally { this.deletingBilling.set(false); this.cdr.markForCheck(); }
   }
 }

@@ -12,6 +12,7 @@ import {
   toRegistrationView,
 } from '../auth/auth.types';
 import { StatementRow, StatementView, toStatementView } from '../orders/orders.types';
+import { BillingRow, BillingView, toBillingView } from '../profile/profile.types';
 
 export interface AdminUserOrder {
   orderNo: string;
@@ -112,6 +113,16 @@ export class AdminService {
       throw new InternalServerErrorException('Ekstreler getirilemedi.');
     }
     return (data ?? []).map(toStatementView);
+  }
+
+  /** Bir kullanıcının fatura bilgisi (admin görünümü). */
+  async getUserBilling(userId: string): Promise<BillingView | null> {
+    const { data } = await this.supabase.admin
+      .from('billing_profiles')
+      .select('*')
+      .eq('user_id', userId)
+      .maybeSingle<BillingRow>();
+    return toBillingView(data ?? null);
   }
 
   /** Tüm bayilerin ekstreleri (admin Genel Bakış kazanç hesabı için). */

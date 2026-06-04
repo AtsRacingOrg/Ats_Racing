@@ -70,14 +70,16 @@ export class ProfileService {
   }
 
   async upsertBilling(userId: string, dto: UpsertBillingDto): Promise<{ ok: boolean; complete: boolean }> {
+    const individual = dto.type === 'individual';
+    // Tek kayıt: seçilen tipin alanları tutulur, diğer tipin alanları temizlenir.
     const row = {
       user_id: userId,
       type: dto.type,
-      full_name: dto.fullName?.trim() || null,
-      tc_no: dto.tcNo?.trim() || null,
-      company_name: dto.companyName?.trim() || null,
-      tax_office: dto.taxOffice?.trim() || null,
-      tax_number: dto.taxNumber?.trim() || null,
+      full_name: individual ? (dto.fullName?.trim() || null) : null,
+      tc_no: individual ? (dto.tcNo?.trim() || null) : null,
+      company_name: individual ? null : (dto.companyName?.trim() || null),
+      tax_office: individual ? null : (dto.taxOffice?.trim() || null),
+      tax_number: individual ? null : (dto.taxNumber?.trim() || null),
       phone: dto.phone?.trim() || null,
       address: dto.address?.trim() || null,
       city: dto.city?.trim() || null,
@@ -92,5 +94,28 @@ export class ProfileService {
       throw new InternalServerErrorException('Fatura bilgileri kaydedilemedi.');
     }
     return { ok: true, complete: billingComplete(toBillingView(row as BillingRow)) };
+  }
+
+  /** Fatura kaydını siler. */
+  async deleteBilling(userId: string): Promise<{ ok: boolean }> {
+    const { error } = await this.supabase.admin
+      .from('billing_profiles')
+      .delete()
+      .eq('user_id', userId);
+    if (error) {
+      this.logger.error(`deleteBilling failed: ${error.message}`);
+      throw new InternalServerErrorException('Fatura bilgileri silinemedi.');
+    }
+    return { ok: true };
+  }
+
+  /** Admin: bir kullanıcının fatura bilgisi. */
+  async getBilling(userId: string): Promise<BillingView | null> {
+    const { data } = await this.supabase.admin
+      .from('billing_profiles')
+      .select('*')
+      .eq('user_id', userId)
+      .maybeSingle<BillingRow>();
+    return toBillingView(data ?? null);
   }
 }

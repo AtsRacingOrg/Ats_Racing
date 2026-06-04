@@ -63,4 +63,9 @@ export class AccountService {
     await firstValueFrom(this.http.put(`${this.api}/account/billing`, b));
     await this.load();
   }
+
+  async deleteBilling(): Promise<void> {
+    await firstValueFrom(this.http.delete(`${this.api}/account/billing`));
+    await this.load();
+  }
 }
