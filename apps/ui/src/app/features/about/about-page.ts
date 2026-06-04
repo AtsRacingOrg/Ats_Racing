@@ -1,5 +1,6 @@
 import { ChangeDetectionStrategy, Component } from '@angular/core';
 import { MarqueeBand } from '../../shared/ui/marquee-band/marquee-band';
+import { TranslatePipe } from '../../core/i18n/translate.pipe';
 import { AboutHero } from './sections/about-hero';
 import { AboutCredentials } from './sections/credentials';
 import { AboutCta } from './sections/cta-band';
@@ -24,6 +25,7 @@ import { AboutValues } from './sections/values';
     AboutTeam,
     AboutCta,
     MarqueeBand,
+    TranslatePipe,
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
@@ -31,7 +33,7 @@ import { AboutValues } from './sections/values';
     <app-about-story></app-about-story>
     <app-about-showcase></app-about-showcase>
 
-    <app-marquee-band text="ATS Racing · Tutku · Mühendislik · Disiplin"></app-marquee-band>
+    <app-marquee-band [text]="'about.marquee' | t"></app-marquee-band>
 
     <app-about-stats></app-about-stats>
     <app-about-values></app-about-values>

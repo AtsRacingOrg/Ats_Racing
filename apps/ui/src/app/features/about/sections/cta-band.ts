@@ -1,11 +1,12 @@
 import { ChangeDetectionStrategy, Component } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { ButtonModule } from 'primeng/button';
+import { TranslatePipe } from '../../../core/i18n/translate.pipe';
 
 @Component({
   selector: 'app-about-cta',
   standalone: true,
-  imports: [RouterLink, ButtonModule],
+  imports: [RouterLink, ButtonModule, TranslatePipe],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <section class="cta">
@@ -13,12 +14,12 @@ import { ButtonModule } from 'primeng/button';
       <div class="cta__overlay" aria-hidden="true"></div>
       <div class="container-page cta__inner">
         <div>
-          <p class="cta__eyebrow">Birlikte çalışalım</p>
-          <h2 class="cta__title">Aracın için doğru ekibi arıyorsan, başlangıç burada.</h2>
+          <p class="cta__eyebrow">{{ 'about.cta.eyebrow' | t }}</p>
+          <h2 class="cta__title">{{ 'about.cta.title' | t }}</h2>
         </div>
         <div class="cta__actions">
-          <p-button label="Teklif Al" routerLink="/contact"></p-button>
-          <p-button label="Anasayfa" styleClass="p-button-outlined" routerLink="/"></p-button>
+          <p-button [label]="'about.cta.quote' | t" routerLink="/contact"></p-button>
+          <p-button [label]="'about.cta.home' | t" styleClass="p-button-outlined" routerLink="/"></p-button>
         </div>
       </div>
     </section>

@@ -2,9 +2,9 @@
   <div class="container-page">
     <app-section-heading
       align="center"
-      eyebrow="Ekibimiz"
-      title="İşin Arkasındaki İnsanlar"
-      lead="Otomotiv tutkusunu disiplinle birleştiren, deneyimli ve sertifikalı bir ekip."
+      [eyebrow]="'about.team.eyebrow' | t"
+      [title]="'about.team.title' | t"
+      [lead]="'about.team.lead' | t"
     ></app-section-heading>
 
     <ul class="team__grid" role="list">
@@ -26,7 +26,7 @@
           </figure>
           <div class="member__body">
             <h3 class="member__name">{{ m.name }}</h3>
-            <p class="member__role">{{ m.role }}</p>
+            <p class="member__role">{{ m.roleKey | t }}</p>
           </div>
         </li>
       }

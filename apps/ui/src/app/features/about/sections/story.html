@@ -9,31 +9,28 @@
       />
       <div class="story__badge">
         <span class="story__badge-num">27+</span>
-        <span class="story__badge-lbl">Yıllık Tutku</span>
+        <span class="story__badge-lbl">{{ 'about.story.badge' | t }}</span>
       </div>
     </div>
 
     <div class="story__copy" appReveal="fade-right" [revealDelay]="100">
       <app-section-heading
-        eyebrow="Hikayemiz"
-        title="Otomobil tutkusunu disiplinle birleştirdik"
+        [eyebrow]="'about.story.eyebrow' | t"
+        [title]="'about.story.title' | t"
       ></app-section-heading>
 
       <p>
-        Ats Racing, 1999 yılında küçük bir atölyede üç motor tutkununun bir araya gelmesiyle başladı.
-        Hedefimiz net: Sıradan servisin ötesinde, mühendislik temelli ve şeffaf bir bakım deneyimi sunmak.
+        {{ 'about.story.p1' | t }}
       </p>
       <p>
-        Bugün kendi dyno test ünitesi, profesyonel detaylı bölümü ve OEM eğitimli teknisyenlerden oluşan
-        ekibimizle her marka ve segmente hizmet veriyoruz — günlük binekten süper-otomobile, drift
-        canavarından klasik restorasyona kadar.
+        {{ 'about.story.p2' | t }}
       </p>
 
       <ul class="story__bullets">
-        <li><i class="pi pi-check-circle"></i> Mühendislik tabanlı yaklaşım</li>
-        <li><i class="pi pi-check-circle"></i> Şeffaf süreç ve raporlama</li>
-        <li><i class="pi pi-check-circle"></i> 24 ay servis garantisi</li>
-        <li><i class="pi pi-check-circle"></i> Kendi dyno tesisimiz</li>
+        <li><i class="pi pi-check-circle"></i> {{ 'about.story.b1' | t }}</li>
+        <li><i class="pi pi-check-circle"></i> {{ 'about.story.b2' | t }}</li>
+        <li><i class="pi pi-check-circle"></i> {{ 'about.story.b3' | t }}</li>
+        <li><i class="pi pi-check-circle"></i> {{ 'about.story.b4' | t }}</li>
       </ul>
     </div>
   </div>

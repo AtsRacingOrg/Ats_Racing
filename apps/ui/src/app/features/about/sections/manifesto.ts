@@ -1,8 +1,10 @@
 import { ChangeDetectionStrategy, Component } from '@angular/core';
+import { TranslatePipe } from '../../../core/i18n/translate.pipe';
 
 @Component({
   selector: 'app-about-manifesto',
   standalone: true,
+  imports: [TranslatePipe],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <section class="mani">
@@ -10,12 +12,11 @@ import { ChangeDetectionStrategy, Component } from '@angular/core';
       <div class="mani__overlay" aria-hidden="true"></div>
 
       <div class="mani__inner">
-        <p class="mani__eyebrow">Manifesto</p>
+        <p class="mani__eyebrow">{{ 'about.mani.eyebrow' | t }}</p>
         <blockquote class="mani__quote">
-          “Bir araba sadece metalden ibaret değil — sürücüsünün
-          karakterinin uzantısıdır. Biz de o karakteri ortaya çıkarmak için varız.”
+          {{ 'about.mani.quote' | t }}
         </blockquote>
-        <p class="mani__sign">— Ahmet Yıldız · Kurucu &amp; Baş Teknisyen</p>
+        <p class="mani__sign">{{ 'about.mani.sign' | t }}</p>
       </div>
     </section>
   `,

@@ -1,22 +1,19 @@
 import { ChangeDetectionStrategy, Component } from '@angular/core';
 import { EvcBadge } from '../../../shared/ui/evc-badge/evc-badge';
+import { TranslatePipe } from '../../../core/i18n/translate.pipe';
 
 @Component({
   selector: 'app-about-credentials',
   standalone: true,
-  imports: [EvcBadge],
+  imports: [EvcBadge, TranslatePipe],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <section class="cred">
       <div class="cred__inner">
         <div class="cred__copy">
-          <p class="cred__eyebrow">Lisanslar &amp; Yetkiler</p>
-          <h2 class="cred__title">Resmi yetkili. Belgeli. İzlenebilir.</h2>
-          <p class="cred__lead">
-            ECU tuning tarafında <strong>EVC GmbH</strong> tarafından lisanslı bayiyiz.
-            Her yazılım kendi lisansımızla yüklenir, müşteriye lisans doğrulama linki
-            verilir — yaptığımız iş şeffaftır ve geri izlenebilir.
-          </p>
+          <p class="cred__eyebrow">{{ 'about.cred.eyebrow' | t }}</p>
+          <h2 class="cred__title">{{ 'about.cred.title' | t }}</h2>
+          <p class="cred__lead" [innerHTML]="'about.cred.lead' | t"></p>
           <a
             class="cred__verify"
             href="https://www.evc.de/de/check_evc_license.asp?k=1PGrFKLZqc2zbwGPtgp9cQ%3d%3d"
@@ -24,7 +21,7 @@ import { EvcBadge } from '../../../shared/ui/evc-badge/evc-badge';
             rel="noopener"
           >
             <i class="pi pi-shield"></i>
-            <span>Lisansı doğrula</span>
+            <span>{{ 'about.cred.verify' | t }}</span>
             <i class="pi pi-arrow-up-right"></i>
           </a>
         </div>
