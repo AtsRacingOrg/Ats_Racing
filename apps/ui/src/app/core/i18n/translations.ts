@@ -198,6 +198,29 @@ export const DICT: Record<Lang, Record<string, string>> = {
     'auth.msg.verified': 'E-postan doğrulandı. Şimdi giriş yapabilirsin. (Bayi hesapları için admin onayı gerekir.)',
     'auth.msg.blocked': 'Çok fazla istek nedeniyle oturumun geçici olarak kapatıldı. Lütfen bir süre sonra tekrar giriş yapmayı dene.',
     'auth.msg.resendFailed': 'Doğrulama e-postası gönderilemedi. Lütfen tekrar dene.',
+
+    /* ---- Dashboard / Panel ---- */
+    'dash.nav.overview': 'Genel Bakış',
+    'dash.nav.orders': 'Siparişlerim',
+    'dash.nav.tools': 'Araçlar',
+    'dash.nav.payments': 'Ödeme Borçlarım',
+    'dash.nav.support': 'Destek',
+    'dash.nav.profile': 'Profilim',
+    'dash.logout': 'Çıkış Yap',
+    'dash.billingWarn': 'Fatura bilgileriniz tanımlı değil — sipariş verebilmek için profil sayfanızdan fatura bilgilerinizi tanımlayın.',
+    'dash.privOn': 'Hassas Bilgiler Açık',
+    'dash.privOff': 'Hassas Bilgiler Kapalı',
+    'dash.privShow': 'Fiyatları göstermek için tıklayın',
+    'dash.privHide': 'Fiyatları gizlemek için tıklayın',
+
+    /* ---- Admin paneli ---- */
+    'admin.nav.overview': 'Genel Bakış',
+    'admin.nav.orders': 'Siparişler',
+    'admin.nav.registrations': 'Başvurular',
+    'admin.nav.users': 'Kullanıcılar',
+    'admin.nav.tickets': 'Destek',
+    'admin.role': 'Sistem Yöneticisi',
+    'admin.panelTitle': 'Admin Panel',
   },
 
   en: {
@@ -392,5 +415,28 @@ export const DICT: Record<Lang, Record<string, string>> = {
     'auth.msg.verified': 'Your email is verified. You can sign in now. (Dealer accounts require admin approval.)',
     'auth.msg.blocked': 'Your session was temporarily closed due to too many requests. Please try signing in again later.',
     'auth.msg.resendFailed': 'Verification email could not be sent. Please try again.',
+
+    /* ---- Dashboard ---- */
+    'dash.nav.overview': 'Overview',
+    'dash.nav.orders': 'My Orders',
+    'dash.nav.tools': 'Tools',
+    'dash.nav.payments': 'My Payments',
+    'dash.nav.support': 'Support',
+    'dash.nav.profile': 'My Profile',
+    'dash.logout': 'Sign Out',
+    'dash.billingWarn': 'Your billing details are not set — define your billing info on the profile page to be able to place orders.',
+    'dash.privOn': 'Sensitive Info Shown',
+    'dash.privOff': 'Sensitive Info Hidden',
+    'dash.privShow': 'Click to show prices',
+    'dash.privHide': 'Click to hide prices',
+
+    /* ---- Admin panel ---- */
+    'admin.nav.overview': 'Overview',
+    'admin.nav.orders': 'Orders',
+    'admin.nav.registrations': 'Applications',
+    'admin.nav.users': 'Users',
+    'admin.nav.tickets': 'Support',
+    'admin.role': 'System Administrator',
+    'admin.panelTitle': 'Admin Panel',
   },
 };

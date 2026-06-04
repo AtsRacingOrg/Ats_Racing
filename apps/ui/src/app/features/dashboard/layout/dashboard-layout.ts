@@ -7,9 +7,11 @@ import { PrivacyService } from '../../../core/privacy.service';
 import { NotificationsService } from '../../../core/notifications/notifications.service';
 import { AccountService } from '../../../core/account/account.service';
 import { NotificationBell } from '../../../shared/notification-bell';
+import { TranslatePipe } from '../../../core/i18n/translate.pipe';
+import { LangSwitcher } from '../../../shared/ui/lang-switcher/lang-switcher';
 
 interface NavItem {
-  label: string;
+  labelKey: string;
   icon: string;
   route: string;
   /** Menü rozeti için bildirim kategorisi (orders / tickets). */
@@ -19,7 +21,7 @@ interface NavItem {
 @Component({
   selector: 'app-dashboard-layout',
   standalone: true,
-  imports: [RouterOutlet, RouterLink, RouterLinkActive, NotificationBell],
+  imports: [RouterOutlet, RouterLink, RouterLinkActive, NotificationBell, TranslatePipe, LangSwitcher],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div class="dash-shell" [class.sidebar-collapsed]="collapsed()">
@@ -41,10 +43,10 @@ interface NavItem {
               class="dash-nav__item"
               [routerLink]="item.route"
               routerLinkActive="dash-nav__item--active"
-              [title]="item.label"
+              [title]="item.labelKey | t"
             >
               <i [class]="'pi ' + item.icon"></i>
-              <span class="dash-nav__label">{{ item.label }}</span>
+              <span class="dash-nav__label">{{ item.labelKey | t }}</span>
               @if (item.badge && notifs.unreadFor(item.badge) > 0) {
                 <span class="dash-nav__badge">{{ notifs.unreadFor(item.badge) }}</span>
               }
@@ -62,7 +64,7 @@ interface NavItem {
           </div>
           <a routerLink="/login" class="dash-logout">
             <i class="pi pi-sign-out"></i>
-            <span class="dash-nav__label">Çıkış Yap</span>
+            <span class="dash-nav__label">{{ 'dash.logout' | t }}</span>
           </a>
         </div>
       </aside>
@@ -75,7 +77,7 @@ interface NavItem {
               @for (i of [0,1,2,3]; track i) {
                 <span class="dash-billing-warn__msg">
                   <i class="pi pi-exclamation-triangle"></i>
-                  Fatura bilgileriniz tanımlı değil — sipariş verebilmek için profil sayfanızdan fatura bilgilerinizi tanımlayın.
+                  {{ 'dash.billingWarn' | t }}
                 </span>
               }
             </div>
@@ -91,11 +93,12 @@ interface NavItem {
                       [class.dash-priv-toggle--on]="!pricesHidden()"
                       [attr.aria-pressed]="!pricesHidden()"
                       (click)="privacy.toggle()"
-                      [title]="pricesHidden() ? 'Fiyatları göstermek için tıklayın' : 'Fiyatları gizlemek için tıklayın'">
+                      [title]="(pricesHidden() ? 'dash.privShow' : 'dash.privHide') | t">
                 <i class="pi" [class.pi-eye-slash]="pricesHidden()" [class.pi-eye]="!pricesHidden()"></i>
-                <span class="dash-priv-toggle__lbl">{{ pricesHidden() ? 'Hassas Bilgiler Kapalı' : 'Hassas Bilgiler Açık' }}</span>
+                <span class="dash-priv-toggle__lbl">{{ (pricesHidden() ? 'dash.privOff' : 'dash.privOn') | t }}</span>
               </button>
             }
+            <app-lang-switcher />
             <app-notification-bell />
             <div class="dash-user dash-user--sm">
               <div class="dash-user__avatar">{{ initials() }}</div>
@@ -408,15 +411,15 @@ export class DashboardLayout implements OnInit {
   /** Menü öğeleri — "Ödeme Borçlarım" yalnızca bayilere gösterilir. */
   protected readonly navItems = computed<NavItem[]>(() => {
     const items: NavItem[] = [
-      { label: 'Genel Bakış',  icon: 'pi-home',          route: '/dashboard/overview' },
-      { label: 'Siparişlerim', icon: 'pi-shopping-cart', route: '/dashboard/orders', badge: 'orders' },
-      { label: 'Araçlar',      icon: 'pi-sliders-h',    route: '/dashboard/tools'  },
+      { labelKey: 'dash.nav.overview', icon: 'pi-home',          route: '/dashboard/overview' },
+      { labelKey: 'dash.nav.orders',   icon: 'pi-shopping-cart', route: '/dashboard/orders', badge: 'orders' },
+      { labelKey: 'dash.nav.tools',    icon: 'pi-sliders-h',     route: '/dashboard/tools'  },
     ];
     if (this.auth.isDealer()) {
-      items.push({ label: 'Ödeme Borçlarım', icon: 'pi-wallet', route: '/dashboard/payments' });
+      items.push({ labelKey: 'dash.nav.payments', icon: 'pi-wallet', route: '/dashboard/payments' });
     }
-    items.push({ label: 'Destek', icon: 'pi-headphones', route: '/dashboard/support', badge: 'tickets' });
-    items.push({ label: 'Profilim', icon: 'pi-user', route: '/dashboard/profile' });
+    items.push({ labelKey: 'dash.nav.support', icon: 'pi-headphones', route: '/dashboard/support', badge: 'tickets' });
+    items.push({ labelKey: 'dash.nav.profile', icon: 'pi-user', route: '/dashboard/profile' });
     return items;
   });
 }

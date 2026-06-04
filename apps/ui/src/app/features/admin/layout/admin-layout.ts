@@ -6,13 +6,15 @@ import { AuthService } from '../../../core/auth/auth.service';
 import { Router } from '@angular/router';
 import { NotificationsService } from '../../../core/notifications/notifications.service';
 import { NotificationBell } from '../../../shared/notification-bell';
+import { TranslatePipe } from '../../../core/i18n/translate.pipe';
+import { LangSwitcher } from '../../../shared/ui/lang-switcher/lang-switcher';
 
-interface NavItem { label: string; icon: string; route: string; badge?: string; }
+interface NavItem { labelKey: string; icon: string; route: string; badge?: string; }
 
 @Component({
   selector: 'app-admin-layout',
   standalone: true,
-  imports: [RouterOutlet, RouterLink, RouterLinkActive, NotificationBell],
+  imports: [RouterOutlet, RouterLink, RouterLinkActive, NotificationBell, TranslatePipe, LangSwitcher],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
 <div class="adm-shell" [class.adm-shell--collapsed]="collapsed()">
@@ -30,9 +32,9 @@ interface NavItem { label: string; icon: string; route: string; badge?: string; 
 
     <nav class="adm-nav">
       @for (item of navItems; track item.route) {
-        <a class="adm-nav__item" [routerLink]="item.route" routerLinkActive="adm-nav__item--active" [title]="item.label">
+        <a class="adm-nav__item" [routerLink]="item.route" routerLinkActive="adm-nav__item--active" [title]="item.labelKey | t">
           <i [class]="'pi ' + item.icon"></i>
-          <span class="adm-nav__label">{{ item.label }}</span>
+          <span class="adm-nav__label">{{ item.labelKey | t }}</span>
           @if (item.badge && notifs.unreadFor(item.badge) > 0) {
             <span class="adm-nav__badge">{{ notifs.unreadFor(item.badge) }}</span>
           }
@@ -45,12 +47,12 @@ interface NavItem { label: string; icon: string; route: string; badge?: string; 
         <span class="adm-user__avatar">{{ auth.currentUser()?.avatar }}</span>
         <div class="adm-user__info">
           <span class="adm-user__name">{{ auth.currentUser()?.name }}</span>
-          <span class="adm-user__role">Sistem Yöneticisi</span>
+          <span class="adm-user__role">{{ 'admin.role' | t }}</span>
         </div>
       </div>
-      <button class="adm-logout" (click)="logout()" title="Çıkış Yap">
+      <button class="adm-logout" (click)="logout()" [title]="'dash.logout' | t">
         <i class="pi pi-sign-out"></i>
-        <span class="adm-nav__label">Çıkış Yap</span>
+        <span class="adm-nav__label">{{ 'dash.logout' | t }}</span>
       </button>
     </div>
   </aside>
@@ -61,8 +63,9 @@ interface NavItem { label: string; icon: string; route: string; badge?: string; 
       <button class="adm-mobile-toggle" (click)="mobileOpen.set(!mobileOpen())" aria-label="Menü">
         <i class="pi pi-bars"></i>
       </button>
-      <span class="adm-topbar__title">Admin Panel</span>
+      <span class="adm-topbar__title">{{ 'admin.panelTitle' | t }}</span>
       <div class="adm-topbar__right">
+        <app-lang-switcher />
         <app-notification-bell />
         <div class="adm-user__avatar adm-user__avatar--sm">{{ auth.currentUser()?.avatar }}</div>
       </div>
@@ -199,11 +202,11 @@ export class AdminLayout implements OnInit {
   protected readonly mobileOpen = signal(false);
 
   protected readonly navItems: NavItem[] = [
-    { label: 'Genel Bakış',    icon: 'pi-home',          route: '/admin/overview' },
-    { label: 'Başvurular',     icon: 'pi-user-plus',     route: '/admin/registrations' },
-    { label: 'Kullanıcılar',   icon: 'pi-users',         route: '/admin/users' },
-    { label: 'Siparişler',     icon: 'pi-shopping-cart', route: '/admin/orders', badge: 'orders' },
-    { label: 'Ticketlar',      icon: 'pi-comments',      route: '/admin/tickets', badge: 'tickets' },
+    { labelKey: 'admin.nav.overview',      icon: 'pi-home',          route: '/admin/overview' },
+    { labelKey: 'admin.nav.registrations', icon: 'pi-user-plus',     route: '/admin/registrations' },
+    { labelKey: 'admin.nav.users',         icon: 'pi-users',         route: '/admin/users' },
+    { labelKey: 'admin.nav.orders',        icon: 'pi-shopping-cart', route: '/admin/orders', badge: 'orders' },
+    { labelKey: 'admin.nav.tickets',       icon: 'pi-comments',      route: '/admin/tickets', badge: 'tickets' },
   ];
 
   private readonly currentUrl = toSignal(
