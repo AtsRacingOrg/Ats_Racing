@@ -1,4 +1,5 @@
 import { ChangeDetectionStrategy, ChangeDetectorRef, Component, OnInit, effect, signal, computed, inject } from '@angular/core';
+import { Router } from '@angular/router';
 import { PageLoader } from '../../../../shared/page-loader';
 import { FormsModule } from '@angular/forms';
 import { AdminService, AdminUserRow, UserBilling } from '../../../../core/admin/admin.service';
@@ -302,8 +303,8 @@ const ROLE_LABEL: Record<UserRole, string> = { user: 'Kullanıcı', dealer: 'Bay
                   <h3 class="au-dp-card__title">Sipariş Geçmişi</h3>
                   @if (u.orderHistory.length > 0) {
                     <div class="au-order-list">
-                      @for (o of u.orderHistory; track o.id) {
-                        <div class="au-order-item">
+                      @for (o of pagedOrderHistory(); track o.id) {
+                        <button type="button" class="au-order-item au-order-item--link" (click)="goToOrder(o.id)" title="Sipariş detayına git">
                           <div class="au-order-item__left">
                             <span class="au-order-item__id">{{ o.id }}</span>
                             <div>
@@ -314,10 +315,12 @@ const ROLE_LABEL: Record<UserRole, string> = { user: 'Kullanıcı', dealer: 'Bay
                           <div class="au-order-item__right">
                             <span class="au-order-item__price">{{ o.price }}</span>
                             <span class="au-obadge au-obadge--{{ o.statusKey }}">{{ o.status }}</span>
+                            <i class="pi pi-chevron-right au-order-item__chev"></i>
                           </div>
-                        </div>
+                        </button>
                       }
                     </div>
+                    <app-paginator [total]="u.orderHistory.length" [(page)]="orderPage" [pageSize]="orderPageSize" />
                     <!-- Totals -->
                     <div class="au-order-total">
                       <span>Toplam Ödenen</span>
@@ -511,14 +514,16 @@ const ROLE_LABEL: Record<UserRole, string> = { user: 'Kullanıcı', dealer: 'Bay
     /* Order history */
     .au-order-list { display: flex; flex-direction: column; gap: 0.5rem; }
     .au-order-item {
-      display: flex; align-items: center; justify-content: space-between; gap: 0.75rem;
-      background: rgba(255,255,255,0.03); border-radius: 10px; padding: 0.75rem 0.9rem;
+      display: flex; align-items: center; justify-content: space-between; gap: 0.75rem; width: 100%; text-align: left;
+      background: rgba(255,255,255,0.03); border: 1px solid transparent; border-radius: 10px; padding: 0.75rem 0.9rem;
+      &--link { cursor: pointer; transition: background 140ms, border-color 140ms; &:hover { background: rgba(255,255,255,0.06); border-color: rgba(245,158,11,0.3); } }
       &__left  { display: flex; align-items: center; gap: 0.65rem; }
       &__id    { font-family: monospace; font-size: 0.72rem; font-weight: 700; color: #f59e0b; flex-shrink: 0; }
       &__vehicle { font-size: 0.82rem; font-weight: 600; color: #fff; margin: 0 0 2px; }
       &__meta  { font-size: 0.68rem; color: rgba(255,255,255,0.3); margin: 0; }
-      &__right { display: flex; flex-direction: column; align-items: flex-end; gap: 4px; flex-shrink: 0; }
+      &__right { display: flex; align-items: center; gap: 0.6rem; flex-shrink: 0; }
       &__price { font-size: 0.82rem; font-weight: 700; color: #fff; }
+      &__chev  { color: rgba(255,255,255,0.3); font-size: 0.75rem; }
     }
     .au-obadge {
       display: inline-flex; padding: 0.15rem 0.45rem; border-radius: 5px; font-size: 0.6rem; font-weight: 700; text-transform: uppercase;
@@ -545,6 +550,19 @@ const ROLE_LABEL: Record<UserRole, string> = { user: 'Kullanıcı', dealer: 'Bay
 export class AdminUsersPage implements OnInit {
   private readonly adminApi = inject(AdminService);
   private readonly cdr = inject(ChangeDetectorRef);
+  private readonly router = inject(Router);
+
+  /* Sipariş geçmişi sayfalama (seçili kullanıcı) */
+  protected readonly orderPageSize = 5;
+  protected readonly orderPage = signal(1);
+  protected readonly pagedOrderHistory = computed(() => {
+    const hist = this.selectedUser()?.orderHistory ?? [];
+    const start = (this.orderPage() - 1) * this.orderPageSize;
+    return hist.slice(start, start + this.orderPageSize);
+  });
+  goToOrder(orderNo: string): void {
+    this.router.navigate(['/admin/orders'], { queryParams: { order: orderNo } });
+  }
 
   protected readonly allUsers     = signal<AdminUser[]>([]);
   protected readonly activeTab    = signal<UserRole>('user');
@@ -603,6 +621,7 @@ export class AdminUsersPage implements OnInit {
     this.selectedUser.set(u);
     this.currentView.set('detail');
     this.detailTab.set('orders');
+    this.orderPage.set(1);
     this.statements.set([]);
     this.billing.set(null);
     this.billingLoaded.set(false);

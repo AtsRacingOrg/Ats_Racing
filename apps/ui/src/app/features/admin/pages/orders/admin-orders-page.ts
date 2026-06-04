@@ -1,4 +1,5 @@
 import { ChangeDetectionStrategy, ChangeDetectorRef, Component, OnInit, effect, inject, signal, computed } from '@angular/core';
+import { ActivatedRoute } from '@angular/router';
 import { PageLoader } from '../../../../shared/page-loader';
 import { Paginator } from '../../../../shared/paginator';
 import { FormsModule } from '@angular/forms';
@@ -1228,6 +1229,7 @@ const STATUS_LABEL: Record<OrderStatus, string> = {
 export class AdminOrdersPage implements OnInit {
   private readonly ordersApi = inject(OrdersService);
   private readonly cdr = inject(ChangeDetectorRef);
+  private readonly route = inject(ActivatedRoute);
 
   protected readonly orders        = signal<AdminOrder[]>([]);
   protected readonly loading       = signal(true);
@@ -1235,12 +1237,20 @@ export class AdminOrdersPage implements OnInit {
 
   ngOnInit(): void {
     const cached = this.ordersApi.peekAdminOrders();
-    if (cached) { this.orders.set(cached.map(mapAdminOrder)); this.loading.set(false); }
+    if (cached) { this.orders.set(cached.map(mapAdminOrder)); this.loading.set(false); this.openFromQuery(); }
 
     this.ordersApi.adminListOrders()
-      .then(data => { this.orders.set(data.map(mapAdminOrder)); this.loadError.set(''); })
+      .then(data => { this.orders.set(data.map(mapAdminOrder)); this.loadError.set(''); this.openFromQuery(); })
       .catch(() => { if (!cached) { this.loadError.set('Siparişler yüklenemedi.'); } })
       .finally(() => { this.loading.set(false); this.cdr.markForCheck(); });
+  }
+
+  /** /admin/orders?order=ORD-018 ile gelindiğinde o siparişin detayını açar. */
+  private openFromQuery(): void {
+    const orderNo = this.route.snapshot.queryParamMap.get('order');
+    if (!orderNo) { return; }
+    const found = this.orders().find(o => o.id === orderNo);
+    if (found) { this.openDetail(found); }
   }
 
   protected readonly files         = signal<Record<string, File | null>>({});
