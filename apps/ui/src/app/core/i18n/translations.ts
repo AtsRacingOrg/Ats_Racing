@@ -217,6 +217,9 @@ export const DICT: Record<Lang, Record<string, string>> = {
     'mon.0': 'Oca', 'mon.1': 'Şub', 'mon.2': 'Mar', 'mon.3': 'Nis',
     'mon.4': 'May', 'mon.5': 'Haz', 'mon.6': 'Tem', 'mon.7': 'Ağu',
     'mon.8': 'Eyl', 'mon.9': 'Eki', 'mon.10': 'Kas', 'mon.11': 'Ara',
+    'monL.0': 'Ocak', 'monL.1': 'Şubat', 'monL.2': 'Mart', 'monL.3': 'Nisan',
+    'monL.4': 'Mayıs', 'monL.5': 'Haziran', 'monL.6': 'Temmuz', 'monL.7': 'Ağustos',
+    'monL.8': 'Eylül', 'monL.9': 'Ekim', 'monL.10': 'Kasım', 'monL.11': 'Aralık',
 
     /* ---- Genel Bakış ---- */
     'ov.title': 'Genel Bakış',
@@ -810,6 +813,9 @@ export const DICT: Record<Lang, Record<string, string>> = {
     'mon.0': 'Jan', 'mon.1': 'Feb', 'mon.2': 'Mar', 'mon.3': 'Apr',
     'mon.4': 'May', 'mon.5': 'Jun', 'mon.6': 'Jul', 'mon.7': 'Aug',
     'mon.8': 'Sep', 'mon.9': 'Oct', 'mon.10': 'Nov', 'mon.11': 'Dec',
+    'monL.0': 'January', 'monL.1': 'February', 'monL.2': 'March', 'monL.3': 'April',
+    'monL.4': 'May', 'monL.5': 'June', 'monL.6': 'July', 'monL.7': 'August',
+    'monL.8': 'September', 'monL.9': 'October', 'monL.10': 'November', 'monL.11': 'December',
 
     /* ---- Overview ---- */
     'ov.title': 'Overview',

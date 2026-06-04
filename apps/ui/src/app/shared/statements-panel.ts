@@ -1,7 +1,7 @@
 import { ChangeDetectionStrategy, Component, Input, computed, inject, signal } from '@angular/core';
 import { DecimalPipe } from '@angular/common';
 import { Statement } from '../core/payments/payments.service';
-import { periodLabel, stageLabel, formatTrDate } from '../core/orders/order-format';
+import { stageLabel, formatTrDate } from '../core/orders/order-format';
 import { TranslatePipe } from '../core/i18n/translate.pipe';
 import { I18nService } from '../core/i18n/i18n.service';
 
@@ -9,7 +9,7 @@ type DebtStatus = 'accruing' | 'due' | 'paid' | 'overdue';
 
 interface DebtOrder { id: string; date: string; vehicle: string; service: string; amount: number; cancelled: boolean; }
 interface MonthlyStatement {
-  id: string; period: string; dueDate: string; status: DebtStatus;
+  id: string; periodYear: number; periodMonth: number; dueDate: string; status: DebtStatus;
   orders: DebtOrder[]; paidAt?: string;
 }
 
@@ -23,7 +23,8 @@ const STATUS_KEY: Record<DebtStatus, string> = {
 function mapStatement(s: Statement): MonthlyStatement {
   return {
     id: s.statementNo,
-    period: periodLabel(s.periodYear, s.periodMonth),
+    periodYear: s.periodYear,
+    periodMonth: s.periodMonth,
     dueDate: formatTrDate(s.dueDate),
     status: s.status,
     paidAt: s.paidAt ? formatTrDate(s.paidAt) : undefined,
@@ -78,7 +79,7 @@ function mapStatement(s: Statement): MonthlyStatement {
             <div class="stmt__head-left">
               <i class="pi" [class.pi-chevron-down]="isOpen(st.id)" [class.pi-chevron-right]="!isOpen(st.id)"></i>
               <div>
-                <p class="stmt__period">{{ st.period }} <span class="stmt__id">{{ st.id }}</span></p>
+                <p class="stmt__period">{{ periodLabel(st) }} <span class="stmt__id">{{ st.id }}</span></p>
                 <p class="stmt__due">
                   <i class="pi pi-calendar"></i>
                   @if (st.status === 'paid') { {{ 'pay.paidOn' | t:{ date: st.paidAt || '' } }} }
@@ -253,6 +254,10 @@ export class StatementsPanel {
     // İptal edilen siparişler bakiyeye dahil edilmez (iade edilir).
     return st.orders.reduce((sum, o) => sum + (o.cancelled ? 0 : o.amount), 0);
   }
+  /** "Haziran 2026" / "June 2026" — aktif dile göre. */
+  periodLabel(st: MonthlyStatement): string {
+    return `${this.i18n.t(`monL.${st.periodMonth - 1}`)} ${st.periodYear}`;
+  }
   statusLabel(s: DebtStatus): string { return this.i18n.t(STATUS_KEY[s]); }
   isOpen(id: string): boolean { return this._open().has(id); }
   toggle(id: string): void {
@@ -262,6 +267,6 @@ export class StatementsPanel {
   }
   payStatement(id: string): void {
     const st = this._rows().find(s => s.id === id);
-    if (st) { this.paidMsg.set(this.i18n.t('pay.toast', { period: st.period })); }
+    if (st) { this.paidMsg.set(this.i18n.t('pay.toast', { period: this.periodLabel(st) })); }
   }
 }
