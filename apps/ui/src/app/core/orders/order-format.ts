@@ -15,25 +15,32 @@ export function stageLabel(stage: string): string {
   return map[stage] ?? stage;
 }
 
-const TR_MONTHS = ['Oca', 'Şub', 'Mar', 'Nis', 'May', 'Haz', 'Tem', 'Ağu', 'Eyl', 'Eki', 'Kas', 'Ara'];
 const TR_MONTHS_LONG = ['Ocak', 'Şubat', 'Mart', 'Nisan', 'Mayıs', 'Haziran', 'Temmuz', 'Ağustos', 'Eylül', 'Ekim', 'Kasım', 'Aralık'];
 
-/** ISO tarih → "29 May 2026". */
+const pad2 = (n: number): string => n.toString().padStart(2, '0');
+
+/** ISO tarih → "02.06.2026" (gg.aa.yyyy). */
 export function formatTrDate(iso: string | null | undefined): string {
   if (!iso) { return ''; }
   const d = new Date(iso);
   if (isNaN(d.getTime())) { return ''; }
-  return `${d.getDate()} ${TR_MONTHS[d.getMonth()]} ${d.getFullYear()}`;
+  return `${pad2(d.getDate())}.${pad2(d.getMonth() + 1)}.${d.getFullYear()}`;
 }
 
-/** ISO tarih → "29 May 2026 · 14:32". */
+/** ISO tarih → "02.06.2026 · 14:32". */
 export function formatTrDateTime(iso: string | null | undefined): string {
   if (!iso) { return ''; }
   const d = new Date(iso);
   if (isNaN(d.getTime())) { return ''; }
-  const hh = d.getHours().toString().padStart(2, '0');
-  const mm = d.getMinutes().toString().padStart(2, '0');
-  return `${d.getDate()} ${TR_MONTHS[d.getMonth()]} ${d.getFullYear()} · ${hh}:${mm}`;
+  return `${formatTrDate(iso)} · ${pad2(d.getHours())}:${pad2(d.getMinutes())}`;
+}
+
+/** ISO tarih → "2026-06-02" (input[type=date] / datepicker değeri). */
+export function isoDateOnly(iso: string | null | undefined): string {
+  if (!iso) { return ''; }
+  const d = new Date(iso);
+  if (isNaN(d.getTime())) { return ''; }
+  return `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())}`;
 }
 
 /** (yıl, ay) → "Mayıs 2026". */

@@ -6,6 +6,7 @@ import { FormsModule } from '@angular/forms';
 import { AdminService, Registration, RegStatus } from '../../../../core/admin/admin.service';
 import { Paginator } from '../../../../shared/paginator';
 import { PageLoader } from '../../../../shared/page-loader';
+import { formatTrDateTime } from '../../../../core/orders/order-format';
 
 @Component({
   selector: 'app-admin-registrations',
@@ -363,9 +364,7 @@ export class AdminRegistrationsPage implements OnInit {
   }
 
   formatDate(iso: string): string {
-    return new Date(iso).toLocaleDateString('tr-TR', {
-      day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit',
-    });
+    return formatTrDateTime(iso);
   }
 
   startReject(id: string): void { this.rejectingId.set(id); this.rejectReason = ''; }

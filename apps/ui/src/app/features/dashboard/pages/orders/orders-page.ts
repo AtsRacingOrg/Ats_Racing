@@ -5,7 +5,7 @@ import { FormsModule } from '@angular/forms';
 import { DecimalPipe } from '@angular/common';
 import { Order, OrdersService } from '../../../../core/orders/orders.service';
 import { AuthService } from '../../../../core/auth/auth.service';
-import { fuelLabelTr, stageLabel, formatTrDateTime, formatTl, triggerDownload } from '../../../../core/orders/order-format';
+import { fuelLabelTr, stageLabel, formatTrDateTime, isoDateOnly, formatTl, triggerDownload } from '../../../../core/orders/order-format';
 
 type OrderStatus = 'pending' | 'processing' | 'completed' | 'cancelled';
 
@@ -15,7 +15,7 @@ interface ColFilters {
 }
 
 interface UserOrder {
-  id: string; dbId: string; date: string;
+  id: string; dbId: string; date: string; dateIso: string;
   make: string; model: string; year: number;
   engine: string; fuelType: string; transmission: string;
   vin: string; km: string; plate: string;
@@ -46,6 +46,7 @@ function mapOrder(o: Order): UserOrder {
     id: o.orderNo,
     dbId: o.id,
     date: formatTrDateTime(o.createdAt),
+    dateIso: isoDateOnly(o.createdAt),
     make: o.make ?? '',
     model: o.model ?? '',
     year: o.year ?? 0,
@@ -129,7 +130,7 @@ const STATUS_LABEL: Record<OrderStatus, string> = {
           <th><input class="op__fltr" placeholder="Şanzıman" [ngModel]="cf('sanziman')" (ngModelChange)="setColF('sanziman', $event)"></th>
           <th><input class="op__fltr" placeholder="Plaka" [ngModel]="cf('plaka')" (ngModelChange)="setColF('plaka', $event)"></th>
           <th><input class="op__fltr" placeholder="Servis" [ngModel]="cf('servis')" (ngModelChange)="setColF('servis', $event)"></th>
-          <th><input class="op__fltr" placeholder="Tarih" [ngModel]="cf('tarih')" (ngModelChange)="setColF('tarih', $event)"></th>
+          <th><input class="op__fltr op__fltr--date" type="date" [ngModel]="cf('tarih')" (ngModelChange)="setColF('tarih', $event)"></th>
           <th><input class="op__fltr" placeholder="Tutar" [ngModel]="cf('tutar')" (ngModelChange)="setColF('tutar', $event)"></th>
           <th>
             <select class="op__fltr op__fltr--sel" [ngModel]="activeFilter()" (ngModelChange)="activeFilter.set($event)">
@@ -613,6 +614,8 @@ const STATUS_LABEL: Record<OrderStatus, string> = {
     }
     .op__fltr--sel { appearance: none; cursor: pointer; }
     .op__fltr--sel option { background: #1a1d27; color: #fff; }
+    .op__fltr--date { color-scheme: dark; cursor: pointer; min-width: 120px; }
+    .op__fltr--date::-webkit-calendar-picker-indicator { filter: invert(0.7); cursor: pointer; }
     .op__veh { display: flex; align-items: center; gap: 0.625rem; }
     .op__veh-icon { width: 34px; height: 34px; border-radius: 8px; background: rgba(230,57,70,0.1); color: #e63946; display: flex; align-items: center; justify-content: center; font-size: 0.85rem; flex-shrink: 0; }
     .op__veh-name { font-weight: 600; color: rgba(255,255,255,0.9); margin: 0 0 2px; white-space: nowrap; }
@@ -956,7 +959,7 @@ export class OrdersPage implements OnInit {
         has(o.transmission, c.sanziman) &&
         has(o.plate, c.plaka) &&
         has(`${o.stage} ${o.extraServices.join(' ')}`, c.servis) &&
-        has(o.date, c.tarih) &&
+        (!c.tarih || o.dateIso === c.tarih) &&
         has(o.price, c.tutar) &&
         (!c.dosya || (c.dosya === 'var' ? o.fileAvailable : !o.fileAvailable));
       return matchQ && matchF && matchCols;

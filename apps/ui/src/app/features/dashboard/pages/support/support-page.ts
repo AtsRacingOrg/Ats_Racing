@@ -14,6 +14,8 @@ import { FormsModule } from '@angular/forms';
 import { TicketsService, Ticket as ApiTicket } from '../../../../core/tickets/tickets.service';
 import { OrdersService } from '../../../../core/orders/orders.service';
 import { stageLabel } from '../../../../core/orders/order-format';
+import { TranslatePipe } from '../../../../core/i18n/translate.pipe';
+import { I18nService } from '../../../../core/i18n/i18n.service';
 
 /* ─── Types ──────────────────────────────────────────────── */
 type TicketStatus = 'open' | 'pending' | 'resolved';
@@ -62,7 +64,7 @@ function mapTicket(t: ApiTicket): Ticket {
 @Component({
   selector: 'app-support-page',
   standalone: true,
-  imports: [DatePipe, FormsModule, PageLoader, Paginator],
+  imports: [DatePipe, FormsModule, PageLoader, Paginator, TranslatePipe],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
 @if (loading()) { <app-page-loader /> } @else {
@@ -71,11 +73,11 @@ function mapTicket(t: ApiTicket): Ticket {
   <!-- PAGE HEADER -->
   <div class="sp__header">
     <div>
-      <h1 class="sp__title">Destek</h1>
-      <p class="sp__sub">Siparişleriniz üzerinden ticket oluşturun, destek ekibimizle iletişime geçin</p>
+      <h1 class="sp__title">{{ 'dash.nav.support' | t }}</h1>
+      <p class="sp__sub">{{ 'sp.sub' | t }}</p>
     </div>
     <button class="sp-new-btn" type="button" (click)="openNewTicket()">
-      <i class="pi pi-plus"></i> Yeni Ticket
+      <i class="pi pi-plus"></i> {{ 'sp.new' | t }}
     </button>
   </div>
 
@@ -87,7 +89,7 @@ function mapTicket(t: ApiTicket): Ticket {
       @if (tickets().length === 0) {
         <div class="sp__empty">
           <i class="pi pi-inbox"></i>
-          <p>Henüz ticket oluşturmadınız</p>
+          <p>{{ 'sp.empty' | t }}</p>
         </div>
       }
       @for (t of pagedTickets(); track t.id) {
@@ -101,10 +103,10 @@ function mapTicket(t: ApiTicket): Ticket {
             <span class="tkt-status tkt-status--{{ t.status }}">
               {{ statusLabel(t.status) }}
             </span>
-            <span class="tkt-row__date">{{ t.createdAt | date:'d MMM' }}</span>
+            <span class="tkt-row__date">{{ t.createdAt | date:'dd.MM.yyyy' }}</span>
           </div>
           <p class="tkt-row__subject">{{ t.subject }}</p>
-          <p class="tkt-row__order"><i class="pi" [class.pi-box]="t.orderLabel" [class.pi-comment]="!t.orderLabel"></i> {{ t.orderLabel || 'Özel Talep' }}</p>
+          <p class="tkt-row__order"><i class="pi" [class.pi-box]="t.orderLabel" [class.pi-comment]="!t.orderLabel"></i> {{ t.orderLabel || ('sp.custom' | t) }}</p>
           <p class="tkt-row__preview">{{ t.messages[t.messages.length - 1].text }}</p>
         </button>
       }
@@ -116,7 +118,7 @@ function mapTicket(t: ApiTicket): Ticket {
       @if (!activeTicket()) {
         <div class="sp__convo-empty">
           <i class="pi pi-comments"></i>
-          <p>Bir ticket seçin veya yeni oluşturun</p>
+          <p>{{ 'sp.selectTicket' | t }}</p>
         </div>
       } @else {
         <!-- Convo Header -->
@@ -129,7 +131,7 @@ function mapTicket(t: ApiTicket): Ticket {
               <h2 class="convo__subject">{{ activeTicket()!.subject }}</h2>
               <p class="convo__order">
                 <i class="pi" [class.pi-box]="activeTicket()!.orderLabel" [class.pi-comment]="!activeTicket()!.orderLabel"></i>
-                {{ activeTicket()!.orderLabel || 'Özel Talep' }}
+                {{ activeTicket()!.orderLabel || ('sp.custom' | t) }}
                 <span class="convo__no">{{ activeTicket()!.ticketNo }}</span>
               </p>
             </div>
@@ -149,8 +151,8 @@ function mapTicket(t: ApiTicket): Ticket {
               </div>
               <div class="msg__body">
                 <div class="msg__meta">
-                  <span class="msg__sender">{{ msg.sender === 'user' ? 'Siz' : 'Destek Ekibi' }}</span>
-                  <span class="msg__time">{{ msg.createdAt | date:'d MMM, HH:mm' }}</span>
+                  <span class="msg__sender">{{ msg.sender === 'user' ? ('sp.you' | t) : ('sp.supportTeam' | t) }}</span>
+                  <span class="msg__time">{{ msg.createdAt | date:'dd.MM.yyyy HH:mm' }}</span>
                 </div>
                 <div class="msg__bubble">{{ msg.text }}</div>
               </div>
@@ -164,7 +166,7 @@ function mapTicket(t: ApiTicket): Ticket {
             <textarea
               class="convo__reply-input"
               rows="3"
-              placeholder="Mesajınızı yazın…"
+              [placeholder]="'sp.replyPh' | t"
               [(ngModel)]="replyText"
             ></textarea>
             <button
@@ -174,12 +176,12 @@ function mapTicket(t: ApiTicket): Ticket {
               (click)="sendReply()"
             >
               <i class="pi" [class.pi-send]="!busy()" [class.pi-spin]="busy()" [class.pi-spinner]="busy()"></i>
-              {{ busy() ? 'Gönderiliyor…' : 'Gönder' }}
+              {{ busy() ? ('sp.sending' | t) : ('sp.send' | t) }}
             </button>
           </div>
         } @else {
           <div class="convo__resolved-note">
-            <i class="pi pi-check-circle"></i> Bu ticket çözüldü olarak kapatılmıştır.
+            <i class="pi pi-check-circle"></i> {{ 'sp.resolvedNote' | t }}
           </div>
         }
       }
@@ -195,8 +197,8 @@ function mapTicket(t: ApiTicket): Ticket {
   <div class="ntm" role="dialog" aria-modal="true" aria-labelledby="ntm-title">
 
     <div class="ntm__head">
-      <h3 id="ntm-title" class="ntm__title">Yeni Destek Talebi</h3>
-      <button class="ntm__close" type="button" (click)="closeNewTicket()" aria-label="Kapat">
+      <h3 id="ntm-title" class="ntm__title">{{ 'sp.newTitle' | t }}</h3>
+      <button class="ntm__close" type="button" (click)="closeNewTicket()" [attr.aria-label]="'common.close' | t">
         <i class="pi pi-times"></i>
       </button>
     </div>
@@ -204,28 +206,28 @@ function mapTicket(t: ApiTicket): Ticket {
     <div class="ntm__body">
       <!-- Talep türü -->
       <div class="ntm__field">
-        <span class="ntm__label">Talep Türü</span>
+        <span class="ntm__label">{{ 'sp.reqType' | t }}</span>
         <div class="ntm__toggle">
           <button type="button" class="ntm__toggle-btn"
             [class.ntm__toggle-btn--active]="newTicketType === 'order'"
             (click)="newTicketType = 'order'">
-            <i class="pi pi-box"></i> Sipariş ile İlgili
+            <i class="pi pi-box"></i> {{ 'sp.orderRelated' | t }}
           </button>
           <button type="button" class="ntm__toggle-btn"
             [class.ntm__toggle-btn--active]="newTicketType === 'custom'"
             (click)="newTicketType = 'custom'">
-            <i class="pi pi-comment"></i> Özel Talep
+            <i class="pi pi-comment"></i> {{ 'sp.customType' | t }}
           </button>
         </div>
       </div>
 
       @if (newTicketType === 'order') {
         <div class="ntm__field">
-          <label class="ntm__label" for="ntm-order">Sipariş</label>
+          <label class="ntm__label" for="ntm-order">{{ 'sp.order' | t }}</label>
           @if (orders().length > 0) {
             <div class="sel-wrap">
               <select id="ntm-order" class="sel" [(ngModel)]="newOrderId">
-                <option value="">— Sipariş seçin —</option>
+                <option value="">{{ 'sp.selectOrder' | t }}</option>
                 @for (o of orders(); track o.id) {
                   <option [value]="o.id">{{ o.label }}</option>
                 }
@@ -233,24 +235,24 @@ function mapTicket(t: ApiTicket): Ticket {
               <i class="pi pi-chevron-down sel-arrow"></i>
             </div>
           } @else {
-            <p class="ntm__hint">Henüz siparişiniz yok. "Özel Talep" seçerek yazabilirsiniz.</p>
+            <p class="ntm__hint">{{ 'sp.noOrdersHint' | t }}</p>
           }
         </div>
       }
 
       <div class="ntm__field">
-        <label class="ntm__label" for="ntm-subject">Konu</label>
-        <input id="ntm-subject" class="ntm__input" type="text" placeholder="Sorununuzu kısaca özetleyin…" [(ngModel)]="newSubject" />
+        <label class="ntm__label" for="ntm-subject">{{ 'sp.subject' | t }}</label>
+        <input id="ntm-subject" class="ntm__input" type="text" [placeholder]="'sp.subjectPh' | t" [(ngModel)]="newSubject" />
       </div>
 
       <div class="ntm__field">
-        <label class="ntm__label" for="ntm-message">Mesaj</label>
-        <textarea id="ntm-message" class="ntm__textarea" rows="4" placeholder="Detaylı açıklama yazın…" [(ngModel)]="newMessage"></textarea>
+        <label class="ntm__label" for="ntm-message">{{ 'sp.message' | t }}</label>
+        <textarea id="ntm-message" class="ntm__textarea" rows="4" [placeholder]="'sp.messagePh' | t" [(ngModel)]="newMessage"></textarea>
       </div>
     </div>
 
     <div class="ntm__footer">
-      <button class="ghost-btn" type="button" (click)="closeNewTicket()">İptal</button>
+      <button class="ghost-btn" type="button" (click)="closeNewTicket()">{{ 'sp.cancel' | t }}</button>
       <button
         class="sp-send-btn"
         type="button"
@@ -258,7 +260,7 @@ function mapTicket(t: ApiTicket): Ticket {
         (click)="submitNewTicket()"
       >
         <i class="pi" [class.pi-send]="!busy()" [class.pi-spin]="busy()" [class.pi-spinner]="busy()"></i>
-        {{ busy() ? 'Gönderiliyor…' : 'Talep Oluştur' }}
+        {{ busy() ? ('sp.sending' | t) : ('sp.create' | t) }}
       </button>
     </div>
 
@@ -503,6 +505,7 @@ export class SupportPage implements OnInit {
   private readonly ticketsApi = inject(TicketsService);
   private readonly ordersApi = inject(OrdersService);
   private readonly cdr = inject(ChangeDetectorRef);
+  private readonly i18n = inject(I18nService);
 
   protected readonly orders = signal<OrderOption[]>([]);
   protected readonly tickets = signal<Ticket[]>([]);
@@ -562,7 +565,7 @@ export class SupportPage implements OnInit {
   }
 
   protected statusLabel(s: TicketStatus): string {
-    return s === 'open' ? 'Açık' : s === 'pending' ? 'Beklemede' : 'Çözüldü';
+    return this.i18n.t(s === 'open' ? 'sp.st.open' : s === 'pending' ? 'sp.st.pending' : 'sp.st.resolved');
   }
 
   protected async sendReply(): Promise<void> {

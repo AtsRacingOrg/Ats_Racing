@@ -3,6 +3,7 @@ import { PageLoader } from '../../../../shared/page-loader';
 import { Paginator } from '../../../../shared/paginator';
 import { FormsModule } from '@angular/forms';
 import { TicketsService, Ticket as ApiTicket } from '../../../../core/tickets/tickets.service';
+import { formatTrDate, formatTrDateTime } from '../../../../core/orders/order-format';
 
 type TicketStatus = 'open' | 'pending' | 'resolved';
 
@@ -15,14 +16,6 @@ interface AdminTicket {
   messages: Message[];
 }
 
-const TR_MONTHS = ['Oca', 'Şub', 'Mar', 'Nis', 'May', 'Haz', 'Tem', 'Ağu', 'Eyl', 'Eki', 'Kas', 'Ara'];
-function fmtDateTime(iso: string): string {
-  const d = new Date(iso);
-  if (isNaN(d.getTime())) { return ''; }
-  const hh = String(d.getHours()).padStart(2, '0');
-  const mm = String(d.getMinutes()).padStart(2, '0');
-  return `${d.getDate()} ${TR_MONTHS[d.getMonth()]}, ${hh}:${mm}`;
-}
 
 function mapAdminTicket(t: ApiTicket): AdminTicket {
   return {
@@ -33,12 +26,12 @@ function mapAdminTicket(t: ApiTicket): AdminTicket {
     order: t.orderNo ?? 'Özel Talep',
     subject: t.subject,
     status: t.status,
-    date: fmtDateTime(t.createdAt).split(',')[0],
+    date: formatTrDate(t.createdAt),
     messages: t.messages.map((m, i) => ({
       id: `m${i}`,
       text: m.body,
       sender: m.sender,
-      time: fmtDateTime(m.createdAt),
+      time: formatTrDateTime(m.createdAt),
     })),
   };
 }
