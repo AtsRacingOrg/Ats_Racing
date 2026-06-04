@@ -1,26 +1,24 @@
 import { ChangeDetectionStrategy, ChangeDetectorRef, Component, OnInit, computed, inject, signal } from '@angular/core';
 import { PageLoader } from '../../../../shared/page-loader';
-import { DatePipe, DecimalPipe } from '@angular/common';
+import { DecimalPipe } from '@angular/common';
 import { RouterLink } from '@angular/router';
 import { AuthService } from '../../../../core/auth/auth.service';
 import { Order, OrdersService } from '../../../../core/orders/orders.service';
 import { TicketsService } from '../../../../core/tickets/tickets.service';
 import { PaymentsService } from '../../../../core/payments/payments.service';
 import { stageLabel, formatTl } from '../../../../core/orders/order-format';
+import { TranslatePipe } from '../../../../core/i18n/translate.pipe';
+import { I18nService } from '../../../../core/i18n/i18n.service';
 
 interface MonthStat {
   month: string;
   amount: number;
 }
 
-const ORDER_STATUS_LABEL: Record<string, string> = {
-  pending: 'Beklemede', processing: 'İşlemde', completed: 'Tamamlandı', cancelled: 'İptal',
-};
-
 @Component({
   selector: 'app-overview-page',
   standalone: true,
-  imports: [DatePipe, DecimalPipe, RouterLink, PageLoader],
+  imports: [DecimalPipe, RouterLink, PageLoader, TranslatePipe],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     @if (loading()) { <app-page-loader /> } @else {
@@ -29,10 +27,10 @@ const ORDER_STATUS_LABEL: Record<string, string> = {
       <!-- PAGE HEADER -->
       <div class="ov__header">
         <div>
-          <h1 class="ov__title">Genel Bakış</h1>
-          <p class="ov__sub">Hoş geldin, {{ firstName() }} 👋</p>
+          <h1 class="ov__title">{{ 'ov.title' | t }}</h1>
+          <p class="ov__sub">{{ 'ov.welcome' | t:{ name: firstName() } }}</p>
         </div>
-        <span class="ov__date">{{ today | date:'d MMMM yyyy' }}</span>
+        <span class="ov__date">{{ todayLabel() }}</span>
       </div>
 
       <!-- STAT CARDS -->
@@ -58,9 +56,9 @@ const ORDER_STATUS_LABEL: Record<string, string> = {
         <!-- SVG BAR CHART -->
         <div class="dash-card">
           <div class="dash-card__head">
-            <h2 class="dash-card__title">Aylık Harcama</h2>
+            <h2 class="dash-card__title">{{ 'ov.monthlySpend' | t }}</h2>
             <div class="chart-legend">
-              <span class="chart-legend__dot" style="background:#e63946"></span> Harcama (₺)
+              <span class="chart-legend__dot" style="background:#e63946"></span> {{ 'ov.spendLegend' | t }}
             </div>
           </div>
           <div class="chart-wrap">
@@ -110,12 +108,12 @@ const ORDER_STATUS_LABEL: Record<string, string> = {
         <!-- RECENT ORDERS -->
         <div class="dash-card">
           <div class="dash-card__head">
-            <h2 class="dash-card__title">Son Siparişler</h2>
-            <a routerLink="/dashboard/orders" class="dash-link">Tümünü Gör →</a>
+            <h2 class="dash-card__title">{{ 'ov.recentOrders' | t }}</h2>
+            <a routerLink="/dashboard/orders" class="dash-link">{{ 'ov.viewAll' | t }}</a>
           </div>
           <div class="recent-list">
             @if (recentOrders().length === 0) {
-              <div class="recent-empty"><i class="pi pi-inbox"></i><span>Henüz sipariş yok</span></div>
+              <div class="recent-empty"><i class="pi pi-inbox"></i><span>{{ 'ov.noOrders' | t }}</span></div>
             }
             @for (o of recentOrders(); track o.id) {
               <div class="recent-item">
@@ -139,15 +137,15 @@ const ORDER_STATUS_LABEL: Record<string, string> = {
 
       <!-- QUICK ACTIONS -->
       <div class="ov__actions">
-        <h2 class="ov__section-title">Hızlı Erişim</h2>
+        <h2 class="ov__section-title">{{ 'ov.quickAccess' | t }}</h2>
         <div class="quick-grid">
-          @for (a of quickActions; track a.label) {
+          @for (a of quickActions; track a.labelKey) {
             <a [routerLink]="a.route" class="quick-card">
               <div class="quick-card__icon" [style.background]="a.color + '18'" [style.color]="a.color">
                 <i [class]="'pi ' + a.icon"></i>
               </div>
-              <span class="quick-card__label">{{ a.label }}</span>
-              <span class="quick-card__desc">{{ a.desc }}</span>
+              <span class="quick-card__label">{{ a.labelKey | t }}</span>
+              <span class="quick-card__desc">{{ a.descKey | t }}</span>
               <i class="pi pi-arrow-right quick-card__arrow"></i>
             </a>
           }
@@ -315,6 +313,7 @@ export class OverviewPage implements OnInit {
   private readonly ticketsApi = inject(TicketsService);
   private readonly paymentsApi = inject(PaymentsService);
   private readonly cdr = inject(ChangeDetectorRef);
+  private readonly i18n = inject(I18nService);
 
   protected readonly today = new Date();
   protected readonly isDealer = this.auth.isDealer;
@@ -327,6 +326,12 @@ export class OverviewPage implements OnInit {
   protected readonly firstName = computed(() =>
     this.auth.currentUser()?.name?.trim().split(/\s+/)[0] ?? '',
   );
+
+  /** Dile göre tarih (ör. 4 Haz 2026 / 4 Jun 2026). */
+  protected readonly todayLabel = computed(() => {
+    const d = this.today;
+    return `${d.getDate()} ${this.i18n.t(`mon.${d.getMonth()}`)} ${d.getFullYear()}`;
+  });
 
   ngOnInit(): void {
     // Cache'ten anında doldur, arka planda tazele.
@@ -359,22 +364,22 @@ export class OverviewPage implements OnInit {
     const os = this.orders();
     const completed = os.filter(o => o.status === 'completed').length;
     const cards = [
-      { label: 'Toplam Sipariş', value: String(os.length), icon: 'pi-shopping-cart', color: '#e63946' },
-      { label: 'Tamamlanan', value: String(completed), icon: 'pi-check-circle', color: '#4ade80' },
-      { label: 'Açık Talep', value: String(this.openTicketCount()), icon: 'pi-comments', color: '#60a5fa' },
+      { label: this.i18n.t('ov.stat.totalOrders'), value: String(os.length), icon: 'pi-shopping-cart', color: '#e63946' },
+      { label: this.i18n.t('ov.stat.completed'), value: String(completed), icon: 'pi-check-circle', color: '#4ade80' },
+      { label: this.i18n.t('ov.stat.openTickets'), value: String(this.openTicketCount()), icon: 'pi-comments', color: '#60a5fa' },
     ];
     if (this.isDealer()) {
-      cards.push({ label: 'Bekleyen Ödeme', value: formatTl(this.pendingPayment()), icon: 'pi-wallet', color: '#fbbf24' });
+      cards.push({ label: this.i18n.t('ov.stat.pendingPayment'), value: formatTl(this.pendingPayment()), icon: 'pi-wallet', color: '#fbbf24' });
     } else {
       // İptal edilen siparişler iade edildiği için harcamaya dahil edilmez.
       const total = os.filter(o => o.status !== 'cancelled').reduce((s, o) => s + o.totalPrice, 0);
-      cards.push({ label: 'Toplam Harcama', value: formatTl(total), icon: 'pi-wallet', color: '#fbbf24' });
+      cards.push({ label: this.i18n.t('ov.stat.totalSpend'), value: formatTl(total), icon: 'pi-wallet', color: '#fbbf24' });
     }
     return cards;
   });
 
   protected readonly monthStats = computed<MonthStat[]>(() => {
-    const months = ['Oca', 'Şub', 'Mar', 'Nis', 'May', 'Haz', 'Tem', 'Ağu', 'Eyl', 'Eki', 'Kas', 'Ara'];
+    const months = Array.from({ length: 12 }, (_, i) => this.i18n.t(`mon.${i}`));
     const arr = months.map(m => ({ month: m, amount: 0 }));
     const yr = new Date().getFullYear();
     for (const o of this.orders()) {
@@ -388,9 +393,9 @@ export class OverviewPage implements OnInit {
   protected readonly recentOrders = computed(() => this.orders().slice(0, 3));
 
   protected readonly quickActions = [
-    { label: 'Chip Hesapla', desc: 'Aracınızın kazanımını hesaplayın', icon: 'pi-sliders-h', color: '#e63946', route: '/dashboard/tools' },
-    { label: 'Siparişlerim', desc: 'Sipariş durumlarını takip et', icon: 'pi-shopping-cart', color: '#60a5fa', route: '/dashboard/orders' },
-    { label: 'Destek Al', desc: 'Ekibimizle iletişime geç', icon: 'pi-headphones', color: '#4ade80', route: '/dashboard/support' },
+    { labelKey: 'ov.qa.chip', descKey: 'ov.qa.chipDesc', icon: 'pi-sliders-h', color: '#e63946', route: '/dashboard/tools' },
+    { labelKey: 'ov.qa.orders', descKey: 'ov.qa.ordersDesc', icon: 'pi-shopping-cart', color: '#60a5fa', route: '/dashboard/orders' },
+    { labelKey: 'ov.qa.support', descKey: 'ov.qa.supportDesc', icon: 'pi-headphones', color: '#4ade80', route: '/dashboard/support' },
   ];
 
   readonly barW = 36;
@@ -416,9 +421,15 @@ export class OverviewPage implements OnInit {
   }
 
   vehicleOf(o: Order): string {
-    return [o.make, o.model].filter(Boolean).join(' ') || 'Araç';
+    return [o.make, o.model].filter(Boolean).join(' ') || this.i18n.t('common.vehicle');
   }
-  orderStatusLabel(s: string): string { return ORDER_STATUS_LABEL[s] ?? s; }
+  orderStatusLabel(s: string): string {
+    const map: Record<string, string> = {
+      pending: 'status.pending', processing: 'status.processing',
+      completed: 'status.completed', cancelled: 'status.cancelled',
+    };
+    return map[s] ? this.i18n.t(map[s]) : s;
+  }
   orderStatusClass(s: string): string {
     const map: Record<string, string> = {
       pending: 'status-chip status--review', processing: 'status-chip status--preparing',
