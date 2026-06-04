@@ -4,6 +4,7 @@ import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
 import { AuthService } from '../../../../core/auth/auth.service';
 import { PrivacyService } from '../../../../core/privacy.service';
+import { AccountService } from '../../../../core/account/account.service';
 import {
   Brand,
   Engine,
@@ -1246,6 +1247,7 @@ export class ToolsPage implements OnInit {
   private readonly auth = inject(AuthService);
   private readonly catalogApi = inject(CatalogService);
   private readonly ordersApi = inject(OrdersService);
+  private readonly accountSvc = inject(AccountService);
   /**
    * withFetch() HTTP yanıtı Angular zone dışında çözülebildiği için, OnPush
    * altında async set'lerden sonra görünümü elle işaretliyoruz (aksi halde
@@ -1384,6 +1386,12 @@ export class ToolsPage implements OnInit {
 
   async submitOrder(): Promise<void> {
     if (this.orderSubmitting()) { return; }
+    // Fatura bilgileri tanımlı değilse sipariş verilemez.
+    if (!this.accountSvc.loaded()) { await this.accountSvc.load(); }
+    if (!this.accountSvc.billingComplete()) {
+      this.orderError.set('Sipariş vermek için önce fatura bilgilerinizi tanımlamalısınız. (Profilim → Fatura Bilgileri)');
+      return;
+    }
     this.orderSubmitting.set(true);
     this.orderError.set('');
     try {

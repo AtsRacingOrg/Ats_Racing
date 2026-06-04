@@ -69,6 +69,9 @@ export class OrdersService {
     const client = this.supabase.clientFor(token);
     const { data, error } = await client.rpc('create_order', { payload: dto });
     if (error) {
+      if (/billing required/i.test(error.message)) {
+        throw new BadRequestException('Sipariş vermek için önce fatura bilgilerinizi tanımlamalısınız.');
+      }
       this.logger.error(`create_order failed: ${error.message}`);
       throw new InternalServerErrorException('Sipariş oluşturulamadı.');
     }

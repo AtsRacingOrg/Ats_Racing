@@ -5,6 +5,7 @@ import { filter, map, startWith } from 'rxjs/operators';
 import { AuthService } from '../../../core/auth/auth.service';
 import { PrivacyService } from '../../../core/privacy.service';
 import { NotificationsService } from '../../../core/notifications/notifications.service';
+import { AccountService } from '../../../core/account/account.service';
 import { NotificationBell } from '../../../shared/notification-bell';
 
 interface NavItem {
@@ -68,6 +69,18 @@ interface NavItem {
 
       <!-- MAIN -->
       <div class="dash-main">
+        @if (accountLoaded() && !billingComplete()) {
+          <a routerLink="/dashboard/profile" class="dash-billing-warn" title="Fatura bilgilerini tanımla">
+            <div class="dash-billing-warn__track">
+              @for (i of [0,1,2,3]; track i) {
+                <span class="dash-billing-warn__msg">
+                  <i class="pi pi-exclamation-triangle"></i>
+                  Fatura bilgileriniz tanımlı değil — sipariş verebilmek için profil sayfanızdan fatura bilgilerinizi tanımlayın.
+                </span>
+              }
+            </div>
+          </a>
+        }
         <header class="dash-topbar">
           <button class="dash-mobile-toggle" (click)="mobileOpen.set(!mobileOpen())" aria-label="Menü">
             <i class="pi pi-bars"></i>
@@ -258,6 +271,20 @@ interface NavItem {
     }
     .dash-shell.sidebar-collapsed .dash-main { margin-left: 64px; }
 
+    .dash-billing-warn {
+      display: block; text-decoration: none; overflow: hidden; white-space: nowrap;
+      background: linear-gradient(90deg, rgba(230,57,70,0.18), rgba(230,57,70,0.10));
+      border-bottom: 1px solid rgba(230,57,70,0.3);
+      position: sticky; top: 0; z-index: 60;
+    }
+    .dash-billing-warn__track { display: inline-flex; align-items: center; animation: billingMarquee 28s linear infinite; }
+    .dash-billing-warn__msg {
+      display: inline-flex; align-items: center; gap: 0.5rem; padding: 0.5rem 2.5rem;
+      font-size: 0.8rem; font-weight: 600; color: #ff8a93; white-space: nowrap;
+      i { color: #e63946; }
+    }
+    .dash-billing-warn:hover .dash-billing-warn__track { animation-play-state: paused; }
+    @keyframes billingMarquee { from { transform: translateX(0); } to { transform: translateX(-50%); } }
     .dash-topbar {
       height: 64px;
       background: #13151c;
@@ -330,10 +357,17 @@ export class DashboardLayout implements OnInit {
   private  readonly router  = inject(Router);
   protected readonly privacy = inject(PrivacyService);
   protected readonly notifs = inject(NotificationsService);
+  private  readonly accountSvc = inject(AccountService);
   protected readonly collapsed = signal(false);
   protected readonly mobileOpen = signal(false);
 
-  ngOnInit(): void { this.notifs.start(); }
+  protected readonly accountLoaded = this.accountSvc.loaded;
+  protected readonly billingComplete = this.accountSvc.billingComplete;
+
+  ngOnInit(): void {
+    this.notifs.start();
+    void this.accountSvc.load();
+  }
 
   protected readonly pricesHidden = this.privacy.pricesHidden;
   private readonly currentUrl = toSignal(
@@ -369,7 +403,7 @@ export class DashboardLayout implements OnInit {
     return name.split(/\s+/).map(w => w[0]).join('').slice(0, 2).toUpperCase();
   }
 
-  logout(): void { this.notifs.stop(); this.auth.logout(); this.router.navigate(['/login']); }
+  logout(): void { this.notifs.stop(); this.accountSvc.clear(); this.auth.logout(); this.router.navigate(['/login']); }
 
   /** Menü öğeleri — "Ödeme Borçlarım" yalnızca bayilere gösterilir. */
   protected readonly navItems = computed<NavItem[]>(() => {
@@ -382,6 +416,7 @@ export class DashboardLayout implements OnInit {
       items.push({ label: 'Ödeme Borçlarım', icon: 'pi-wallet', route: '/dashboard/payments' });
     }
     items.push({ label: 'Destek', icon: 'pi-headphones', route: '/dashboard/support', badge: 'tickets' });
+    items.push({ label: 'Profilim', icon: 'pi-user', route: '/dashboard/profile' });
     return items;
   });
 }

@@ -41,6 +41,12 @@ export const dashboardRoutes: Route[] = [
           import('./pages/support/support-page').then(m => m.SupportPage),
         data: { title: 'Destek' },
       },
+      {
+        path: 'profile',
+        loadComponent: () =>
+          import('./pages/profile/profile-page').then(m => m.ProfilePage),
+        data: { title: 'Profilim' },
+      },
     ],
   },
 ];
