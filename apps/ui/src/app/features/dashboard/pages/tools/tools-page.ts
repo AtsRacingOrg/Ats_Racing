@@ -15,6 +15,8 @@ import {
   CatalogService,
 } from '../../../../core/catalog/catalog.service';
 import { OrdersService, CreateOrderPayload } from '../../../../core/orders/orders.service';
+import { TranslatePipe } from '../../../../core/i18n/translate.pipe';
+import { I18nService } from '../../../../core/i18n/i18n.service';
 
 /* ─── TYPES ─────────────────────────────────────────── */
 type TabKey = 'module' | 'tuning';
@@ -49,14 +51,14 @@ const GROUP_ORDER = ['Emisyon', 'Motor', 'Performans', 'Konfor', 'Egzoz', 'Güve
 @Component({
   selector: 'app-tools-page',
   standalone: true,
-  imports: [DecimalPipe, FormsModule, RouterLink],
+  imports: [DecimalPipe, FormsModule, RouterLink, TranslatePipe],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div class="tp">
 
       <!-- PAGE HEADER -->
       <div class="tp__header">
-        <h1 class="tp__title">Yazılım Araçları</h1>
+        <h1 class="tp__title">{{ 'tl.title' | t }}</h1>
       </div>
 
       @if (catalogError()) {
@@ -83,7 +85,7 @@ const GROUP_ORDER = ['Emisyon', 'Motor', 'Performans', 'Konfor', 'Egzoz', 'Güve
           role="tab"
           [attr.aria-selected]="activeTab() === 'module'"
         >
-          <i class="pi pi-sliders-v"></i> Modüller
+          <i class="pi pi-sliders-v"></i> {{ 'tl.tab.modules' | t }}
         </button>
       </div>
 
@@ -96,17 +98,17 @@ const GROUP_ORDER = ['Emisyon', 'Motor', 'Performans', 'Konfor', 'Egzoz', 'Güve
             <div class="step-card__head">
               <div class="step-num">1</div>
               <div>
-                <h2 class="step-card__title">Araç & Dosya Bilgisi</h2>
-                <p class="step-card__sub">Marka ve ECU seçin, ardından orijinal yazılım dosyanızı yükleyin</p>
+                <h2 class="step-card__title">{{ 'tl.m.step1Title' | t }}</h2>
+                <p class="step-card__sub">{{ 'tl.m.step1Sub' | t }}</p>
               </div>
             </div>
 
             <div class="vehicle-row">
               <div class="sel-group">
-                <label class="sel-label" for="mod-brand">Marka</label>
+                <label class="sel-label" for="mod-brand">{{ 'tl.brand' | t }}</label>
                 <div class="sel-wrap">
                   <select id="mod-brand" class="sel" (change)="onModBrand($event)">
-                    <option value="">— Marka seçin —</option>
+                    <option value="">{{ 'tl.selectBrand' | t }}</option>
                     @for (b of brandsModule; track b.label) {
                       <option [value]="b.label">{{ b.label }}</option>
                     }
@@ -118,7 +120,7 @@ const GROUP_ORDER = ['Emisyon', 'Motor', 'Performans', 'Konfor', 'Egzoz', 'Güve
                 <label class="sel-label" for="mod-ecu">ECU</label>
                 <div class="sel-wrap">
                   <select id="mod-ecu" class="sel" [disabled]="!modBrand()" (change)="onModEcu($event)">
-                    <option value="">— ECU seçin —</option>
+                    <option value="">{{ 'tl.selectEcu' | t }}</option>
                     @for (e of availableEcus(); track e) {
                       <option [value]="e">{{ e }}</option>
                     }
@@ -156,10 +158,10 @@ const GROUP_ORDER = ['Emisyon', 'Motor', 'Performans', 'Konfor', 'Egzoz', 'Güve
                   <div class="upload-zone__icon">
                     <i class="pi pi-cloud-upload"></i>
                   </div>
-                  <p class="upload-zone__title">Orijinal ECU Dosyasını Sürükle & Bırak</p>
-                  <p class="upload-zone__hint">.bin · .ori · .hex · .kess · .ktag formatları desteklenir</p>
+                  <p class="upload-zone__title">{{ 'tl.dragDrop' | t }}</p>
+                  <p class="upload-zone__hint">{{ 'tl.formats' | t }}</p>
                   <label class="upload-zone__btn">
-                    <i class="pi pi-folder-open"></i> Dosya Seç
+                    <i class="pi pi-folder-open"></i> {{ 'tl.selectFile' | t }}
                     <input
                       type="file"
                       accept=".bin,.ori,.hex,.mod,.kess,.ktag"
@@ -175,9 +177,9 @@ const GROUP_ORDER = ['Emisyon', 'Motor', 'Performans', 'Konfor', 'Egzoz', 'Güve
                   </div>
                   <div class="upload-file-info__body">
                     <span class="upload-file-info__name">{{ uploadedFile()!.name }}</span>
-                    <span class="upload-file-info__meta">{{ formatSize(uploadedFile()!.size) }} · Hazır</span>
+                    <span class="upload-file-info__meta">{{ formatSize(uploadedFile()!.size) }} · {{ 'tl.ready' | t }}</span>
                   </div>
-                  <button class="upload-file-info__remove" (click)="uploadedFile.set(null)" type="button" aria-label="Dosyayı kaldır">
+                  <button class="upload-file-info__remove" (click)="uploadedFile.set(null)" type="button" [attr.aria-label]="'tl.removeFile' | t">
                     <i class="pi pi-times"></i>
                   </button>
                 </div>
@@ -190,12 +192,12 @@ const GROUP_ORDER = ['Emisyon', 'Motor', 'Performans', 'Konfor', 'Egzoz', 'Güve
             <div class="step-card__head">
               <div class="step-num">2</div>
               <div>
-                <h2 class="step-card__title">Modül Seçimi</h2>
-                <p class="step-card__sub">İstediğiniz yazılım modüllerini aktif edin</p>
+                <h2 class="step-card__title">{{ 'tl.m.step2Title' | t }}</h2>
+                <p class="step-card__sub">{{ 'tl.m.step2Sub' | t }}</p>
               </div>
               <div class="step-card__actions">
-                <button class="ghost-btn" (click)="selectAll()" type="button">Tümünü Seç</button>
-                <button class="ghost-btn ghost-btn--danger" (click)="clearAll()" type="button">Temizle</button>
+                <button class="ghost-btn" (click)="selectAll()" type="button">{{ 'tl.selectAll' | t }}</button>
+                <button class="ghost-btn ghost-btn--danger" (click)="clearAll()" type="button">{{ 'tl.clear' | t }}</button>
               </div>
             </div>
 
@@ -229,15 +231,15 @@ const GROUP_ORDER = ['Emisyon', 'Motor', 'Performans', 'Konfor', 'Egzoz', 'Güve
           @if (selectedModules().size > 0) {
             @if (!orderSent()) {
               <div class="mod-note">
-                <label class="mod-note__lbl" for="mod-order-note"><i class="pi pi-comment"></i> Ekibe not (opsiyonel)</label>
+                <label class="mod-note__lbl" for="mod-order-note"><i class="pi pi-comment"></i> {{ 'tl.teamNote' | t }}</label>
                 <textarea id="mod-order-note" class="mod-note__input" rows="2" maxlength="1000"
-                  placeholder="Siparişle ilgili belirtmek istediğiniz bir şey var mı?"
+                  [placeholder]="'tl.teamNotePh' | t"
                   [ngModel]="orderNote()" (ngModelChange)="orderNote.set($event)"></textarea>
               </div>
             }
             <div class="order-summary">
               <div class="order-summary__left">
-                <span class="order-summary__count">{{ selectedModules().size }} modül seçildi</span>
+                <span class="order-summary__count">{{ 'tl.modulesSelected' | t:{ n: selectedModules().size } }}</span>
                 <div class="order-summary__chips">
                   @for (code of selectedArray(); track code) {
                     <span class="order-chip">{{ labelOf(code) }}</span>
@@ -247,14 +249,14 @@ const GROUP_ORDER = ['Emisyon', 'Motor', 'Performans', 'Konfor', 'Egzoz', 'Güve
               <div class="order-summary__right">
                 @if (!pricesHidden()) {
                   <div class="order-summary__total">
-                    <span class="order-summary__total-lbl">Toplam</span>
+                    <span class="order-summary__total-lbl">{{ 'tl.total' | t }}</span>
                     <span class="order-summary__total-val">{{ totalPrice() | number }}₺</span>
                   </div>
                 }
                 <button class="cta-btn cta-btn--primary" type="button"
                   [disabled]="orderSubmitting()" (click)="submitOrder()">
                   <i class="pi" [class.pi-send]="!orderSubmitting()" [class.pi-spin]="orderSubmitting()" [class.pi-spinner]="orderSubmitting()"></i>
-                  {{ orderSubmitting() ? 'Gönderiliyor…' : 'Sipariş Ver' }}
+                  {{ orderSubmitting() ? ('tl.sending' | t) : ('tl.placeOrder' | t) }}
                 </button>
               </div>
             </div>
@@ -266,10 +268,10 @@ const GROUP_ORDER = ['Emisyon', 'Motor', 'Performans', 'Konfor', 'Egzoz', 'Güve
             <div class="order-success">
               <div class="order-success__icon"><i class="pi pi-check-circle"></i></div>
               <div class="order-success__body">
-                <h3>Siparişiniz Alındı! <span class="order-success__no">{{ orderNo() }}</span></h3>
-                <p>{{ selectedModules().size }} modüllü yazılım talebiniz ekibimize iletildi. Siparişlerim sayfasından takip edebilirsiniz.</p>
+                <h3>{{ 'tl.orderReceived' | t }} <span class="order-success__no">{{ orderNo() }}</span></h3>
+                <p>{{ 'tl.m.successText' | t:{ n: selectedModules().size } }}</p>
               </div>
-              <button class="ghost-btn" (click)="resetOrder()" type="button">Yeni Sipariş</button>
+              <button class="ghost-btn" (click)="resetOrder()" type="button">{{ 'tl.newOrder' | t }}</button>
             </div>
           }
 
@@ -284,13 +286,13 @@ const GROUP_ORDER = ['Emisyon', 'Motor', 'Performans', 'Konfor', 'Egzoz', 'Güve
             <div class="step-card__head">
               <div class="step-num">1</div>
               <div>
-                <h2 class="step-card__title">Araç Seçimi</h2>
-                <p class="step-card__sub">Aracınızı seçin ve yazılım seviyesini belirleyin</p>
+                <h2 class="step-card__title">{{ 'tl.t.step1Title' | t }}</h2>
+                <p class="step-card__sub">{{ 'tl.t.step1Sub' | t }}</p>
               </div>
               <div class="step-card__actions">
                 <button class="ghost-btn ghost-btn--danger" type="button" (click)="resetAll()"
                   [disabled]="!selBrandId() && !selYear() && !selTransmission() && !selKm() && !selPlate()">
-                  <i class="pi pi-refresh"></i> Temizle
+                  <i class="pi pi-refresh"></i> {{ 'tl.clear' | t }}
                 </button>
               </div>
             </div>
@@ -299,10 +301,10 @@ const GROUP_ORDER = ['Emisyon', 'Motor', 'Performans', 'Konfor', 'Egzoz', 'Güve
 
               <!-- ROW 1: Marka | Model -->
               <div class="sel-group">
-                <label class="sel-label" for="t-brand">Marka</label>
+                <label class="sel-label" for="t-brand">{{ 'tl.brand' | t }}</label>
                 <div class="sel-wrap">
                   <select id="t-brand" class="sel" [value]="selBrandId()" (change)="onBrand($event)">
-                    <option value="">— Marka Seçin —</option>
+                    <option value="">{{ 'tl.selectBrand2' | t }}</option>
                     @for (b of brandsList(); track b.id) {
                       <option [value]="b.id">{{ b.name }}</option>
                     }
@@ -311,10 +313,10 @@ const GROUP_ORDER = ['Emisyon', 'Motor', 'Performans', 'Konfor', 'Egzoz', 'Güve
                 </div>
               </div>
               <div class="sel-group">
-                <label class="sel-label" for="t-model">Model</label>
+                <label class="sel-label" for="t-model">{{ 'tl.model' | t }}</label>
                 <div class="sel-wrap">
                   <select id="t-model" class="sel" [value]="selModelId()" [disabled]="!selBrandId()" (change)="onModel($event)">
-                    <option value="">— Model Seçin —</option>
+                    <option value="">{{ 'tl.selectModel' | t }}</option>
                     @for (m of modelsList(); track m.id) {
                       <option [value]="m.id">{{ m.name }}</option>
                     }
@@ -325,10 +327,10 @@ const GROUP_ORDER = ['Emisyon', 'Motor', 'Performans', 'Konfor', 'Egzoz', 'Güve
 
               <!-- ROW 2: Nesil | Motor | ECU -->
               <div class="sel-group">
-                <label class="sel-label" for="t-series">Nesil</label>
+                <label class="sel-label" for="t-series">{{ 'tl.series' | t }}</label>
                 <div class="sel-wrap">
                   <select id="t-series" class="sel" [value]="selSeriesId()" [disabled]="!selModelId()" (change)="onSeries($event)">
-                    <option value="">— Nesil Seçin —</option>
+                    <option value="">{{ 'tl.selectSeries' | t }}</option>
                     @for (s of seriesList(); track s.id) {
                       <option [value]="s.id">{{ s.name }}</option>
                     }
@@ -337,10 +339,10 @@ const GROUP_ORDER = ['Emisyon', 'Motor', 'Performans', 'Konfor', 'Egzoz', 'Güve
                 </div>
               </div>
               <div class="sel-group">
-                <label class="sel-label" for="t-engine">Motor</label>
+                <label class="sel-label" for="t-engine">{{ 'tl.engine' | t }}</label>
                 <div class="sel-wrap">
                   <select id="t-engine" class="sel" [value]="selEngineId()" [disabled]="!selSeriesId()" (change)="onEngine($event)">
-                    <option value="">— Motoru Seçin —</option>
+                    <option value="">{{ 'tl.selectEngine' | t }}</option>
                     @for (e of enginesList(); track e.id) {
                       <option [value]="e.id">{{ e.label }}</option>
                     }
@@ -352,7 +354,7 @@ const GROUP_ORDER = ['Emisyon', 'Motor', 'Performans', 'Konfor', 'Egzoz', 'Güve
                 <label class="sel-label" for="t-ecu">ECU</label>
                 <div class="sel-wrap">
                   <select id="t-ecu" class="sel" [disabled]="!selEngineId()" [(ngModel)]="selEcuVal" (ngModelChange)="selEcu.set($event); calculated.set(false)">
-                    <option value="">— ECU'yu Seçin —</option>
+                    <option value="">{{ 'tl.selectEcu2' | t }}</option>
                     @for (ec of availableEcuOptions(); track ec) {
                       <option [value]="ec">{{ ec }}</option>
                     }
@@ -363,10 +365,10 @@ const GROUP_ORDER = ['Emisyon', 'Motor', 'Performans', 'Konfor', 'Egzoz', 'Güve
 
               <!-- ROW 3: Yıl | Şanzıman | Kilometre -->
               <div class="sel-group">
-                <label class="sel-label" for="t-year">Yıl</label>
+                <label class="sel-label" for="t-year">{{ 'tl.year' | t }}</label>
                 <div class="sel-wrap">
                   <select id="t-year" class="sel" [disabled]="!selEcu()" [(ngModel)]="selYearVal" (ngModelChange)="selYear.set($event); calculated.set(false)">
-                    <option value="">— Yıl Seçin —</option>
+                    <option value="">{{ 'tl.selectYear' | t }}</option>
                     @for (y of yearOptions(); track y) {
                       <option [value]="y">{{ y }}</option>
                     }
@@ -375,10 +377,10 @@ const GROUP_ORDER = ['Emisyon', 'Motor', 'Performans', 'Konfor', 'Egzoz', 'Güve
                 </div>
               </div>
               <div class="sel-group">
-                <label class="sel-label" for="t-transmission">Şanzıman</label>
+                <label class="sel-label" for="t-transmission">{{ 'tl.transmission' | t }}</label>
                 <div class="sel-wrap">
                   <select id="t-transmission" class="sel" [disabled]="!selYear()" [(ngModel)]="selTransmissionVal" (ngModelChange)="selTransmission.set($event); calculated.set(false)">
-                    <option value="">— Vites Kutusunu Seçin —</option>
+                    <option value="">{{ 'tl.selectTransmission' | t }}</option>
                     @for (t of transmissionOptions; track t) {
                       <option [value]="t">{{ t }}</option>
                     }
@@ -387,9 +389,9 @@ const GROUP_ORDER = ['Emisyon', 'Motor', 'Performans', 'Konfor', 'Egzoz', 'Güve
                 </div>
               </div>
               <div class="sel-group">
-                <label class="sel-label" for="t-km">Kilometre</label>
+                <label class="sel-label" for="t-km">{{ 'tl.km' | t }}</label>
                 <div class="input-wrap">
-                  <input id="t-km" class="text-input" type="number" placeholder="Ör: 45000" min="0"
+                  <input id="t-km" class="text-input" type="number" [placeholder]="'tl.kmPh' | t" min="0"
                     [disabled]="!selTransmission()"
                     [(ngModel)]="selKmVal" (ngModelChange)="selKm.set($event); calculated.set(false)" />
                   <span class="input-suffix">km</span>
@@ -398,8 +400,8 @@ const GROUP_ORDER = ['Emisyon', 'Motor', 'Performans', 'Konfor', 'Egzoz', 'Güve
 
               <!-- ROW 4: Plaka (tek kolon) -->
               <div class="sel-group">
-                <label class="sel-label" for="t-plate">Plaka</label>
-                <input id="t-plate" class="text-input" type="text" placeholder="Ör: 34 ABC 123"
+                <label class="sel-label" for="t-plate">{{ 'tl.plate' | t }}</label>
+                <input id="t-plate" class="text-input" type="text" [placeholder]="'tl.platePh' | t"
                   style="text-transform:uppercase"
                   [disabled]="!selKm()"
                   [(ngModel)]="selPlateVal" (ngModelChange)="selPlate.set($event); calculated.set(false)" />
@@ -411,12 +413,12 @@ const GROUP_ORDER = ['Emisyon', 'Motor', 'Performans', 'Konfor', 'Egzoz', 'Güve
             @if (selEngine() && calculated()) {
               <div class="engine-info-strip">
                 <div class="engine-info-item">
-                  <span class="engine-info-k">Motor Kodu</span>
+                  <span class="engine-info-k">{{ 'tl.engineCode' | t }}</span>
                   <span class="engine-info-v engine-info-v--code">{{ selEngine()!.engineNo || '—' }}</span>
                 </div>
                 <div class="engine-info-sep"></div>
                 <div class="engine-info-item">
-                  <span class="engine-info-k">Silindir Hacmi</span>
+                  <span class="engine-info-k">{{ 'tl.displacement' | t }}</span>
                   <span class="engine-info-v">{{ selEngine()!.displacementCc ? (selEngine()!.displacementCc | number) + ' cc' : '—' }}</span>
                 </div>
                 <div class="engine-info-sep"></div>
@@ -426,12 +428,12 @@ const GROUP_ORDER = ['Emisyon', 'Motor', 'Performans', 'Konfor', 'Egzoz', 'Güve
                 </div>
                 <div class="engine-info-sep"></div>
                 <div class="engine-info-item">
-                  <span class="engine-info-k">Sıkıştırma</span>
+                  <span class="engine-info-k">{{ 'tl.compression' | t }}</span>
                   <span class="engine-info-v">{{ selEngine()!.compressionRatio || '—' }}</span>
                 </div>
                 <div class="engine-info-sep"></div>
                 <div class="engine-info-item">
-                  <span class="engine-info-k">Yakıt</span>
+                  <span class="engine-info-k">{{ 'tl.fuel' | t }}</span>
                   <span class="engine-info-v">
                     <span class="fuel-badge fuel-badge--{{ fuelBadge(selEngine()!.fuel) }}">
                       {{ fuelLabel(selEngine()!.fuel) }}
@@ -450,12 +452,12 @@ const GROUP_ORDER = ['Emisyon', 'Motor', 'Performans', 'Konfor', 'Egzoz', 'Güve
             @if (selEngine() && !allFieldsFilled()) {
               <div class="fields-hint">
                 <i class="pi pi-info-circle"></i>
-                Yazılım seviyesini görmek için tüm zorunlu alanları doldurun:
+                {{ 'tl.fillRequired' | t }}
                 @if (!selEcu()) { <span class="fields-hint__tag">ECU</span> }
-                @if (!selYear()) { <span class="fields-hint__tag">Yıl</span> }
-                @if (!selTransmission()) { <span class="fields-hint__tag">Şanzıman</span> }
-                @if (!selKm()) { <span class="fields-hint__tag">Kilometre</span> }
-                @if (!selPlate()) { <span class="fields-hint__tag">Plaka</span> }
+                @if (!selYear()) { <span class="fields-hint__tag">{{ 'tl.year' | t }}</span> }
+                @if (!selTransmission()) { <span class="fields-hint__tag">{{ 'tl.transmission' | t }}</span> }
+                @if (!selKm()) { <span class="fields-hint__tag">{{ 'tl.km' | t }}</span> }
+                @if (!selPlate()) { <span class="fields-hint__tag">{{ 'tl.plate' | t }}</span> }
               </div>
             }
 
@@ -463,14 +465,14 @@ const GROUP_ORDER = ['Emisyon', 'Motor', 'Performans', 'Konfor', 'Egzoz', 'Güve
             @if (allFieldsFilled() && !calculated()) {
               <div class="calc-cta">
                 <button class="cta-btn cta-btn--primary" type="button" (click)="calculated.set(true)">
-                  <i class="pi pi-calculator"></i> Hesapla
+                  <i class="pi pi-calculator"></i> {{ 'tl.calculate' | t }}
                 </button>
               </div>
             }
 
             @if (calculated()) {
               <div class="tune-opts">
-                <p class="sel-label" style="margin-bottom:0.75rem">Yazılım Seviyesi</p>
+                <p class="sel-label" style="margin-bottom:0.75rem">{{ 'tl.softwareLevel' | t }}</p>
                 <div class="tune-opts__grid">
                   <!-- Stage 1 — aktif (DB verisi var) -->
                   <button
@@ -482,7 +484,7 @@ const GROUP_ORDER = ['Emisyon', 'Motor', 'Performans', 'Konfor', 'Egzoz', 'Güve
                       <span class="tune-opt__badge tune-opt__badge--blue">Stage 1</span>
                       @if (!pricesHidden()) { <span class="tune-opt__price">₺{{ tuningPriceMap()['stage1'] | number }}</span> }
                     </span>
-                    <span class="tune-opt__desc">Sadece yazılım — ek donanım gerektirmez</span>
+                    <span class="tune-opt__desc">{{ 'tl.s1desc' | t }}</span>
                     <span class="tune-opt__gain">+{{ selEngine()!.stage1.hp - selEngine()!.stock.hp }} HP  /  +{{ selEngine()!.stage1.torque - selEngine()!.stock.torque }} Nm</span>
                   </button>
 
@@ -497,7 +499,7 @@ const GROUP_ORDER = ['Emisyon', 'Motor', 'Performans', 'Konfor', 'Egzoz', 'Güve
                         <span class="tune-opt__badge tune-opt__badge--red">Stage 2</span>
                         @if (!pricesHidden()) { <span class="tune-opt__price">₺{{ tuningPriceMap()['stage2'] | number }}</span> }
                       </span>
-                      <span class="tune-opt__desc">Downpipe + intercooler ile orta seviye kazanım</span>
+                      <span class="tune-opt__desc">{{ 'tl.s2desc' | t }}</span>
                       <span class="tune-opt__gain">+{{ s2.hp - selEngine()!.stock.hp }} HP  /  +{{ s2.torque - selEngine()!.stock.torque }} Nm</span>
                     </button>
                   } @else {
@@ -506,8 +508,8 @@ const GROUP_ORDER = ['Emisyon', 'Motor', 'Performans', 'Konfor', 'Egzoz', 'Güve
                         <span class="tune-opt__badge tune-opt__badge--red">Stage 2</span>
                         <i class="pi pi-lock tune-opt__lock"></i>
                       </span>
-                      <span class="tune-opt__desc">Bu seviye için iletişime geçin</span>
-                      <span class="tune-opt__gain tune-opt__gain--muted">İletişime geçin</span>
+                      <span class="tune-opt__desc">{{ 'tl.contactForLevel' | t }}</span>
+                      <span class="tune-opt__gain tune-opt__gain--muted">{{ 'tl.contact' | t }}</span>
                     </button>
                   }
 
@@ -522,7 +524,7 @@ const GROUP_ORDER = ['Emisyon', 'Motor', 'Performans', 'Konfor', 'Egzoz', 'Güve
                         <span class="tune-opt__badge tune-opt__badge--purple">Stage 3</span>
                         @if (!pricesHidden()) { <span class="tune-opt__price">₺{{ tuningPriceMap()['stage3'] | number }}</span> }
                       </span>
-                      <span class="tune-opt__desc">Turbo + yakıt sistemi upgrade ile maksimum kazanım</span>
+                      <span class="tune-opt__desc">{{ 'tl.s3desc' | t }}</span>
                       <span class="tune-opt__gain">+{{ s3.hp - selEngine()!.stock.hp }} HP  /  +{{ s3.torque - selEngine()!.stock.torque }} Nm</span>
                     </button>
                   } @else {
@@ -531,8 +533,8 @@ const GROUP_ORDER = ['Emisyon', 'Motor', 'Performans', 'Konfor', 'Egzoz', 'Güve
                         <span class="tune-opt__badge tune-opt__badge--purple">Stage 3</span>
                         <i class="pi pi-lock tune-opt__lock"></i>
                       </span>
-                      <span class="tune-opt__desc">Bu seviye için iletişime geçin</span>
-                      <span class="tune-opt__gain tune-opt__gain--muted">İletişime geçin</span>
+                      <span class="tune-opt__desc">{{ 'tl.contactForLevel' | t }}</span>
+                      <span class="tune-opt__gain tune-opt__gain--muted">{{ 'tl.contact' | t }}</span>
                     </button>
                   }
                 </div>
@@ -550,20 +552,20 @@ const GROUP_ORDER = ['Emisyon', 'Motor', 'Performans', 'Konfor', 'Egzoz', 'Güve
             @if (orderSent()) {
               <div class="order-success-full">
                 <div class="order-success-full__icon"><i class="pi pi-check-circle"></i></div>
-                <h2 class="order-success-full__title">Siparişiniz Alındı!</h2>
+                <h2 class="order-success-full__title">{{ 'tl.orderReceived' | t }}</h2>
                 <div class="order-success-full__no">{{ orderNo() }}</div>
                 <p class="order-success-full__desc">
-                  {{ tuneLabel() }} yazılım siparişiniz
-                  @if (selectedModules().size > 0) { ve {{ selectedModules().size }} ekstra modül }
-                  ekibimize iletildi.<br>
-                  Dosyanız hazırlandığında e-posta ile bilgilendirileceksiniz.
+                  {{ 'tl.t.success1' | t:{ tune: tuneLabel() } }}
+                  @if (selectedModules().size > 0) { {{ 'tl.t.successModules' | t:{ n: selectedModules().size } }} }
+                  {{ 'tl.t.success2' | t }}<br>
+                  {{ 'tl.t.successEmail' | t }}
                 </p>
                 <div class="order-success-full__actions">
                   <a routerLink="/dashboard/orders" class="cta-btn cta-btn--primary" style="justify-content:center">
-                    <i class="pi pi-list"></i> Siparişlerime Git
+                    <i class="pi pi-list"></i> {{ 'tl.goToOrders' | t }}
                   </a>
                   <button class="cta-btn cta-btn--outline" (click)="resetOrder()" type="button" style="justify-content:center">
-                    <i class="pi pi-plus"></i> Yeni Sipariş
+                    <i class="pi pi-plus"></i> {{ 'tl.newOrder' | t }}
                   </button>
                 </div>
               </div>
@@ -585,7 +587,7 @@ const GROUP_ORDER = ['Emisyon', 'Motor', 'Performans', 'Konfor', 'Egzoz', 'Güve
               <!-- HP / NM CARDS -->
               <div class="power-row">
                 <div class="power-block">
-                  <span class="power-block__lbl">Orjinal</span>
+                  <span class="power-block__lbl">{{ 'tl.stock' | t }}</span>
                   <div class="power-block__vals">
                     <div class="power-val">
                       <span class="power-val__num">{{ tuningResult()!.stock.hp }}</span>
@@ -622,9 +624,9 @@ const GROUP_ORDER = ['Emisyon', 'Motor', 'Performans', 'Konfor', 'Egzoz', 'Güve
                 <!-- HP CHART -->
                 <div class="line-chart-card">
                   <div class="line-chart-card__head">
-                    <h3 class="gauge-card__title" style="margin:0">Beygir Gücü (HP)</h3>
+                    <h3 class="gauge-card__title" style="margin:0">{{ 'tl.hpChart' | t }}</h3>
                     <div class="line-chart-legend">
-                      <span class="lc-dot lc-dot--grey"></span><span>Orjinal</span>
+                      <span class="lc-dot lc-dot--grey"></span><span>{{ 'tl.stock' | t }}</span>
                       <span class="lc-dot lc-dot--red"></span><span>{{ tuneLabel() }}</span>
                     </div>
                   </div>
@@ -662,9 +664,9 @@ const GROUP_ORDER = ['Emisyon', 'Motor', 'Performans', 'Konfor', 'Egzoz', 'Güve
                 <!-- TORQUE CHART -->
                 <div class="line-chart-card">
                   <div class="line-chart-card__head">
-                    <h3 class="gauge-card__title" style="margin:0">Tork (Nm)</h3>
+                    <h3 class="gauge-card__title" style="margin:0">{{ 'tl.torqueChart' | t }}</h3>
                     <div class="line-chart-legend">
-                      <span class="lc-dot lc-dot--grey"></span><span>Orjinal</span>
+                      <span class="lc-dot lc-dot--grey"></span><span>{{ 'tl.stock' | t }}</span>
                       <span class="lc-dot lc-dot--red"></span><span>{{ tuneLabel() }}</span>
                     </div>
                   </div>
@@ -702,14 +704,14 @@ const GROUP_ORDER = ['Emisyon', 'Motor', 'Performans', 'Konfor', 'Egzoz', 'Güve
 
               <!-- DETAIL GRID -->
               <div class="detail-card">
-                <h3 class="gauge-card__title">Teknik Detaylar</h3>
+                <h3 class="gauge-card__title">{{ 'tl.techDetails' | t }}</h3>
                 <div class="detail-grid">
                   <div class="detail-item">
-                    <span class="detail-item__k">Motor Kodu</span>
+                    <span class="detail-item__k">{{ 'tl.engineCode' | t }}</span>
                     <span class="detail-item__v detail-item__v--code">{{ tuningResult()!.engineNo || '—' }}</span>
                   </div>
                   <div class="detail-item">
-                    <span class="detail-item__k">Silindir Hacmi</span>
+                    <span class="detail-item__k">{{ 'tl.displacement' | t }}</span>
                     <span class="detail-item__v">{{ tuningResult()!.displacementCc ? (tuningResult()!.displacementCc | number) + ' cc' : '—' }}</span>
                   </div>
                   <div class="detail-item">
@@ -717,11 +719,11 @@ const GROUP_ORDER = ['Emisyon', 'Motor', 'Performans', 'Konfor', 'Egzoz', 'Güve
                     <span class="detail-item__v">{{ tuningResult()!.bore || '—' }}</span>
                   </div>
                   <div class="detail-item">
-                    <span class="detail-item__k">Sıkıştırma Oranı</span>
+                    <span class="detail-item__k">{{ 'tl.compressionRatio' | t }}</span>
                     <span class="detail-item__v">{{ tuningResult()!.compressionRatio || '—' }}</span>
                   </div>
                   <div class="detail-item">
-                    <span class="detail-item__k">Yakıt Tipi</span>
+                    <span class="detail-item__k">{{ 'tl.fuelType' | t }}</span>
                     <span class="detail-item__v">
                       <span class="fuel-badge fuel-badge--{{ fuelBadge(tuningResult()!.fuel) }}">
                         {{ fuelLabel(tuningResult()!.fuel) }}
@@ -733,15 +735,15 @@ const GROUP_ORDER = ['Emisyon', 'Motor', 'Performans', 'Konfor', 'Egzoz', 'Güve
                     <span class="detail-item__v">{{ selEcu() || tuningResult()!.ecu || '—' }}</span>
                   </div>
                   <div class="detail-item">
-                    <span class="detail-item__k">Üretim Yılı</span>
+                    <span class="detail-item__k">{{ 'tl.prodYear' | t }}</span>
                     <span class="detail-item__v">{{ tuningResult()!.yearLabel || '—' }}</span>
                   </div>
                   <div class="detail-item">
-                    <span class="detail-item__k">HP Artışı</span>
+                    <span class="detail-item__k">{{ 'tl.hpGain' | t }}</span>
                     <span class="detail-item__v detail-item__v--green">+{{ tunedHp() - tuningResult()!.stock.hp }} HP (%{{ hpPct() }})</span>
                   </div>
                   <div class="detail-item">
-                    <span class="detail-item__k">Tork Artışı</span>
+                    <span class="detail-item__k">{{ 'tl.torqueGain' | t }}</span>
                     <span class="detail-item__v detail-item__v--green">+{{ tunedTorque() - tuningResult()!.stock.torque }} Nm</span>
                   </div>
                 </div>
@@ -758,18 +760,18 @@ const GROUP_ORDER = ['Emisyon', 'Motor', 'Performans', 'Konfor', 'Egzoz', 'Güve
                   <div class="step-card__head">
                     <div class="step-num">2</div>
                     <div>
-                      <h2 class="step-card__title">Ayarlama Bilgileri</h2>
-                      <p class="step-card__sub">Lütfen aşağıdaki tüm bilgileri doldurun</p>
+                      <h2 class="step-card__title">{{ 'tl.t.step2Title' | t }}</h2>
+                      <p class="step-card__sub">{{ 'tl.t.step2Sub' | t }}</p>
                     </div>
                   </div>
 
                   <div class="vehicle-row">
                     <!-- Row 1: Okuma Aracı | Okuma Türü | VIN -->
                     <div class="sel-group">
-                      <label class="sel-label" for="t-reading-tool">Okuma Aracı</label>
+                      <label class="sel-label" for="t-reading-tool">{{ 'tl.readingTool' | t }}</label>
                       <div class="sel-wrap">
                         <select id="t-reading-tool" class="sel" [(ngModel)]="selReadingToolVal" (ngModelChange)="selReadingTool.set($event)">
-                          <option value="">— Seçin —</option>
+                          <option value="">{{ 'tl.select' | t }}</option>
                           @for (rt of readingToolOptions; track rt) {
                             <option [value]="rt">{{ rt }}</option>
                           }
@@ -778,12 +780,12 @@ const GROUP_ORDER = ['Emisyon', 'Motor', 'Performans', 'Konfor', 'Egzoz', 'Güve
                       </div>
                     </div>
                     <div class="sel-group">
-                      <label class="sel-label" for="t-virtual-file">Okuma Türü (Sanal Dosya)</label>
+                      <label class="sel-label" for="t-virtual-file">{{ 'tl.readType' | t }}</label>
                       <div class="sel-wrap">
                         <select id="t-virtual-file" class="sel" [(ngModel)]="selVirtualFileVal" (ngModelChange)="selVirtualFile.set($event)">
-                          <option value="">— Seçin —</option>
-                          <option value="HAYIR">HAYIR</option>
-                          <option value="EVET">EVET</option>
+                          <option value="">{{ 'tl.select' | t }}</option>
+                          <option value="HAYIR">{{ 'tl.no' | t }}</option>
+                          <option value="EVET">{{ 'tl.yes' | t }}</option>
                         </select>
                         <i class="pi pi-chevron-down sel-arrow"></i>
                       </div>
@@ -795,28 +797,28 @@ const GROUP_ORDER = ['Emisyon', 'Motor', 'Performans', 'Konfor', 'Egzoz', 'Güve
                     </div>
                     <!-- Row 2: ECU Donanım | ECU Parça | ECU Yazılım -->
                     <div class="sel-group">
-                      <label class="sel-label" for="t-ecu-hw">ECU Donanım Numarası</label>
+                      <label class="sel-label" for="t-ecu-hw">{{ 'tl.ecuHw' | t }}</label>
                       <input id="t-ecu-hw" class="text-input" type="text" placeholder="0281…"
                         [(ngModel)]="selEcuHwVal" (ngModelChange)="selEcuHw.set($event)" />
                     </div>
                     <div class="sel-group">
-                      <label class="sel-label" for="t-ecu-part">ECU Parça Numarası</label>
+                      <label class="sel-label" for="t-ecu-part">{{ 'tl.ecuPart' | t }}</label>
                       <input id="t-ecu-part" class="text-input" type="text" placeholder="03L…"
                         [(ngModel)]="selEcuPartVal" (ngModelChange)="selEcuPart.set($event)" />
                     </div>
                     <div class="sel-group">
-                      <label class="sel-label" for="t-ecu-sw">ECU Yazılım Numarası</label>
+                      <label class="sel-label" for="t-ecu-sw">{{ 'tl.ecuSw' | t }}</label>
                       <input id="t-ecu-sw" class="text-input" type="text" placeholder="8507…"
                         [(ngModel)]="selEcuSwVal" (ngModelChange)="selEcuSw.set($event)" />
                     </div>
                     <!-- Row 3: Dinamometrede -->
                     <div class="sel-group">
-                      <label class="sel-label" for="t-dyno">Dinamometrede</label>
+                      <label class="sel-label" for="t-dyno">{{ 'tl.dyno' | t }}</label>
                       <div class="sel-wrap">
                         <select id="t-dyno" class="sel" [(ngModel)]="selDynoVal" (ngModelChange)="selDyno.set($event)">
-                          <option value="">— Seçin —</option>
-                          <option value="HAYIR">HAYIR</option>
-                          <option value="EVET">EVET</option>
+                          <option value="">{{ 'tl.select' | t }}</option>
+                          <option value="HAYIR">{{ 'tl.no' | t }}</option>
+                          <option value="EVET">{{ 'tl.yes' | t }}</option>
                         </select>
                         <i class="pi pi-chevron-down sel-arrow"></i>
                       </div>
@@ -829,12 +831,12 @@ const GROUP_ORDER = ['Emisyon', 'Motor', 'Performans', 'Konfor', 'Egzoz', 'Güve
                   <div class="step-card__head">
                     <div class="step-num">3</div>
                     <div>
-                      <h2 class="step-card__title">Pcode ve Not</h2>
-                      <p class="step-card__sub">Pcode ve notu birlikte ekleyin — birden fazla kayıt ekleyebilirsiniz</p>
+                      <h2 class="step-card__title">{{ 'tl.t.step3Title' | t }}</h2>
+                      <p class="step-card__sub">{{ 'tl.t.step3Sub' | t }}</p>
                     </div>
                     @if (entries().length > 0) {
                       <div class="step-card__actions">
-                        <span class="entries-count">{{ entries().length }} kayıt</span>
+                        <span class="entries-count">{{ 'tl.records' | t:{ n: entries().length } }}</span>
                       </div>
                     }
                   </div>
@@ -849,14 +851,14 @@ const GROUP_ORDER = ['Emisyon', 'Motor', 'Performans', 'Konfor', 'Egzoz', 'Güve
                           [(ngModel)]="pcodeDraft" />
                       </div>
                       <div class="sel-group">
-                        <label class="sel-label" for="t-note">Not</label>
-                        <textarea id="t-note" class="text-area" rows="2" placeholder="Bu pcode için not…"
+                        <label class="sel-label" for="t-note">{{ 'tl.note' | t }}</label>
+                        <textarea id="t-note" class="text-area" rows="2" [placeholder]="'tl.notePh' | t"
                           [(ngModel)]="noteDraft"></textarea>
                       </div>
                     </div>
                     <button type="button" class="add-btn add-btn--block"
                       (click)="addEntry()" [disabled]="!pcodeDraft.trim() && !noteDraft.trim()">
-                      <i class="pi pi-plus"></i> Ekle
+                      <i class="pi pi-plus"></i> {{ 'tl.add' | t }}
                     </button>
                   </div>
 
@@ -873,14 +875,14 @@ const GROUP_ORDER = ['Emisyon', 'Motor', 'Performans', 'Konfor', 'Egzoz', 'Güve
                               <span class="entry-row__note">{{ e.note }}</span>
                             }
                           </div>
-                          <button type="button" class="entry-row__x" (click)="removeEntry($index)" aria-label="Kaydı kaldır">
+                          <button type="button" class="entry-row__x" (click)="removeEntry($index)" [attr.aria-label]="'tl.removeRecord' | t">
                             <i class="pi pi-trash"></i>
                           </button>
                         </div>
                       }
                     </div>
                   } @else {
-                    <p class="multi-empty">Henüz kayıt eklenmedi.</p>
+                    <p class="multi-empty">{{ 'tl.noRecords' | t }}</p>
                   }
                 </div>
 
@@ -889,16 +891,16 @@ const GROUP_ORDER = ['Emisyon', 'Motor', 'Performans', 'Konfor', 'Egzoz', 'Güve
                   <div class="step-card__head">
                     <div class="step-num">4</div>
                     <div>
-                      <h2 class="step-card__title">Değiştirilmiş Parçalar</h2>
-                      <p class="step-card__sub">Araçta daha önce yapılan modifikasyonları işaretleyin</p>
+                      <h2 class="step-card__title">{{ 'tl.t.step4Title' | t }}</h2>
+                      <p class="step-card__sub">{{ 'tl.t.step4Sub' | t }}</p>
                     </div>
                   </div>
 
                   <div class="mod-parts-section">
                     <div class="mod-parts-header">
-                      <span class="sel-label">Değiştirilmiş Parçalar <span class="optional-pill">Opsiyonel</span></span>
+                      <span class="sel-label">{{ 'tl.t.step4Title' | t }} <span class="optional-pill">{{ 'tl.optional' | t }}</span></span>
                       @if (selectedParts().size > 0) {
-                        <span class="mod-parts-count">{{ selectedParts().size }} parça seçildi</span>
+                        <span class="mod-parts-count">{{ 'tl.partsSelected' | t:{ n: selectedParts().size } }}</span>
                       }
                     </div>
                     <div class="mod-parts-grid">
@@ -917,11 +919,11 @@ const GROUP_ORDER = ['Emisyon', 'Motor', 'Performans', 'Konfor', 'Egzoz', 'Güve
                   <div class="step-card__head">
                     <div class="step-num">5</div>
                     <div>
-                      <h2 class="step-card__title">Ekstra Modüller <span class="optional-pill">Opsiyonel</span></h2>
-                      <p class="step-card__sub">Yazılımınıza eklemek istediğiniz modülleri seçin</p>
+                      <h2 class="step-card__title">{{ 'tl.t.step5Title' | t }} <span class="optional-pill">{{ 'tl.optional' | t }}</span></h2>
+                      <p class="step-card__sub">{{ 'tl.t.step5Sub' | t }}</p>
                     </div>
                     <div class="step-card__actions">
-                      <button class="ghost-btn ghost-btn--danger" (click)="clearAll()" type="button" [disabled]="selectedModules().size === 0">Temizle</button>
+                      <button class="ghost-btn ghost-btn--danger" (click)="clearAll()" type="button" [disabled]="selectedModules().size === 0">{{ 'tl.clear' | t }}</button>
                     </div>
                   </div>
                   @for (group of groups(); track group) {
@@ -948,8 +950,8 @@ const GROUP_ORDER = ['Emisyon', 'Motor', 'Performans', 'Konfor', 'Egzoz', 'Güve
                   <div class="step-card__head">
                     <div class="step-num">6</div>
                     <div>
-                      <h2 class="step-card__title">ECU Dosyasını Yükle</h2>
-                      <p class="step-card__sub">Aracınızdan okunan orijinal ECU dosyasını yükleyin</p>
+                      <h2 class="step-card__title">{{ 'tl.t.step6Title' | t }}</h2>
+                      <p class="step-card__sub">{{ 'tl.t.step6Sub' | t }}</p>
                     </div>
                   </div>
 
@@ -964,10 +966,10 @@ const GROUP_ORDER = ['Emisyon', 'Motor', 'Performans', 'Konfor', 'Egzoz', 'Güve
                     @if (!uploadedFile()) {
                       <div class="upload-zone__inner">
                         <div class="upload-zone__icon"><i class="pi pi-cloud-upload"></i></div>
-                        <p class="upload-zone__title">Orijinal ECU Dosyasını Sürükle & Bırak</p>
-                        <p class="upload-zone__hint">.bin · .ori · .hex · .kess · .ktag formatları desteklenir</p>
+                        <p class="upload-zone__title">{{ 'tl.dragDrop' | t }}</p>
+                        <p class="upload-zone__hint">{{ 'tl.formats' | t }}</p>
                         <label class="upload-zone__btn">
-                          <i class="pi pi-folder-open"></i> Dosya Seç
+                          <i class="pi pi-folder-open"></i> {{ 'tl.selectFile' | t }}
                           <input type="file" accept=".bin,.ori,.hex,.mod,.kess,.ktag" (change)="onFileSelect($event)" style="display:none" />
                         </label>
                       </div>
@@ -976,7 +978,7 @@ const GROUP_ORDER = ['Emisyon', 'Motor', 'Performans', 'Konfor', 'Egzoz', 'Güve
                         <div class="upload-file-info__icon"><i class="pi pi-file"></i></div>
                         <div class="upload-file-info__body">
                           <span class="upload-file-info__name">{{ uploadedFile()!.name }}</span>
-                          <span class="upload-file-info__meta">{{ formatSize(uploadedFile()!.size) }} · Hazır</span>
+                          <span class="upload-file-info__meta">{{ formatSize(uploadedFile()!.size) }} · {{ 'tl.ready' | t }}</span>
                         </div>
                         <button class="upload-file-info__remove" (click)="uploadedFile.set(null)" type="button"><i class="pi pi-times"></i></button>
                       </div>
@@ -985,7 +987,7 @@ const GROUP_ORDER = ['Emisyon', 'Motor', 'Performans', 'Konfor', 'Egzoz', 'Güve
 
                   <p class="upload-hint-note">
                     <i class="pi pi-info-circle"></i>
-                    Dosyanız yoksa sağdaki "Uzmanla Konuş" butonundan destek ekibimize ulaşabilirsiniz.
+                    {{ 'tl.uploadHintNote' | t }}
                   </p>
                 </div>
 
@@ -1012,7 +1014,7 @@ const GROUP_ORDER = ['Emisyon', 'Motor', 'Performans', 'Konfor', 'Egzoz', 'Güve
                   <div class="cs__line">
                     <div class="cs__line-left">
                       <span class="cs__stage-badge cs__stage-badge--{{ selTune() }}">{{ tuneLabel() }}</span>
-                      <span class="cs__line-desc">Chip Tuning Yazılımı</span>
+                      <span class="cs__line-desc">{{ 'tl.cs.tuningSoftware' | t }}</span>
                     </div>
                     @if (!pricesHidden()) { <span class="cs__line-price">₺{{ tuningPrice() | number }}</span> }
                   </div>
@@ -1027,7 +1029,7 @@ const GROUP_ORDER = ['Emisyon', 'Motor', 'Performans', 'Konfor', 'Egzoz', 'Güve
                   <!-- Power gain -->
                   <div class="cs__power">
                     <div class="cs__power-col">
-                      <span class="cs__power-lbl">Orjinal</span>
+                      <span class="cs__power-lbl">{{ 'tl.stock' | t }}</span>
                       <span class="cs__power-val">{{ tuningResult()!.stock.hp }} <em>HP</em></span>
                       <span class="cs__power-val">{{ tuningResult()!.stock.torque }} <em>Nm</em></span>
                     </div>
@@ -1046,7 +1048,7 @@ const GROUP_ORDER = ['Emisyon', 'Motor', 'Performans', 'Konfor', 'Egzoz', 'Güve
                   <!-- Modules -->
                   @if (selectedModules().size > 0) {
                     <div class="cs__divider"></div>
-                    <div class="cs__section-title">Ekstra Modüller</div>
+                    <div class="cs__section-title">{{ 'tl.cs.extraModules' | t }}</div>
                     @for (code of selectedArray(); track code) {
                       <div class="cs__line cs__line--mod">
                         <div class="cs__line-left">
@@ -1061,7 +1063,7 @@ const GROUP_ORDER = ['Emisyon', 'Motor', 'Performans', 'Konfor', 'Egzoz', 'Güve
                   <!-- Vehicle details filled -->
                   @if (selYear() || selEcu() || selTransmission() || selKm() || selPlate()) {
                     <div class="cs__divider"></div>
-                    <div class="cs__section-title">Araç Detayları</div>
+                    <div class="cs__section-title">{{ 'tl.cs.vehicleDetails' | t }}</div>
                     @if (selEcu()) {
                       <div class="cs__detail-row"><i class="pi pi-microchip"></i><span>{{ selEcu() }}</span></div>
                     }
@@ -1082,12 +1084,12 @@ const GROUP_ORDER = ['Emisyon', 'Motor', 'Performans', 'Konfor', 'Egzoz', 'Güve
                   <!-- Ayarlama Bilgileri -->
                   @if (selReadingTool() || selVirtualFile() || selVin() || selEcuHw() || selEcuPart() || selEcuSw() || selDyno()) {
                     <div class="cs__divider"></div>
-                    <div class="cs__section-title">Ayarlama Bilgileri</div>
+                    <div class="cs__section-title">{{ 'tl.t.step2Title' | t }}</div>
                     @if (selReadingTool()) {
                       <div class="cs__detail-row"><i class="pi pi-database"></i><span>{{ selReadingTool() }}</span></div>
                     }
                     @if (selVirtualFile()) {
-                      <div class="cs__detail-row"><i class="pi pi-file"></i><span>Sanal Dosya: {{ selVirtualFile() }}</span></div>
+                      <div class="cs__detail-row"><i class="pi pi-file"></i><span>{{ 'tl.cs.virtualFile' | t }}: {{ selVirtualFile() }}</span></div>
                     }
                     @if (selVin()) {
                       <div class="cs__detail-row"><i class="pi pi-barcode"></i><span>VIN: {{ selVin() }}</span></div>
@@ -1109,7 +1111,7 @@ const GROUP_ORDER = ['Emisyon', 'Motor', 'Performans', 'Konfor', 'Egzoz', 'Güve
                   <!-- Pcode & Not -->
                   @if (entries().length > 0) {
                     <div class="cs__divider"></div>
-                    <div class="cs__section-title">Pcode & Not</div>
+                    <div class="cs__section-title">{{ 'tl.cs.pcodeNote' | t }}</div>
                     @for (e of entries(); track $index) {
                       <div class="cs__detail-row">
                         <i class="pi pi-tag"></i>
@@ -1125,7 +1127,7 @@ const GROUP_ORDER = ['Emisyon', 'Motor', 'Performans', 'Konfor', 'Egzoz', 'Güve
                   <!-- Modified parts (listed individually like modules) -->
                   @if (selectedParts().size > 0) {
                     <div class="cs__divider"></div>
-                    <div class="cs__section-title">Değiştirilmiş Parçalar</div>
+                    <div class="cs__section-title">{{ 'tl.t.step4Title' | t }}</div>
                     @for (part of selectedPartsArray(); track part) {
                       <div class="cs__line cs__line--mod">
                         <div class="cs__line-left">
@@ -1149,14 +1151,14 @@ const GROUP_ORDER = ['Emisyon', 'Motor', 'Performans', 'Konfor', 'Egzoz', 'Güve
                   } @else {
                     <div class="cs__file cs__file--warn">
                       <i class="pi pi-exclamation-triangle"></i>
-                      <span>ECU dosyası henüz yüklenmedi</span>
+                      <span>{{ 'tl.fileNotUploaded' | t }}</span>
                     </div>
                   }
 
                   <!-- Total -->
                   @if (!pricesHidden()) {
                     <div class="cs__total">
-                      <span class="cs__total-lbl">Toplam Tutar</span>
+                      <span class="cs__total-lbl">{{ 'tl.totalAmount' | t }}</span>
                       <span class="cs__total-val">₺{{ tuningGrandTotal() | number }}</span>
                     </div>
                   }
@@ -1166,16 +1168,16 @@ const GROUP_ORDER = ['Emisyon', 'Motor', 'Performans', 'Konfor', 'Egzoz', 'Güve
                     <div class="pay-note pay-note--dealer">
                       <i class="pi pi-calendar-clock"></i>
                       <div>
-                        <span class="pay-note__title">Bayi hesabına eklenir</span>
-                        <span class="pay-note__text">Bu tutar ay sonu ekstrenize işlenir, her ayın 1'inde ödenir.</span>
+                        <span class="pay-note__title">{{ 'tl.dealerPayTitle' | t }}</span>
+                        <span class="pay-note__text">{{ 'tl.dealerPayText' | t }}</span>
                       </div>
                     </div>
                   } @else {
                     <div class="pay-note pay-note--user">
                       <i class="pi pi-credit-card"></i>
                       <div>
-                        <span class="pay-note__title">Anında ödeme</span>
-                        <span class="pay-note__text">Sipariş onayında ödeme alınır, ardından dosyanız hazırlanır.</span>
+                        <span class="pay-note__title">{{ 'tl.userPayTitle' | t }}</span>
+                        <span class="pay-note__text">{{ 'tl.userPayText' | t }}</span>
                       </div>
                     </div>
                   }
@@ -1183,9 +1185,9 @@ const GROUP_ORDER = ['Emisyon', 'Motor', 'Performans', 'Konfor', 'Egzoz', 'Güve
                   <!-- Müşteri notu -->
                   @if (!orderSent()) {
                     <div class="cs__note">
-                      <label class="cs__note-lbl" for="cs-order-note"><i class="pi pi-comment"></i> Ekibe not (opsiyonel)</label>
+                      <label class="cs__note-lbl" for="cs-order-note"><i class="pi pi-comment"></i> {{ 'tl.teamNote' | t }}</label>
                       <textarea id="cs-order-note" class="cs__note-input" rows="2" maxlength="1000"
-                        placeholder="Örn. Sadece DPF/EGR kapatın, başka değişiklik istemiyorum."
+                        [placeholder]="'tl.cs.notePh' | t"
                         [ngModel]="orderNote()" (ngModelChange)="orderNote.set($event)"></textarea>
                     </div>
                   }
@@ -1196,16 +1198,16 @@ const GROUP_ORDER = ['Emisyon', 'Motor', 'Performans', 'Konfor', 'Egzoz', 'Güve
                     <div class="cs__sent">
                       <i class="pi pi-check-circle cs__sent__icon"></i>
                       <div>
-                        <p class="cs__sent__title">Sipariş Alındı</p>
+                        <p class="cs__sent__title">{{ 'tl.orderReceived2' | t }}</p>
                         <p class="cs__sent__no">{{ orderNo() }}</p>
                       </div>
                     </div>
                     <div class="cs__actions">
                       <a routerLink="/dashboard/orders" class="cta-btn cta-btn--primary" style="width:100%; justify-content:center">
-                        <i class="pi pi-list"></i> Siparişlerime Git
+                        <i class="pi pi-list"></i> {{ 'tl.goToOrders' | t }}
                       </a>
                       <button class="cta-btn cta-btn--outline" (click)="resetOrder()" type="button" style="width:100%; justify-content:center">
-                        <i class="pi pi-plus"></i> Yeni Sipariş
+                        <i class="pi pi-plus"></i> {{ 'tl.newOrder' | t }}
                       </button>
                     </div>
                   } @else {
@@ -1213,10 +1215,10 @@ const GROUP_ORDER = ['Emisyon', 'Motor', 'Performans', 'Konfor', 'Egzoz', 'Güve
                       <button class="cta-btn cta-btn--primary" style="width:100%; justify-content:center"
                         type="button" [disabled]="!uploadedFile() || orderSubmitting()" (click)="submitOrder()">
                         <i class="pi" [class.pi-credit-card]="!isDealer() && !orderSubmitting()" [class.pi-check-circle]="isDealer() && !orderSubmitting()" [class.pi-spinner]="orderSubmitting()" [class.pi-spin]="orderSubmitting()"></i>
-                        {{ orderSubmitting() ? 'Gönderiliyor…' : orderCtaLabel() }}
+                        {{ orderSubmitting() ? ('tl.sending' | t) : orderCtaLabel() }}
                       </button>
                       <a href="/contact" class="cta-btn cta-btn--outline" style="width:100%; justify-content:center">
-                        <i class="pi pi-headphones"></i> Uzmanla Konuş
+                        <i class="pi pi-headphones"></i> {{ 'tl.talkExpert' | t }}
                       </a>
                     </div>
                     @if (orderError()) {
@@ -1224,7 +1226,7 @@ const GROUP_ORDER = ['Emisyon', 'Motor', 'Performans', 'Konfor', 'Egzoz', 'Güve
                     }
                     @if (!uploadedFile()) {
                       <p class="cs__file-warn-note">
-                        <i class="pi pi-lock"></i> Sipariş vermek için ECU dosyası gereklidir (Adım 6)
+                        <i class="pi pi-lock"></i> {{ 'tl.fileRequired' | t }}
                       </p>
                     }
                   }
@@ -1254,11 +1256,12 @@ export class ToolsPage implements OnInit {
    * dropdown'lar bir sonraki tıklamaya kadar boş görünüyor).
    */
   private readonly cdr = inject(ChangeDetectorRef);
+  private readonly i18n = inject(I18nService);
   /** Bayi mi? Ödeme akışı buna göre değişir (bayi = ay sonu hesabı, kullanıcı = anında ödeme). */
   protected readonly isDealer = this.auth.isDealer;
   /** Sipariş CTA etiketi role göre. */
   protected readonly orderCtaLabel = computed(() =>
-    this.isDealer() ? 'Siparişi Onayla' : 'Öde ve Sipariş Ver',
+    this.i18n.t(this.isDealer() ? 'tl.ctaConfirm' : 'tl.ctaPay'),
   );
   /** Bayilerde müşteri yanındayken fiyatları gizlemek için (layout'taki düğme kontrol eder). */
   protected readonly pricesHidden = inject(PrivacyService).pricesHidden;
@@ -1302,7 +1305,7 @@ export class ToolsPage implements OnInit {
       this.tuningPriceMap.set(map);
       this.modifiedParts.set(parts.map(p => p.name));
     } catch {
-      this.catalogError.set('Katalog yüklenemedi. Lütfen sayfayı yenileyin.');
+      this.catalogError.set(this.i18n.t('tl.err.catalog'));
     } finally {
       this.cdr.markForCheck();
     }
@@ -1389,7 +1392,7 @@ export class ToolsPage implements OnInit {
     // Fatura bilgileri tanımlı değilse sipariş verilemez.
     if (!this.accountSvc.loaded()) { await this.accountSvc.load(); }
     if (!this.accountSvc.billingComplete()) {
-      this.orderError.set('Sipariş vermek için önce fatura bilgilerinizi tanımlamalısınız. (Profilim → Fatura Bilgileri)');
+      this.orderError.set(this.i18n.t('tl.err.billing'));
       return;
     }
     this.orderSubmitting.set(true);
@@ -1406,7 +1409,7 @@ export class ToolsPage implements OnInit {
     } catch (err: unknown) {
       const status = (err as { status?: number })?.status;
       this.orderError.set(
-        `Sipariş oluşturulamadı. Lütfen tekrar deneyin.${status ? ` (kod: ${status})` : ''}`,
+        `${this.i18n.t('tl.err.createOrder')}${status ? ` (kod: ${status})` : ''}`,
       );
     } finally {
       this.orderSubmitting.set(false);
@@ -1631,19 +1634,7 @@ export class ToolsPage implements OnInit {
 
   /* ─── YAKIT GÖSTERİMİ ─── */
   fuelLabel(f: FuelType): string {
-    const map: Record<FuelType, string> = {
-      petrol: 'Benzin',
-      diesel: 'Dizel',
-      petrol_mhev: 'Benzin MHEV',
-      petrol_phev: 'Benzin PHEV',
-      petrol_hybrid: 'Benzin Hibrit',
-      diesel_mhev: 'Dizel MHEV',
-      diesel_phev: 'Dizel PHEV',
-      diesel_hybrid: 'Dizel Hibrit',
-      ev: 'Elektrik',
-      lpg: 'LPG',
-    };
-    return map[f] ?? f;
+    return this.i18n.t(`tl.fuel.${f}`);
   }
   fuelBadge(f: FuelType): 'petrol' | 'diesel' | 'hybrid' {
     if (f === 'diesel' || f === 'diesel_mhev' || f === 'diesel_phev' || f === 'diesel_hybrid') {
@@ -1780,7 +1771,7 @@ export class ToolsPage implements OnInit {
     this.selTune.set('stage1');
     if (id) {
       try { this.modelsList.set(await this.catalogApi.listModels(id)); }
-      catch { this.catalogError.set('Modeller yüklenemedi.'); }
+      catch { this.catalogError.set(this.i18n.t('tl.err.models')); }
       finally { this.cdr.markForCheck(); }
     }
   }
@@ -1794,7 +1785,7 @@ export class ToolsPage implements OnInit {
     this.selTune.set('stage1');
     if (id) {
       try { this.seriesList.set(await this.catalogApi.listSeries(id)); }
-      catch { this.catalogError.set('Nesiller yüklenemedi.'); }
+      catch { this.catalogError.set(this.i18n.t('tl.err.series')); }
       finally { this.cdr.markForCheck(); }
     }
   }
@@ -1809,7 +1800,7 @@ export class ToolsPage implements OnInit {
     this.selTune.set('stage1');
     if (id) {
       try { this.enginesList.set(await this.catalogApi.listEngines(id)); }
-      catch { this.catalogError.set('Motorlar yüklenemedi.'); }
+      catch { this.catalogError.set(this.i18n.t('tl.err.engines')); }
       finally { this.cdr.markForCheck(); }
     }
   }
