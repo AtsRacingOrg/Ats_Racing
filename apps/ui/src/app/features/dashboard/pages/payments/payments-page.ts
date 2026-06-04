@@ -4,11 +4,12 @@ import { RouterLink } from '@angular/router';
 import { AuthService } from '../../../../core/auth/auth.service';
 import { PaymentsService, Statement } from '../../../../core/payments/payments.service';
 import { StatementsPanel } from '../../../../shared/statements-panel';
+import { TranslatePipe } from '../../../../core/i18n/translate.pipe';
 
 @Component({
   selector: 'app-payments-page',
   standalone: true,
-  imports: [RouterLink, PageLoader, StatementsPanel],
+  imports: [RouterLink, PageLoader, StatementsPanel, TranslatePipe],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
 @if (loading()) { <app-page-loader /> } @else {
@@ -19,10 +20,9 @@ import { StatementsPanel } from '../../../../shared/statements-panel';
     <div class="pay__guard">
       <i class="pi pi-info-circle"></i>
       <div>
-        <h2>Bu sayfa bayiler içindir</h2>
+        <h2>{{ 'pay.guardTitle' | t }}</h2>
         <p>
-          Bireysel hesaplarda ödeme sipariş anında alınır; aylık borç biriktirilmez.
-          Siparişlerinizi <a routerLink="/dashboard/orders">Siparişlerim</a> sayfasından görebilirsiniz.
+          {{ 'pay.guardText1' | t }} <a routerLink="/dashboard/orders">{{ 'dash.nav.orders' | t }}</a> {{ 'pay.guardText2' | t }}
         </p>
       </div>
     </div>
@@ -31,7 +31,7 @@ import { StatementsPanel } from '../../../../shared/statements-panel';
   <!-- HEADER -->
   <div class="pay__header">
     <div>
-      <h1 class="pay__title">Ödeme Borçlarım</h1>
+      <h1 class="pay__title">{{ 'dash.nav.payments' | t }}</h1>
     </div>
   </div>
 

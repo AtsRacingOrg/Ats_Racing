@@ -1,7 +1,9 @@
-import { ChangeDetectionStrategy, Component, Input, computed, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, Input, computed, inject, signal } from '@angular/core';
 import { DecimalPipe } from '@angular/common';
 import { Statement } from '../core/payments/payments.service';
 import { periodLabel, stageLabel, formatTrDate } from '../core/orders/order-format';
+import { TranslatePipe } from '../core/i18n/translate.pipe';
+import { I18nService } from '../core/i18n/i18n.service';
 
 type DebtStatus = 'accruing' | 'due' | 'paid' | 'overdue';
 
@@ -11,11 +13,11 @@ interface MonthlyStatement {
   orders: DebtOrder[]; paidAt?: string;
 }
 
-const STATUS_META: Record<DebtStatus, { label: string }> = {
-  accruing: { label: 'Birikiyor' },
-  due:      { label: 'Ödeme Bekliyor' },
-  paid:     { label: 'Ödendi' },
-  overdue:  { label: 'Gecikmiş' },
+const STATUS_KEY: Record<DebtStatus, string> = {
+  accruing: 'pay.st.accruing',
+  due:      'pay.st.due',
+  paid:     'pay.st.paid',
+  overdue:  'pay.st.overdue',
 };
 
 function mapStatement(s: Statement): MonthlyStatement {
@@ -43,31 +45,31 @@ function mapStatement(s: Statement): MonthlyStatement {
 @Component({
   selector: 'app-statements-panel',
   standalone: true,
-  imports: [DecimalPipe],
+  imports: [DecimalPipe, TranslatePipe],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <!-- ÖZET KARTLARI -->
     <div class="pay__cards pay__cards--3">
       <div class="sum-card sum-card--accent">
-        <span class="sum-card__lbl">Birikiyor</span>
+        <span class="sum-card__lbl">{{ 'pay.card.accruing' | t }}</span>
         <span class="sum-card__val">₺{{ accruingTotal() | number }}</span>
-        <span class="sum-card__meta"><i class="pi pi-calendar-clock"></i> Son ödeme: {{ accruingDue() }}</span>
+        <span class="sum-card__meta"><i class="pi pi-calendar-clock"></i> {{ 'pay.lastPayment' | t:{ date: accruingDue() } }}</span>
       </div>
       <div class="sum-card sum-card--warn">
-        <span class="sum-card__lbl">Ödemesi Gelmiş</span>
+        <span class="sum-card__lbl">{{ 'pay.card.due' | t }}</span>
         <span class="sum-card__val">₺{{ dueTotal() | number }}</span>
-        <span class="sum-card__meta"><i class="pi pi-exclamation-circle"></i> {{ dueCount() }} ekstre bekliyor</span>
+        <span class="sum-card__meta"><i class="pi pi-exclamation-circle"></i> {{ 'pay.dueWaiting' | t:{ n: dueCount() } }}</span>
       </div>
       <div class="sum-card sum-card--paid">
-        <span class="sum-card__lbl">Toplam Ödenen</span>
+        <span class="sum-card__lbl">{{ 'pay.card.totalPaid' | t }}</span>
         <span class="sum-card__val">₺{{ paidTotal() | number }}</span>
-        <span class="sum-card__meta"><i class="pi pi-check-circle"></i> {{ paidCount() }} ekstre ödendi</span>
+        <span class="sum-card__meta"><i class="pi pi-check-circle"></i> {{ 'pay.paidCount' | t:{ n: paidCount() } }}</span>
       </div>
     </div>
 
     <!-- EKSTRELER -->
     @if (rows().length === 0) {
-      <div class="pay__empty"><i class="pi pi-wallet"></i><p>Henüz ekstre yok</p></div>
+      <div class="pay__empty"><i class="pi pi-wallet"></i><p>{{ 'pay.noStatements' | t }}</p></div>
     }
     <div class="pay__statements">
       @for (st of rows(); track st.id) {
@@ -79,13 +81,13 @@ function mapStatement(s: Statement): MonthlyStatement {
                 <p class="stmt__period">{{ st.period }} <span class="stmt__id">{{ st.id }}</span></p>
                 <p class="stmt__due">
                   <i class="pi pi-calendar"></i>
-                  @if (st.status === 'paid') { Ödendi · {{ st.paidAt }} }
-                  @else { Son ödeme: {{ st.dueDate }} }
+                  @if (st.status === 'paid') { {{ 'pay.paidOn' | t:{ date: st.paidAt || '' } }} }
+                  @else { {{ 'pay.lastPayment' | t:{ date: st.dueDate } }} }
                 </p>
               </div>
             </div>
             <div class="stmt__head-right">
-              <span class="stmt__count">{{ st.orders.length }} sipariş</span>
+              <span class="stmt__count">{{ 'pay.orderCount' | t:{ n: st.orders.length } }}</span>
               <span class="stmt__amount">₺{{ totalOf(st) | number }}</span>
               <span class="st-chip st-chip--{{ st.status }}"><span class="st-dot"></span>{{ statusLabel(st.status) }}</span>
             </div>
@@ -94,7 +96,7 @@ function mapStatement(s: Statement): MonthlyStatement {
           @if (isOpen(st.id)) {
             <div class="stmt__body">
               <table class="stmt__table">
-                <thead><tr><th>Sipariş</th><th>Araç</th><th>Servis</th><th>Tarih</th><th class="ta-r">Tutar</th></tr></thead>
+                <thead><tr><th>{{ 'pay.th.order' | t }}</th><th>{{ 'common.vehicle' | t }}</th><th>{{ 'pay.th.service' | t }}</th><th>{{ 'pay.th.date' | t }}</th><th class="ta-r">{{ 'pay.th.amount' | t }}</th></tr></thead>
                 <tbody>
                   @for (o of st.orders; track o.id) {
                     <tr [class.stmt__row--cancelled]="o.cancelled">
@@ -104,7 +106,7 @@ function mapStatement(s: Statement): MonthlyStatement {
                       <td class="muted">{{ o.date }}</td>
                       <td class="ta-r price">
                         @if (o.cancelled) {
-                          <span class="stmt__refund">İade edildi</span>
+                          <span class="stmt__refund">{{ 'pay.refunded' | t }}</span>
                         } @else {
                           ₺{{ o.amount | number }}
                         }
@@ -113,7 +115,7 @@ function mapStatement(s: Statement): MonthlyStatement {
                   }
                 </tbody>
                 <tfoot>
-                  <tr><td colspan="4" class="ta-r foot-lbl">Dönem Toplamı</td><td class="ta-r foot-val">₺{{ totalOf(st) | number }}</td></tr>
+                  <tr><td colspan="4" class="ta-r foot-lbl">{{ 'pay.periodTotal' | t }}</td><td class="ta-r foot-val">₺{{ totalOf(st) | number }}</td></tr>
                 </tfoot>
               </table>
 
@@ -121,18 +123,18 @@ function mapStatement(s: Statement): MonthlyStatement {
                 <div class="stmt__actions">
                   <p class="stmt__pay-note">
                     <i class="pi pi-info-circle"></i>
-                    Bu ekstrenin son ödeme tarihi {{ st.dueDate }}.
+                    {{ 'pay.dueNote' | t:{ date: st.dueDate } }}
                   </p>
                   @if (!readonly) {
                     <button class="pay-btn" type="button" (click)="payStatement(st.id)">
-                      <i class="pi pi-credit-card"></i> ₺{{ totalOf(st) | number }} Öde
+                      <i class="pi pi-credit-card"></i> {{ 'pay.pay' | t }} ₺{{ totalOf(st) | number }}
                     </button>
                   }
                 </div>
               } @else if (st.status === 'accruing') {
                 <p class="stmt__accruing-note">
                   <i class="pi pi-clock"></i>
-                  Bu dönem hâlâ açık. Ay sonunda kapanacak ve {{ st.dueDate }} tarihinde ödenecek.
+                  {{ 'pay.accruingNote' | t:{ date: st.dueDate } }}
                 </p>
               }
             </div>
@@ -215,6 +217,8 @@ function mapStatement(s: Statement): MonthlyStatement {
   `],
 })
 export class StatementsPanel {
+  private readonly i18n = inject(I18nService);
+
   /** Admin görünümünde "Öde" butonu gizlenir. */
   @Input() readonly = false;
 
@@ -249,7 +253,7 @@ export class StatementsPanel {
     // İptal edilen siparişler bakiyeye dahil edilmez (iade edilir).
     return st.orders.reduce((sum, o) => sum + (o.cancelled ? 0 : o.amount), 0);
   }
-  statusLabel(s: DebtStatus): string { return STATUS_META[s].label; }
+  statusLabel(s: DebtStatus): string { return this.i18n.t(STATUS_KEY[s]); }
   isOpen(id: string): boolean { return this._open().has(id); }
   toggle(id: string): void {
     const s = new Set(this._open());
@@ -258,6 +262,6 @@ export class StatementsPanel {
   }
   payStatement(id: string): void {
     const st = this._rows().find(s => s.id === id);
-    if (st) { this.paidMsg.set(`${st.period} ekstresi için ödeme talebi alındı.`); }
+    if (st) { this.paidMsg.set(this.i18n.t('pay.toast', { period: st.period })); }
   }
 }
