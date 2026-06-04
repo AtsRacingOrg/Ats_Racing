@@ -7,7 +7,7 @@
   (focusin)="setPaused(true)"
   (focusout)="setPaused(false)"
 >
-  @for (slide of slides; track slide.line1; let i = $index) {
+  @for (slide of slides; track $index; let i = $index) {
     <div
       class="hero__slide"
       [class.is-active]="active() === i"
@@ -18,17 +18,17 @@
   <div class="hero__overlay" aria-hidden="true"></div>
 
   <div class="hero__inner">
-    @for (slide of slides; track slide.line1; let i = $index) {
+    @for (slide of slides; track $index; let i = $index) {
       <article
         class="hero__panel"
         [class.is-active]="active() === i"
         [attr.aria-hidden]="active() !== i"
       >
         <h1 class="hero__title">
-          <span class="hero__line hero__line--1">{{ slide.line1 }}</span>
-          <span class="hero__line hero__line--2">{{ slide.line2 }}</span>
+          <span class="hero__line hero__line--1">{{ slide.line1Key | t }}</span>
+          <span class="hero__line hero__line--2">{{ slide.line2Key | t }}</span>
         </h1>
-        <p class="hero__lead">{{ slide.lead }}</p>
+        <p class="hero__lead">{{ slide.leadKey | t }}</p>
       </article>
     }
 
@@ -42,7 +42,7 @@
       </button>
 
       <ul class="hero__dots" role="tablist">
-        @for (slide of slides; track slide.line1; let i = $index) {
+        @for (slide of slides; track $index; let i = $index) {
           <li>
             <button
               type="button"

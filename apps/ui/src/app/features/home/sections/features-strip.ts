@@ -1,29 +1,24 @@
 import { ChangeDetectionStrategy, Component } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { RevealDirective } from '../../../shared/directives/reveal.directive';
+import { TranslatePipe } from '../../../core/i18n/translate.pipe';
 
 interface Pillar {
-  readonly title: string;
-  readonly text: string;
+  readonly titleKey: string;
+  readonly textKey: string;
 }
 
 @Component({
   selector: 'app-home-features',
   standalone: true,
-  imports: [RouterLink, RevealDirective],
+  imports: [RouterLink, RevealDirective, TranslatePipe],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './features-strip.html',
   styleUrl: './features-strip.scss',
 })
 export class HomeFeatures {
   protected readonly pillars: readonly Pillar[] = [
-    {
-      title: 'What we do',
-      text: 'ECU yazılımı, performans modifiyesi, frenleme ve detaylı bakım. Her iş kendi atölyemizde, izlenebilir ve garantili.',
-    },
-    {
-      title: 'The opportunities',
-      text: 'Pist hazırlığı, günlük performans, klasik restorasyon veya estetik kişiselleştirme — her hedefe göre bir plan kurarız.',
-    },
+    { titleKey: 'features.1.title', textKey: 'features.1.text' },
+    { titleKey: 'features.2.title', textKey: 'features.2.text' },
   ];
 }

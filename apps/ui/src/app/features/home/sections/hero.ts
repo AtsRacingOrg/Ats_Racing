@@ -1,9 +1,10 @@
 import { ChangeDetectionStrategy, Component, DestroyRef, OnInit, inject, signal } from '@angular/core';
+import { TranslatePipe } from '../../../core/i18n/translate.pipe';
 
 interface HeroSlide {
-  readonly line1: string;
-  readonly line2: string;
-  readonly lead: string;
+  readonly line1Key: string;
+  readonly line2Key: string;
+  readonly leadKey: string;
   readonly image: string;
 }
 
@@ -12,6 +13,7 @@ const AUTOPLAY_MS = 6000;
 @Component({
   selector: 'app-home-hero',
   standalone: true,
+  imports: [TranslatePipe],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './hero.html',
   styleUrl: './hero.scss',
@@ -21,27 +23,19 @@ export class HomeHero implements OnInit {
 
   protected readonly slides: readonly HeroSlide[] = [
     {
-      line1: 'Performans tutkunlarının',
-      line2: "İstanbul'daki adresi",
-      lead: 'Araçlarınızın performansını zirveye taşımak ve modül sistemlerinizde tam destek sağlamak için buradayız. ECU yazılımı ve modül çözümlerimizle aracınızın tüm potansiyelini ortaya çıkarın.',
+      line1Key: 'hero.1.line1', line2Key: 'hero.1.line2', leadKey: 'hero.1.lead',
       image: 'https://images.unsplash.com/photo-1542362567-b07e54358753?auto=format&fit=crop&w=2400&q=80',
     },
     {
-      line1: 'Aracını sıradanlıktan',
-      line2: 'kurtaracak ekip',
-      lead: 'Stage 1–3 chip tuning, dyno test ve hassas haritalama. Her ayar belgelenir, her iş garantilenir.',
+      line1Key: 'hero.2.line1', line2Key: 'hero.2.line2', leadKey: 'hero.2.lead',
       image: 'https://images.unsplash.com/photo-1503376780353-7e6692767b70?auto=format&fit=crop&w=2400&q=80',
     },
     {
-      line1: 'Detaylı bakım',
-      line2: 'tutkunun seviyesinde',
-      lead: 'Seramik kaplama, PPF, iç-dış detaylı. Pist günü için de günlük kullanım için de eksiksiz hazırlık.',
+      line1Key: 'hero.3.line1', line2Key: 'hero.3.line2', leadKey: 'hero.3.lead',
       image: 'https://images.unsplash.com/photo-1605559424843-9e4c228bf1c2?auto=format&fit=crop&w=2400&q=80',
     },
     {
-      line1: 'Pist hazırlığı',
-      line2: 'mühendislik düzeyinde',
-      lead: 'Brembo, AP Racing, Bilstein, KW. Aracını gerçek pist günlerine güvenle götür.',
+      line1Key: 'hero.4.line1', line2Key: 'hero.4.line2', leadKey: 'hero.4.lead',
       image: 'https://images.unsplash.com/photo-1568605117036-5fe5e7bab0b7?auto=format&fit=crop&w=2400&q=80',
     },
   ];

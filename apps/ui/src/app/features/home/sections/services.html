@@ -1,13 +1,13 @@
 <section class="srv-tiles" aria-label="Hizmetlerimiz">
   <ul role="list">
-    @for (svc of services; track svc.title; let i = $index) {
+    @for (svc of services; track svc.titleKey; let i = $index) {
       <li class="srv-tile" appReveal="fade-up" [revealDelay]="i * 120">
         <a [routerLink]="svc.link" class="srv-tile__link">
-          <img [src]="svc.image" [alt]="svc.title" loading="lazy" decoding="async" />
+          <img [src]="svc.image" [alt]="svc.titleKey | t" loading="lazy" decoding="async" />
           <div class="srv-tile__overlay" aria-hidden="true"></div>
           <div class="srv-tile__copy">
-            <h3 class="srv-tile__title">{{ svc.title }}</h3>
-            <p class="srv-tile__tag">{{ svc.tag }}</p>
+            <h3 class="srv-tile__title">{{ svc.titleKey | t }}</h3>
+            <p class="srv-tile__tag">{{ svc.tagKey ? (svc.tagKey | t) : svc.tag }}</p>
           </div>
         </a>
       </li>

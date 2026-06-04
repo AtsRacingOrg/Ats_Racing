@@ -3,9 +3,9 @@
     <div class="auth__visual-overlay"></div>
     <div class="auth__visual-copy">
       <p class="auth__visual-eyebrow">ATS Racing</p>
-      <h2>Aracın için doğru ekibe tek tıkla ulaş</h2>
+      <h2>{{ 'auth.visualTitle' | t }}</h2>
       <p>
-        Hesabınla siparişlerini, randevularını ve dyno raporlarını tek panelden yönet.
+        {{ 'auth.visualText' | t }}
       </p>
     </div>
   </div>
@@ -13,8 +13,8 @@
   <div class="auth__panel">
     <div class="auth__panel-inner">
       <header class="auth__head">
-        <p class="auth__eyebrow">Hesabım</p>
-        <h1>{{ tab() === 'login' ? 'Giriş Yap' : 'Kayıt Ol' }}</h1>
+        <p class="auth__eyebrow">{{ 'auth.eyebrow' | t }}</p>
+        <h1>{{ tab() === 'login' ? ('auth.tabLogin' | t) : ('auth.tabRegister' | t) }}</h1>
       </header>
 
       <div class="auth__tabs" role="tablist" aria-label="Hesap işlemleri">
@@ -25,7 +25,7 @@
           [class.is-active]="tab() === 'login'"
           [attr.aria-selected]="tab() === 'login'"
           (click)="setTab('login')"
-        >Giriş Yap</button>
+        >{{ 'auth.tabLogin' | t }}</button>
         <button
           type="button"
           role="tab"
@@ -33,19 +33,19 @@
           [class.is-active]="tab() === 'register'"
           [attr.aria-selected]="tab() === 'register'"
           (click)="setTab('register')"
-        >Kayıt Ol</button>
+        >{{ 'auth.tabRegister' | t }}</button>
       </div>
 
       @if (tab() === 'login') {
         <form class="auth__form" [formGroup]="loginForm" (ngSubmit)="submit()" novalidate>
           <div class="auth__field" [class.is-invalid]="hasError('email')">
-            <label for="login-email">E-posta</label>
+            <label for="login-email">{{ 'auth.email' | t }}</label>
             <input id="login-email" pInputText type="email" formControlName="email" autocomplete="email" />
             @if (errorOf('email'); as msg) { <small role="alert">{{ msg }}</small> }
           </div>
 
           <div class="auth__field" [class.is-invalid]="hasError('password')">
-            <label for="login-password">Şifre</label>
+            <label for="login-password">{{ 'auth.password' | t }}</label>
             <p-password
               inputId="login-password"
               formControlName="password"
@@ -61,14 +61,14 @@
           <div class="auth__row">
             <span class="auth__remember">
               <p-checkbox inputId="login-remember" formControlName="remember" [binary]="true"></p-checkbox>
-              <label for="login-remember">Beni hatırla</label>
+              <label for="login-remember">{{ 'auth.remember' | t }}</label>
             </span>
-            <a href="#" class="auth__link">Şifremi unuttum</a>
+            <a href="#" class="auth__link">{{ 'auth.forgot' | t }}</a>
           </div>
 
           <p-button
             type="submit"
-            [label]="submitting() ? 'Giriş yapılıyor…' : 'Giriş Yap'"
+            [label]="submitting() ? ('auth.signingIn' | t) : ('auth.signin' | t)"
             [disabled]="submitting()"
             styleClass="w-full"
           ></p-button>
@@ -78,11 +78,11 @@
           }
           @if (unverifiedEmail()) {
             @if (resendSent()) {
-              <p class="auth__ok" role="status"><i class="pi pi-check-circle"></i> Doğrulama e-postası tekrar gönderildi. Gelen kutunu (ve Spam) kontrol et.</p>
+              <p class="auth__ok" role="status"><i class="pi pi-check-circle"></i> {{ 'auth.resent' | t }}</p>
             } @else {
               <button type="button" class="auth__resend" [disabled]="resending()" (click)="resendVerification()">
                 <i class="pi" [class.pi-envelope]="!resending()" [class.pi-spin]="resending()" [class.pi-spinner]="resending()"></i>
-                {{ resending() ? 'Gönderiliyor…' : 'Doğrulama e-postasını tekrar gönder' }}
+                {{ resending() ? ('auth.resending' | t) : ('auth.resend' | t) }}
               </button>
             }
           }
@@ -91,14 +91,14 @@
           }
 
           <p class="auth__switch">
-            Hesabın yok mu?
-            <button type="button" class="auth__link" (click)="setTab('register')">Kayıt ol</button>
+            {{ 'auth.noAccount' | t }}
+            <button type="button" class="auth__link" (click)="setTab('register')">{{ 'auth.switchToRegister' | t }}</button>
           </p>
         </form>
       } @else {
         <form class="auth__form" [formGroup]="registerForm" (ngSubmit)="submit()" novalidate>
           <div class="auth__field">
-            <span class="auth__field-label">Hesap Tipi</span>
+            <span class="auth__field-label">{{ 'auth.accountType' | t }}</span>
             <div class="auth__segment" role="radiogroup" aria-label="Hesap tipi">
               <button
                 type="button"
@@ -107,7 +107,7 @@
                 [class.is-active]="accountType() === 'user'"
                 [attr.aria-checked]="accountType() === 'user'"
                 (click)="setAccountType('user')"
-              ><i class="pi pi-user"></i> Bireysel</button>
+              ><i class="pi pi-user"></i> {{ 'auth.individual' | t }}</button>
               <button
                 type="button"
                 role="radio"
@@ -115,32 +115,32 @@
                 [class.is-active]="accountType() === 'dealer'"
                 [attr.aria-checked]="accountType() === 'dealer'"
                 (click)="setAccountType('dealer')"
-              ><i class="pi pi-building"></i> Bayi</button>
+              ><i class="pi pi-building"></i> {{ 'auth.dealer' | t }}</button>
             </div>
           </div>
 
           <div class="auth__field" [class.is-invalid]="hasError('name')">
-            <label for="reg-name">{{ accountType() === 'dealer' ? 'Yetkili Ad Soyad' : 'Ad Soyad' }}</label>
+            <label for="reg-name">{{ accountType() === 'dealer' ? ('auth.dealerContact' | t) : ('auth.fullName' | t) }}</label>
             <input id="reg-name" pInputText formControlName="name" autocomplete="name" />
             @if (errorOf('name'); as msg) { <small role="alert">{{ msg }}</small> }
           </div>
 
           @if (accountType() === 'dealer') {
             <div class="auth__field" [class.is-invalid]="hasError('dealershipName')">
-              <label for="reg-dealership">Bayi Adı</label>
+              <label for="reg-dealership">{{ 'auth.dealershipName' | t }}</label>
               <input id="reg-dealership" pInputText formControlName="dealershipName" autocomplete="organization" />
               @if (errorOf('dealershipName'); as msg) { <small role="alert">{{ msg }}</small> }
             </div>
           }
 
           <div class="auth__field" [class.is-invalid]="hasError('email')">
-            <label for="reg-email">E-posta</label>
+            <label for="reg-email">{{ 'auth.email' | t }}</label>
             <input id="reg-email" pInputText type="email" formControlName="email" autocomplete="email" />
             @if (errorOf('email'); as msg) { <small role="alert">{{ msg }}</small> }
           </div>
 
           <div class="auth__field" [class.is-invalid]="hasError('password')">
-            <label for="reg-password">Şifre</label>
+            <label for="reg-password">{{ 'auth.password' | t }}</label>
             <p-password
               inputId="reg-password"
               formControlName="password"
@@ -154,7 +154,7 @@
           </div>
 
           <div class="auth__field" [class.is-invalid]="hasError('confirm')">
-            <label for="reg-confirm">Şifre (Tekrar)</label>
+            <label for="reg-confirm">{{ 'auth.passwordRepeat' | t }}</label>
             <p-password
               inputId="reg-confirm"
               formControlName="confirm"
@@ -172,17 +172,17 @@
             <span class="auth__remember">
               <p-checkbox inputId="reg-terms" formControlName="terms" [binary]="true"></p-checkbox>
               <label for="reg-terms">
-                <a href="#" class="auth__link">Kullanım Şartları</a>
+                <a href="#" class="auth__link">{{ 'auth.terms' | t }}</a>
                 &amp;
-                <a href="#" class="auth__link">Gizlilik</a>
-                metnini okudum, kabul ediyorum.
+                <a href="#" class="auth__link">{{ 'auth.privacy' | t }}</a>
+                {{ 'auth.termsAccept' | t }}
               </label>
             </span>
           </div>
 
           <p-button
             type="submit"
-            [label]="submitting() ? 'Hesap oluşturuluyor…' : 'Hesap Oluştur'"
+            [label]="submitting() ? ('auth.creating' | t) : ('auth.createAccount' | t)"
             [disabled]="submitting()"
             styleClass="w-full"
           ></p-button>
@@ -192,8 +192,8 @@
           }
 
           <p class="auth__switch">
-            Zaten hesabın var mı?
-            <button type="button" class="auth__link" (click)="setTab('login')">Giriş yap</button>
+            {{ 'auth.haveAccount' | t }}
+            <button type="button" class="auth__link" (click)="setTab('login')">{{ 'auth.switchToLogin' | t }}</button>
           </p>
         </form>
       }

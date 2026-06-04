@@ -12,7 +12,7 @@
               [routerLink]="item.path"
               routerLinkActive="is-active"
               [routerLinkActiveOptions]="{ exact: item.path === '/' }"
-            >{{ item.label }}</a>
+            >{{ item.key | t }}</a>
           </li>
         }
       </ul>
@@ -29,10 +29,11 @@
     </a>
 
     <div class="site-header__actions">
+      <app-lang-switcher />
       <a
         routerLink="/login"
         class="icon-btn icon-btn--accent"
-        aria-label="Hesabım"
+        [attr.aria-label]="'common.account' | t"
       >
         <i class="pi pi-user" aria-hidden="true"></i>
       </a>
@@ -59,11 +60,11 @@
               routerLinkActive="is-active"
               [routerLinkActiveOptions]="{ exact: item.path === '/' }"
               (click)="closeMobile()"
-            >{{ item.label }}</a>
+            >{{ item.key | t }}</a>
           </li>
         }
         <li>
-          <a routerLink="/login" (click)="closeMobile()">Giriş Yap</a>
+          <a routerLink="/login" (click)="closeMobile()">{{ 'common.login' | t }}</a>
         </li>
       </ul>
     </nav>

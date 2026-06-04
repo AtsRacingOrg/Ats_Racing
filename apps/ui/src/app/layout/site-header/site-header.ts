@@ -1,24 +1,26 @@
 import { ChangeDetectionStrategy, Component, HostListener, signal } from '@angular/core';
 import { RouterLink, RouterLinkActive } from '@angular/router';
+import { TranslatePipe } from '../../core/i18n/translate.pipe';
+import { LangSwitcher } from '../../shared/ui/lang-switcher/lang-switcher';
 
 interface NavItem {
-  readonly label: string;
+  readonly key: string;
   readonly path: string;
 }
 
 @Component({
   selector: 'app-site-header',
   standalone: true,
-  imports: [RouterLink, RouterLinkActive],
+  imports: [RouterLink, RouterLinkActive, TranslatePipe, LangSwitcher],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './site-header.html',
   styleUrl: './site-header.scss',
 })
 export class SiteHeader {
   protected readonly nav: readonly NavItem[] = [
-    { label: 'Anasayfa', path: '/' },
-    { label: 'Hakkımızda', path: '/about' },
-    { label: 'İletişim', path: '/contact' },
+    { key: 'nav.home', path: '/' },
+    { key: 'nav.about', path: '/about' },
+    { key: 'nav.contact', path: '/contact' },
   ];
 
   protected readonly scrolled = signal(false);

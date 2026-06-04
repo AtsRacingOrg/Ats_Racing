@@ -14,6 +14,8 @@ import { CheckboxModule } from 'primeng/checkbox';
 import { InputTextModule } from 'primeng/inputtext';
 import { PasswordModule } from 'primeng/password';
 import { AuthService, AccountType } from '../../core/auth/auth.service';
+import { TranslatePipe } from '../../core/i18n/translate.pipe';
+import { I18nService } from '../../core/i18n/i18n.service';
 
 type AuthTab = 'login' | 'register';
 
@@ -32,6 +34,7 @@ function passwordsMatch(group: AbstractControl): ValidationErrors | null {
     InputTextModule,
     PasswordModule,
     CheckboxModule,
+    TranslatePipe,
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './login-page.html',
@@ -42,6 +45,7 @@ export default class LoginPage {
   private readonly auth   = inject(AuthService);
   private readonly router = inject(Router);
   private readonly route  = inject(ActivatedRoute);
+  private readonly i18n   = inject(I18nService);
 
   protected readonly tab = signal<AuthTab>('login');
   protected readonly accountType = signal<AccountType>('user');
@@ -69,17 +73,11 @@ export default class LoginPage {
     const qp = this.route.snapshot.queryParamMap;
     // Returning from the email verification link → ?verified=1
     if (qp.get('verified') === '1') {
-      this.success.set(
-        'E-postan doğrulandı. Şimdi giriş yapabilirsin. ' +
-        '(Bayi hesapları için admin onayı gerekir.)',
-      );
+      this.success.set(this.i18n.t('auth.msg.verified'));
     }
     // Aşırı istek nedeniyle bloklandı → ?blocked=1
     if (qp.get('blocked') === '1') {
-      this.serverError.set(
-        'Çok fazla istek nedeniyle oturumun geçici olarak kapatıldı. ' +
-        'Lütfen bir süre sonra tekrar giriş yapmayı dene.',
-      );
+      this.serverError.set(this.i18n.t('auth.msg.blocked'));
     }
   }
 
@@ -121,16 +119,16 @@ export default class LoginPage {
   protected errorOf(name: string): string | null {
     const c = this.form().get(name);
     if (!c || !c.errors || !(c.touched || c.dirty)) return null;
-    if (c.errors['required']) return 'Bu alan zorunlu.';
-    if (c.errors['requiredTrue']) return 'Devam etmek için kabul et.';
-    if (c.errors['email']) return 'Geçerli bir e-posta gir.';
-    if (c.errors['minlength']) return `En az ${c.errors['minlength'].requiredLength} karakter olmalı.`;
-    return 'Geçersiz değer.';
+    if (c.errors['required']) return this.i18n.t('auth.err.required');
+    if (c.errors['requiredTrue']) return this.i18n.t('auth.err.requiredTrue');
+    if (c.errors['email']) return this.i18n.t('auth.err.email');
+    if (c.errors['minlength']) return this.i18n.t('auth.err.minlength', { n: c.errors['minlength'].requiredLength });
+    return this.i18n.t('auth.err.invalid');
   }
 
   protected formError(): string | null {
     const f = this.form();
-    if (f.errors?.['mismatch'] && f.touched) return 'Şifreler eşleşmiyor.';
+    if (f.errors?.['mismatch'] && f.touched) return this.i18n.t('auth.err.mismatch');
     return null;
   }
 
@@ -186,7 +184,7 @@ export default class LoginPage {
       await this.auth.resendVerification(email);
       this.resendSent.set(true);
     } catch {
-      this.serverError.set('Doğrulama e-postası gönderilemedi. Lütfen tekrar dene.');
+      this.serverError.set(this.i18n.t('auth.msg.resendFailed'));
     } finally {
       this.resending.set(false);
     }
