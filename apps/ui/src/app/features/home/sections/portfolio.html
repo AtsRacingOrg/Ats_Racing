@@ -2,12 +2,12 @@
   <div class="container-page">
     <div class="portfolio__head">
       <app-section-heading
-        eyebrow="Çalışmalarımız"
-        title="Atölyemizden Son Projeler"
-        lead="Her aracın hikayesi farklı. Bizimle çalışmış ekiplerin ve süper-otomobil tutkunlarının projelerinden bir seçki."
+        [eyebrow]="'portfolio.eyebrow' | t"
+        [title]="'portfolio.title' | t"
+        [lead]="'portfolio.lead' | t"
       ></app-section-heading>
       <p-button
-        label="İletişime Geç"
+        [label]="'portfolio.cta' | t"
         styleClass="p-button-outlined"
         routerLink="/contact"
       ></p-button>
@@ -20,7 +20,7 @@
             <img [src]="work.image" [alt]="work.title" loading="lazy" decoding="async" />
           </figure>
           <div class="work-card__overlay">
-            <span class="work-card__cat">{{ work.category }}</span>
+            <span class="work-card__cat">{{ work.categoryKey | t }}</span>
             <h3 class="work-card__title">{{ work.title }}</h3>
           </div>
         </li>

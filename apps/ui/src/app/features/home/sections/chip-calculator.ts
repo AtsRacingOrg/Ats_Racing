@@ -18,6 +18,7 @@ import {
   Model,
   Series,
 } from '../../../core/catalog/catalog.service';
+import { TranslatePipe } from '../../../core/i18n/translate.pipe';
 
 /* ─── Sonuç (modal) ─── */
 interface StagePoint { hp: number; tq: number; }
@@ -41,7 +42,7 @@ interface Result {
 @Component({
   selector: 'app-home-chip-calculator',
   standalone: true,
-  imports: [DecimalPipe, RouterLink],
+  imports: [DecimalPipe, RouterLink, TranslatePipe],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './chip-calculator.html',
   styleUrl: './chip-calculator.scss',

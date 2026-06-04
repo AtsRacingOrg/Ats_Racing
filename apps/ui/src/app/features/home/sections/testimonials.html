@@ -2,8 +2,8 @@
   <div class="container-page">
     <app-section-heading
       align="center"
-      eyebrow="Müşterilerimiz Anlatıyor"
-      title="Onlar Anlatıyor, Biz Üretiyoruz"
+      [eyebrow]="'testi.eyebrow' | t"
+      [title]="'testi.title' | t"
     ></app-section-heading>
 
     <p-carousel
@@ -18,12 +18,12 @@
       <ng-template #item let-t>
         <article class="quote-card">
           <span class="quote-card__mark" aria-hidden="true">“</span>
-          <p class="quote-card__text">{{ t.quote }}</p>
+          <p class="quote-card__text">{{ t.quoteKey | t }}</p>
           <footer class="quote-card__meta">
             <span class="quote-card__name">{{ t.name }}</span>
             <span class="quote-card__car">{{ t.car }}</span>
           </footer>
-          <div class="quote-card__rating" [attr.aria-label]="t.rating + ' yıldız'">
+          <div class="quote-card__rating" [attr.aria-label]="t.rating + ' ' + ('testi.stars' | t)">
             @for (_ of [].constructor(t.rating); track $index) {
               <i class="pi pi-star-fill"></i>
             }

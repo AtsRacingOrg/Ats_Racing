@@ -19,13 +19,12 @@
 
     <div class="customize__copy" appReveal="fade-right" [revealDelay]="100">
       <h2 class="customize__title">
-        Aracını uzman ekibimizle <span class="accent">özelleştir</span>
+        {{ 'customize.titlePre' | t }} <span class="accent">{{ 'customize.titleAccent' | t }}</span>
       </h2>
       <p class="customize__lead">
-        ECU yazılımı, donanım modifiyesi ve detaylı bakım — her adım belgelenir, her ayar
-        kendi dyno tesisimizde test edilir. Bugün hemen randevu oluştur, projeni planlayalım.
+        {{ 'customize.lead' | t }}
       </p>
-      <p-button label="Hakkımızda" routerLink="/about"></p-button>
+      <p-button [label]="'customize.cta' | t" routerLink="/about"></p-button>
     </div>
   </div>
 </section>
