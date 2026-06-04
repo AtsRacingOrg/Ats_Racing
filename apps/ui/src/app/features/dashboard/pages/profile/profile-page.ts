@@ -2,24 +2,26 @@ import { ChangeDetectionStrategy, ChangeDetectorRef, Component, OnInit, computed
 import { FormsModule } from '@angular/forms';
 import { AccountService, Billing, BillingType } from '../../../../core/account/account.service';
 import { PageLoader } from '../../../../shared/page-loader';
+import { TranslatePipe } from '../../../../core/i18n/translate.pipe';
+import { I18nService } from '../../../../core/i18n/i18n.service';
 
 @Component({
   selector: 'app-profile-page',
   standalone: true,
-  imports: [FormsModule, PageLoader],
+  imports: [FormsModule, PageLoader, TranslatePipe],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
 @if (!loaded()) { <app-page-loader /> } @else {
 <div class="pr">
   <div class="pr__header">
-    <h1 class="pr__title">Profilim</h1>
-    <p class="pr__sub">Hesap, şifre ve fatura bilgilerin</p>
+    <h1 class="pr__title">{{ 'dash.nav.profile' | t }}</h1>
+    <p class="pr__sub">{{ 'pr.sub' | t }}</p>
   </div>
 
   @if (!billingComplete()) {
     <div class="pr__warn">
       <i class="pi pi-exclamation-triangle"></i>
-      <span>Fatura bilgilerin tanımlı değil. Sipariş verebilmek için aşağıdaki <strong>Fatura Bilgileri</strong> bölümünü doldur.</span>
+      <span [innerHTML]="'pr.warn' | t"></span>
     </div>
   }
 
@@ -27,46 +29,46 @@ import { PageLoader } from '../../../../shared/page-loader';
 
     <!-- Profil bilgileri -->
     <section class="pr__card">
-      <h2 class="pr__card-title"><i class="pi pi-user"></i> Hesap Bilgileri</h2>
+      <h2 class="pr__card-title"><i class="pi pi-user"></i> {{ 'pr.account' | t }}</h2>
       <div class="pr__field">
-        <label>Ad Soyad</label>
-        <input class="pr__input" [(ngModel)]="fullName" placeholder="Ad Soyad" />
+        <label>{{ 'auth.fullName' | t }}</label>
+        <input class="pr__input" [(ngModel)]="fullName" [placeholder]="'auth.fullName' | t" />
       </div>
       <div class="pr__field">
-        <label>E-posta</label>
+        <label>{{ 'auth.email' | t }}</label>
         <input class="pr__input" [value]="account()?.email || ''" disabled />
       </div>
       @if (isDealer()) {
         <div class="pr__field">
-          <label>Bayi Adı</label>
-          <input class="pr__input" [(ngModel)]="dealershipName" placeholder="Bayi / firma adı" />
+          <label>{{ 'auth.dealershipName' | t }}</label>
+          <input class="pr__input" [(ngModel)]="dealershipName" [placeholder]="'pr.dealershipPh' | t" />
         </div>
       }
       <div class="pr__field">
-        <label>Telefon</label>
+        <label>{{ 'pr.phone' | t }}</label>
         <input class="pr__input" [(ngModel)]="phone" placeholder="05xx xxx xx xx" />
       </div>
       <button class="pr__btn" type="button" [disabled]="savingProfile()" (click)="saveProfile()">
         <i class="pi" [class.pi-save]="!savingProfile()" [class.pi-spin]="savingProfile()" [class.pi-spinner]="savingProfile()"></i>
-        {{ savingProfile() ? 'Kaydediliyor…' : 'Kaydet' }}
+        {{ savingProfile() ? ('pr.saving' | t) : ('common.save' | t) }}
       </button>
       @if (profileMsg()) { <p class="pr__ok">{{ profileMsg() }}</p> }
     </section>
 
     <!-- Şifre değiştir -->
     <section class="pr__card">
-      <h2 class="pr__card-title"><i class="pi pi-lock"></i> Şifre Değiştir</h2>
+      <h2 class="pr__card-title"><i class="pi pi-lock"></i> {{ 'pr.changePw' | t }}</h2>
       <div class="pr__field">
-        <label>Yeni Şifre</label>
-        <input class="pr__input" type="password" [(ngModel)]="newPassword" placeholder="En az 8 karakter" />
+        <label>{{ 'pr.newPw' | t }}</label>
+        <input class="pr__input" type="password" [(ngModel)]="newPassword" [placeholder]="'pr.newPwPh' | t" />
       </div>
       <div class="pr__field">
-        <label>Yeni Şifre (Tekrar)</label>
-        <input class="pr__input" type="password" [(ngModel)]="newPassword2" placeholder="Tekrar" />
+        <label>{{ 'pr.newPw2' | t }}</label>
+        <input class="pr__input" type="password" [(ngModel)]="newPassword2" [placeholder]="'pr.repeat' | t" />
       </div>
       <button class="pr__btn" type="button" [disabled]="savingPw()" (click)="savePassword()">
         <i class="pi" [class.pi-key]="!savingPw()" [class.pi-spin]="savingPw()" [class.pi-spinner]="savingPw()"></i>
-        {{ savingPw() ? 'Güncelleniyor…' : 'Şifreyi Güncelle' }}
+        {{ savingPw() ? ('pr.updating' | t) : ('pr.updatePw' | t) }}
       </button>
       @if (pwError()) { <p class="pr__err">{{ pwError() }}</p> }
       @if (pwMsg()) { <p class="pr__ok">{{ pwMsg() }}</p> }
@@ -75,11 +77,11 @@ import { PageLoader } from '../../../../shared/page-loader';
     <!-- Fatura bilgileri -->
     <section class="pr__card pr__card--wide">
       <h2 class="pr__card-title">
-        <i class="pi pi-file"></i> Fatura Bilgileri
+        <i class="pi pi-file"></i> {{ 'pr.billing' | t }}
         @if (billingComplete()) {
-          <span class="pr__badge pr__badge--ok"><i class="pi pi-check-circle"></i> Tanımlı</span>
+          <span class="pr__badge pr__badge--ok"><i class="pi pi-check-circle"></i> {{ 'pr.defined' | t }}</span>
         } @else {
-          <span class="pr__badge pr__badge--warn"><i class="pi pi-exclamation-circle"></i> Eksik</span>
+          <span class="pr__badge pr__badge--warn"><i class="pi pi-exclamation-circle"></i> {{ 'pr.missing' | t }}</span>
         }
       </h2>
 
@@ -87,36 +89,36 @@ import { PageLoader } from '../../../../shared/page-loader';
         <!-- DÜZENLEME / İLK KAYIT FORMU -->
         <div class="pr__type">
           <button type="button" class="pr__type-btn" [class.pr__type-btn--active]="bType() === 'individual'" (click)="switchType('individual')">
-            <i class="pi pi-user"></i> Bireysel
+            <i class="pi pi-user"></i> {{ 'auth.individual' | t }}
           </button>
           <button type="button" class="pr__type-btn" [class.pr__type-btn--active]="bType() === 'corporate'" (click)="switchType('corporate')">
-            <i class="pi pi-building"></i> Kurumsal
+            <i class="pi pi-building"></i> {{ 'pr.corporate' | t }}
           </button>
         </div>
 
         <div class="pr__brow">
           @if (bType() === 'individual') {
-            <div class="pr__field"><label>Ad Soyad *</label><input class="pr__input" [(ngModel)]="bFullName" placeholder="Ad Soyad" /></div>
-            <div class="pr__field"><label>T.C. Kimlik No *</label><input class="pr__input" [(ngModel)]="bTcNo" maxlength="11" placeholder="11 haneli" /></div>
+            <div class="pr__field"><label>{{ 'pr.fullNameReq' | t }}</label><input class="pr__input" [(ngModel)]="bFullName" [placeholder]="'auth.fullName' | t" /></div>
+            <div class="pr__field"><label>{{ 'pr.tcNo' | t }}</label><input class="pr__input" [(ngModel)]="bTcNo" maxlength="11" [placeholder]="'pr.tcNoPh' | t" /></div>
           } @else {
-            <div class="pr__field"><label>Firma Ünvanı *</label><input class="pr__input" [(ngModel)]="bCompany" placeholder="Firma ünvanı" /></div>
-            <div class="pr__field"><label>Vergi Dairesi *</label><input class="pr__input" [(ngModel)]="bTaxOffice" placeholder="Vergi dairesi" /></div>
-            <div class="pr__field"><label>Vergi No *</label><input class="pr__input" [(ngModel)]="bTaxNumber" placeholder="Vergi numarası" /></div>
+            <div class="pr__field"><label>{{ 'pr.company' | t }}</label><input class="pr__input" [(ngModel)]="bCompany" [placeholder]="'pr.companyPh' | t" /></div>
+            <div class="pr__field"><label>{{ 'pr.taxOffice' | t }}</label><input class="pr__input" [(ngModel)]="bTaxOffice" [placeholder]="'pr.taxOfficePh' | t" /></div>
+            <div class="pr__field"><label>{{ 'pr.taxNo' | t }}</label><input class="pr__input" [(ngModel)]="bTaxNumber" [placeholder]="'pr.taxNoPh' | t" /></div>
           }
-          <div class="pr__field"><label>Telefon</label><input class="pr__input" [(ngModel)]="bPhone" placeholder="Telefon" /></div>
-          <div class="pr__field"><label>İl *</label><input class="pr__input" [(ngModel)]="bCity" placeholder="İl" /></div>
-          <div class="pr__field"><label>İlçe</label><input class="pr__input" [(ngModel)]="bDistrict" placeholder="İlçe" /></div>
-          <div class="pr__field pr__field--full"><label>Adres *</label><textarea class="pr__input" rows="2" [(ngModel)]="bAddress" placeholder="Açık adres"></textarea></div>
+          <div class="pr__field"><label>{{ 'pr.phone' | t }}</label><input class="pr__input" [(ngModel)]="bPhone" [placeholder]="'pr.phone' | t" /></div>
+          <div class="pr__field"><label>{{ 'pr.cityReq' | t }}</label><input class="pr__input" [(ngModel)]="bCity" [placeholder]="'pr.cityReq' | t" /></div>
+          <div class="pr__field"><label>{{ 'pr.district' | t }}</label><input class="pr__input" [(ngModel)]="bDistrict" [placeholder]="'pr.district' | t" /></div>
+          <div class="pr__field pr__field--full"><label>{{ 'pr.addressReq' | t }}</label><textarea class="pr__input" rows="2" [(ngModel)]="bAddress" [placeholder]="'pr.addressPh' | t"></textarea></div>
         </div>
 
         <div class="pr__brow-actions">
           <button class="pr__btn pr__btn--primary" type="button" [disabled]="savingBilling()" (click)="saveBilling()">
             <i class="pi" [class.pi-save]="!savingBilling()" [class.pi-spin]="savingBilling()" [class.pi-spinner]="savingBilling()"></i>
-            {{ savingBilling() ? 'Kaydediliyor…' : 'Fatura Bilgilerini Kaydet' }}
+            {{ savingBilling() ? ('pr.saving' | t) : ('pr.saveBilling' | t) }}
           </button>
           @if (account()?.billing) {
             <button class="pr__btn" type="button" (click)="cancelEdit()">
-              <i class="pi pi-times"></i> Vazgeç
+              <i class="pi pi-times"></i> {{ 'common.cancel' | t }}
             </button>
           }
         </div>
@@ -127,28 +129,28 @@ import { PageLoader } from '../../../../shared/page-loader';
         <div class="pr__summary">
           <span class="pr__btype">
             <i class="pi" [class.pi-user]="account()?.billing?.type === 'individual'" [class.pi-building]="account()?.billing?.type === 'corporate'"></i>
-            {{ account()?.billing?.type === 'corporate' ? 'Kurumsal' : 'Bireysel' }}
+            {{ account()?.billing?.type === 'corporate' ? ('pr.corporate' | t) : ('auth.individual' | t) }}
           </span>
           <div class="pr__sgrid">
             @if (account()?.billing?.type === 'individual') {
-              <div class="pr__srow"><span>Ad Soyad</span><b>{{ account()?.billing?.fullName || '—' }}</b></div>
-              <div class="pr__srow"><span>T.C. Kimlik No</span><b>{{ account()?.billing?.tcNo || '—' }}</b></div>
+              <div class="pr__srow"><span>{{ 'pr.lbl.fullName' | t }}</span><b>{{ account()?.billing?.fullName || '—' }}</b></div>
+              <div class="pr__srow"><span>{{ 'pr.lbl.tcNo' | t }}</span><b>{{ account()?.billing?.tcNo || '—' }}</b></div>
             } @else {
-              <div class="pr__srow"><span>Firma Ünvanı</span><b>{{ account()?.billing?.companyName || '—' }}</b></div>
-              <div class="pr__srow"><span>Vergi Dairesi</span><b>{{ account()?.billing?.taxOffice || '—' }}</b></div>
-              <div class="pr__srow"><span>Vergi No</span><b>{{ account()?.billing?.taxNumber || '—' }}</b></div>
+              <div class="pr__srow"><span>{{ 'pr.lbl.company' | t }}</span><b>{{ account()?.billing?.companyName || '—' }}</b></div>
+              <div class="pr__srow"><span>{{ 'pr.lbl.taxOffice' | t }}</span><b>{{ account()?.billing?.taxOffice || '—' }}</b></div>
+              <div class="pr__srow"><span>{{ 'pr.lbl.taxNo' | t }}</span><b>{{ account()?.billing?.taxNumber || '—' }}</b></div>
             }
-            <div class="pr__srow"><span>Telefon</span><b>{{ account()?.billing?.phone || '—' }}</b></div>
-            <div class="pr__srow"><span>İl / İlçe</span><b>{{ account()?.billing?.city || '—' }}{{ account()?.billing?.district ? ' / ' + account()?.billing?.district : '' }}</b></div>
-            <div class="pr__srow pr__srow--full"><span>Adres</span><b>{{ account()?.billing?.address || '—' }}</b></div>
+            <div class="pr__srow"><span>{{ 'pr.phone' | t }}</span><b>{{ account()?.billing?.phone || '—' }}</b></div>
+            <div class="pr__srow"><span>{{ 'pr.lbl.cityDistrict' | t }}</span><b>{{ account()?.billing?.city || '—' }}{{ account()?.billing?.district ? ' / ' + account()?.billing?.district : '' }}</b></div>
+            <div class="pr__srow pr__srow--full"><span>{{ 'pr.lbl.address' | t }}</span><b>{{ account()?.billing?.address || '—' }}</b></div>
           </div>
           <div class="pr__brow-actions">
             <button class="pr__btn pr__btn--primary" type="button" (click)="startEdit()">
-              <i class="pi pi-pencil"></i> Düzenle
+              <i class="pi pi-pencil"></i> {{ 'common.edit' | t }}
             </button>
             <button class="pr__btn pr__btn--danger" type="button" [disabled]="deletingBilling()" (click)="deleteBilling()">
               <i class="pi" [class.pi-trash]="!deletingBilling()" [class.pi-spin]="deletingBilling()" [class.pi-spinner]="deletingBilling()"></i>
-              Sil
+              {{ 'common.delete' | t }}
             </button>
           </div>
           @if (billingMsg()) { <p class="pr__ok">{{ billingMsg() }}</p> }
@@ -211,6 +213,7 @@ import { PageLoader } from '../../../../shared/page-loader';
 export class ProfilePage implements OnInit {
   private readonly accountSvc = inject(AccountService);
   private readonly cdr = inject(ChangeDetectorRef);
+  private readonly i18n = inject(I18nService);
 
   protected readonly loaded = this.accountSvc.loaded;
   protected readonly account = this.accountSvc.account;
@@ -296,23 +299,23 @@ export class ProfilePage implements OnInit {
         this.phone.trim(),
         this.isDealer() ? this.dealershipName.trim() : undefined,
       );
-      this.profileMsg.set('Kaydedildi.');
-    } catch { this.profileMsg.set('Kaydedilemedi.'); }
+      this.profileMsg.set(this.i18n.t('pr.savedProfile'));
+    } catch { this.profileMsg.set(this.i18n.t('pr.saveFailed')); }
     finally { this.savingProfile.set(false); this.cdr.markForCheck(); }
   }
 
   async savePassword(): Promise<void> {
     this.pwError.set(''); this.pwMsg.set('');
-    if (this.newPassword.length < 8) { this.pwError.set('Şifre en az 8 karakter olmalı.'); return; }
-    if (this.newPassword !== this.newPassword2) { this.pwError.set('Şifreler eşleşmiyor.'); return; }
+    if (this.newPassword.length < 8) { this.pwError.set(this.i18n.t('pr.pwShort')); return; }
+    if (this.newPassword !== this.newPassword2) { this.pwError.set(this.i18n.t('auth.err.mismatch')); return; }
     if (this.savingPw()) { return; }
     this.savingPw.set(true);
     try {
       await this.accountSvc.changePassword(this.newPassword);
-      this.pwMsg.set('Şifren güncellendi.');
+      this.pwMsg.set(this.i18n.t('pr.pwUpdated'));
       this.newPassword = ''; this.newPassword2 = '';
     } catch (e) {
-      this.pwError.set((e as { error?: { message?: string } })?.error?.message ?? 'Şifre değiştirilemedi.');
+      this.pwError.set((e as { error?: { message?: string } })?.error?.message ?? this.i18n.t('pr.pwFailed'));
     } finally { this.savingPw.set(false); this.cdr.markForCheck(); }
   }
 
@@ -321,11 +324,11 @@ export class ProfilePage implements OnInit {
     const t = this.bType();
     if (t === 'individual') {
       if (!this.bFullName.trim() || !this.bTcNo.trim() || !this.bAddress.trim() || !this.bCity.trim()) {
-        this.billingError.set('Lütfen zorunlu (*) alanları doldur: Ad Soyad, T.C. No, İl, Adres.'); return;
+        this.billingError.set(this.i18n.t('pr.billRequiredInd')); return;
       }
     } else {
       if (!this.bCompany.trim() || !this.bTaxOffice.trim() || !this.bTaxNumber.trim() || !this.bAddress.trim() || !this.bCity.trim()) {
-        this.billingError.set('Lütfen zorunlu (*) alanları doldur: Ünvan, Vergi Dairesi, Vergi No, İl, Adres.'); return;
+        this.billingError.set(this.i18n.t('pr.billRequiredCorp')); return;
       }
     }
     if (this.savingBilling()) { return; }
@@ -346,14 +349,14 @@ export class ProfilePage implements OnInit {
       await this.accountSvc.saveBilling(payload);
       this.hydrate();
       this.editingBilling.set(false);
-      this.billingMsg.set('Fatura bilgilerin kaydedildi.');
-    } catch { this.billingError.set('Kaydedilemedi. Tekrar dene.'); }
+      this.billingMsg.set(this.i18n.t('pr.billSaved'));
+    } catch { this.billingError.set(this.i18n.t('pr.billSaveFailed')); }
     finally { this.savingBilling.set(false); this.cdr.markForCheck(); }
   }
 
   async deleteBilling(): Promise<void> {
     if (this.deletingBilling()) { return; }
-    if (!confirm('Fatura bilgilerini silmek istediğine emin misin? Silersen sipariş veremezsin.')) { return; }
+    if (!confirm(this.i18n.t('pr.deleteConfirm'))) { return; }
     this.deletingBilling.set(true);
     this.billingError.set(''); this.billingMsg.set('');
     try {
@@ -362,8 +365,8 @@ export class ProfilePage implements OnInit {
       this.bType.set('individual');
       this.bFullName = ''; this.bTcNo = ''; this.bCompany = ''; this.bTaxOffice = '';
       this.bTaxNumber = ''; this.bPhone = ''; this.bAddress = ''; this.bCity = ''; this.bDistrict = '';
-      this.billingMsg.set('Fatura bilgilerin silindi.');
-    } catch { this.billingError.set('Silinemedi. Tekrar dene.'); }
+      this.billingMsg.set(this.i18n.t('pr.billDeleted'));
+    } catch { this.billingError.set(this.i18n.t('pr.deleteFailed')); }
     finally { this.deletingBilling.set(false); this.cdr.markForCheck(); }
   }
 }
