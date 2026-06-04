@@ -7,6 +7,9 @@ export class UpdateProfileDto {
 
   @ApiPropertyOptional() @IsOptional() @IsString() @MaxLength(40)
   phone?: string;
+
+  @ApiPropertyOptional() @IsOptional() @IsString() @MaxLength(160)
+  dealershipName?: string;
 }
 
 export class ChangePasswordDto {

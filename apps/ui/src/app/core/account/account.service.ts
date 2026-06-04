@@ -23,6 +23,7 @@ export interface Account {
   email: string | null;
   phone: string | null;
   role: string;
+  dealershipName: string | null;
   billing: Billing | null;
   billingComplete: boolean;
 }
@@ -50,8 +51,10 @@ export class AccountService {
 
   clear(): void { this._account.set(null); this._loaded.set(false); }
 
-  async updateProfile(fullName: string, phone: string): Promise<void> {
-    await firstValueFrom(this.http.put(`${this.api}/account/profile`, { fullName, phone }));
+  async updateProfile(fullName: string, phone: string, dealershipName?: string): Promise<void> {
+    const body: Record<string, string> = { fullName, phone };
+    if (dealershipName !== undefined) { body['dealershipName'] = dealershipName; }
+    await firstValueFrom(this.http.put(`${this.api}/account/profile`, body));
     await this.load();
   }
 

@@ -8,6 +8,7 @@ export interface AccountView {
   email: string | null;
   phone: string | null;
   role: string;
+  dealershipName: string | null;
   billing: BillingView | null;
   billingComplete: boolean;
 }
@@ -21,9 +22,9 @@ export class ProfileService {
   async getAccount(userId: string): Promise<AccountView> {
     const { data: p } = await this.supabase.admin
       .from('profiles')
-      .select('full_name, email, phone, role')
+      .select('full_name, email, phone, role, dealership_name')
       .eq('id', userId)
-      .single<{ full_name: string | null; email: string | null; phone: string | null; role: string }>();
+      .single<{ full_name: string | null; email: string | null; phone: string | null; role: string; dealership_name: string | null }>();
 
     const { data: b } = await this.supabase.admin
       .from('billing_profiles')
@@ -37,6 +38,7 @@ export class ProfileService {
       email: p?.email ?? null,
       phone: p?.phone ?? null,
       role: p?.role ?? 'user',
+      dealershipName: p?.dealership_name ?? null,
       billing,
       billingComplete: billingComplete(billing),
     };
@@ -46,6 +48,7 @@ export class ProfileService {
     const patch: Record<string, unknown> = {};
     if (dto.fullName !== undefined) { patch.full_name = dto.fullName.trim(); }
     if (dto.phone !== undefined) { patch.phone = dto.phone.trim() || null; }
+    if (dto.dealershipName !== undefined) { patch.dealership_name = dto.dealershipName.trim() || null; }
     if (Object.keys(patch).length === 0) { return { ok: true }; }
     const { error } = await this.supabase.admin.from('profiles').update(patch).eq('id', userId);
     if (error) {

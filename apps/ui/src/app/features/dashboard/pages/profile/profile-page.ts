@@ -36,6 +36,12 @@ import { PageLoader } from '../../../../shared/page-loader';
         <label>E-posta</label>
         <input class="pr__input" [value]="account()?.email || ''" disabled />
       </div>
+      @if (isDealer()) {
+        <div class="pr__field">
+          <label>Bayi Adı</label>
+          <input class="pr__input" [(ngModel)]="dealershipName" placeholder="Bayi / firma adı" />
+        </div>
+      }
       <div class="pr__field">
         <label>Telefon</label>
         <input class="pr__input" [(ngModel)]="phone" placeholder="05xx xxx xx xx" />
@@ -170,8 +176,11 @@ export class ProfilePage implements OnInit {
   protected readonly account = this.accountSvc.account;
   protected readonly billingComplete = this.accountSvc.billingComplete;
 
+  protected readonly isDealer = computed(() => this.account()?.role === 'dealer');
+
   protected fullName = '';
   protected phone = '';
+  protected dealershipName = '';
   protected newPassword = '';
   protected newPassword2 = '';
 
@@ -201,6 +210,7 @@ export class ProfilePage implements OnInit {
     if (!a) { return; }
     this.fullName = a.fullName ?? '';
     this.phone = a.phone ?? '';
+    this.dealershipName = a.dealershipName ?? '';
     const b = a.billing;
     if (b) {
       this.bType.set(b.type);
@@ -214,7 +224,11 @@ export class ProfilePage implements OnInit {
     if (this.savingProfile()) { return; }
     this.savingProfile.set(true); this.profileMsg.set('');
     try {
-      await this.accountSvc.updateProfile(this.fullName.trim(), this.phone.trim());
+      await this.accountSvc.updateProfile(
+        this.fullName.trim(),
+        this.phone.trim(),
+        this.isDealer() ? this.dealershipName.trim() : undefined,
+      );
       this.profileMsg.set('Kaydedildi.');
     } catch { this.profileMsg.set('Kaydedilemedi.'); }
     finally { this.savingProfile.set(false); this.cdr.markForCheck(); }
