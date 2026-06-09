@@ -139,6 +139,12 @@
             @if (errorOf('email'); as msg) { <small role="alert">{{ msg }}</small> }
           </div>
 
+          <div class="auth__field" [class.is-invalid]="hasError('country')">
+            <label>{{ 'auth.country' | t }}</label>
+            <app-country-select formControlName="country"></app-country-select>
+            @if (errorOf('country'); as msg) { <small role="alert">{{ msg }}</small> }
+          </div>
+
           <div class="auth__field" [class.is-invalid]="hasError('password')">
             <label for="reg-password">{{ 'auth.password' | t }}</label>
             <p-password

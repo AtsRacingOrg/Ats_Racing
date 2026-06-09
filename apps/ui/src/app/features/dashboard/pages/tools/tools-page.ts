@@ -1389,9 +1389,9 @@ export class ToolsPage implements OnInit {
 
   async submitOrder(): Promise<void> {
     if (this.orderSubmitting()) { return; }
-    // Fatura bilgileri tanımlı değilse sipariş verilemez.
+    // Fatura bilgileri yalnızca Türkiye müşterileri için zorunlu.
     if (!this.accountSvc.loaded()) { await this.accountSvc.load(); }
-    if (!this.accountSvc.billingComplete()) {
+    if (this.accountSvc.billingRequired() && !this.accountSvc.billingComplete()) {
       this.orderError.set(this.i18n.t('tl.err.billing'));
       return;
     }

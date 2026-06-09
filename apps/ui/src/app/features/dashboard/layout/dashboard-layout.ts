@@ -71,7 +71,7 @@ interface NavItem {
 
       <!-- MAIN -->
       <div class="dash-main">
-        @if (accountLoaded() && !billingComplete()) {
+        @if (accountLoaded() && billingRequired() && !billingComplete()) {
           <a routerLink="/dashboard/profile" class="dash-billing-warn" title="Fatura bilgilerini tanımla">
             <div class="dash-billing-warn__track">
               @for (i of [0,1,2,3]; track i) {
@@ -366,6 +366,7 @@ export class DashboardLayout implements OnInit {
 
   protected readonly accountLoaded = this.accountSvc.loaded;
   protected readonly billingComplete = this.accountSvc.billingComplete;
+  protected readonly billingRequired = this.accountSvc.billingRequired;
 
   ngOnInit(): void {
     this.notifs.start();

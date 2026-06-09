@@ -9,6 +9,9 @@ export interface AccountView {
   phone: string | null;
   role: string;
   dealershipName: string | null;
+  country: string;
+  /** Fatura bilgisi yalnızca Türkiye müşterileri için zorunlu. */
+  billingRequired: boolean;
   billing: BillingView | null;
   billingComplete: boolean;
 }
@@ -22,9 +25,9 @@ export class ProfileService {
   async getAccount(userId: string): Promise<AccountView> {
     const { data: p } = await this.supabase.admin
       .from('profiles')
-      .select('full_name, email, phone, role, dealership_name')
+      .select('full_name, email, phone, role, dealership_name, country')
       .eq('id', userId)
-      .single<{ full_name: string | null; email: string | null; phone: string | null; role: string; dealership_name: string | null }>();
+      .single<{ full_name: string | null; email: string | null; phone: string | null; role: string; dealership_name: string | null; country: string | null }>();
 
     const { data: b } = await this.supabase.admin
       .from('billing_profiles')
@@ -33,12 +36,15 @@ export class ProfileService {
       .maybeSingle<BillingRow>();
 
     const billing = toBillingView(b ?? null);
+    const country = (p?.country ?? 'TR').toUpperCase();
     return {
       fullName: p?.full_name ?? null,
       email: p?.email ?? null,
       phone: p?.phone ?? null,
       role: p?.role ?? 'user',
       dealershipName: p?.dealership_name ?? null,
+      country,
+      billingRequired: country === 'TR',
       billing,
       billingComplete: billingComplete(billing),
     };

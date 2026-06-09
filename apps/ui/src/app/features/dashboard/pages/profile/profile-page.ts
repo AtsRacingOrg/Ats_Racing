@@ -18,7 +18,7 @@ import { I18nService } from '../../../../core/i18n/i18n.service';
     <p class="pr__sub">{{ 'pr.sub' | t }}</p>
   </div>
 
-  @if (!billingComplete()) {
+  @if (billingRequired() && !billingComplete()) {
     <div class="pr__warn">
       <i class="pi pi-exclamation-triangle"></i>
       <span [innerHTML]="'pr.warn' | t"></span>
@@ -218,6 +218,7 @@ export class ProfilePage implements OnInit {
   protected readonly loaded = this.accountSvc.loaded;
   protected readonly account = this.accountSvc.account;
   protected readonly billingComplete = this.accountSvc.billingComplete;
+  protected readonly billingRequired = this.accountSvc.billingRequired;
 
   protected readonly isDealer = computed(() => this.account()?.role === 'dealer');
 

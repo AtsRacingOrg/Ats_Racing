@@ -16,6 +16,7 @@ import { PasswordModule } from 'primeng/password';
 import { AuthService, AccountType } from '../../core/auth/auth.service';
 import { TranslatePipe } from '../../core/i18n/translate.pipe';
 import { I18nService } from '../../core/i18n/i18n.service';
+import { CountrySelect } from '../../shared/ui/country-select/country-select';
 
 type AuthTab = 'login' | 'register';
 
@@ -35,6 +36,7 @@ function passwordsMatch(group: AbstractControl): ValidationErrors | null {
     PasswordModule,
     CheckboxModule,
     TranslatePipe,
+    CountrySelect,
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './login-page.html',
@@ -61,6 +63,7 @@ export default class LoginPage {
       name:           ['', [Validators.required, Validators.minLength(2)]],
       email:          ['', [Validators.required, Validators.email]],
       phone:          [''],
+      country:        ['TR', [Validators.required]],
       dealershipName: [''],
       password:       ['', [Validators.required, Validators.minLength(6)]],
       confirm:        ['', [Validators.required]],
@@ -155,11 +158,12 @@ export default class LoginPage {
           password: v.password,
           fullName: v.name,
           phone: v.phone?.trim() || undefined,
+          country: v.country || 'TR',
           accountType: this.accountType(),
           dealershipName:
             this.accountType() === 'dealer' ? v.dealershipName?.trim() : undefined,
         });
-        this.registerForm.reset({ terms: false });
+        this.registerForm.reset({ terms: false, country: 'TR' });
         this.setAccountType('user');
         this.setTab('login');
         this.success.set(message);

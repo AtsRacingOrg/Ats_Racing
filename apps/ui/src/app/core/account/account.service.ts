@@ -24,6 +24,9 @@ export interface Account {
   phone: string | null;
   role: string;
   dealershipName: string | null;
+  country: string;
+  /** Fatura bilgisi yalnızca Türkiye müşterileri için zorunlu. */
+  billingRequired: boolean;
   billing: Billing | null;
   billingComplete: boolean;
 }
@@ -40,6 +43,8 @@ export class AccountService {
   readonly loaded = this._loaded.asReadonly();
   /** Fatura bilgileri tam mı? Header uyarısı + sipariş engeli için. */
   readonly billingComplete = computed(() => this._account()?.billingComplete ?? false);
+  /** Fatura bilgisi bu müşteri için zorunlu mu? (yalnızca Türkiye). */
+  readonly billingRequired = computed(() => this._account()?.billingRequired ?? false);
 
   async load(): Promise<void> {
     try {

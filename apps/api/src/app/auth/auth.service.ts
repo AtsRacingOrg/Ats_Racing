@@ -68,6 +68,7 @@ export class AuthService {
           full_name: dto.fullName,
           phone: dto.phone ?? null,
           dealership_name: role === 'dealer' ? dto.dealershipName : null,
+          country: (dto.country?.trim() || 'TR').toUpperCase(),
         },
       },
     });

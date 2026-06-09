@@ -23,6 +23,7 @@ export interface RegisterPayload {
   password: string;
   fullName: string;
   phone?: string;
+  country?: string;
   accountType: AccountType;
   dealershipName?: string;
 }
