@@ -1,7 +1,7 @@
 import { Injectable, effect, signal } from '@angular/core';
 import { DICT } from './translations';
 
-export type Lang = 'tr' | 'en';
+export type Lang = 'tr' | 'en' | 'de';
 
 const STORAGE_KEY = 'ats.lang';
 
@@ -27,10 +27,12 @@ export class I18nService {
   private readInitial(): Lang {
     try {
       const saved = localStorage.getItem(STORAGE_KEY);
-      if (saved === 'tr' || saved === 'en') { return saved; }
-      // İlk ziyaret: tarayıcı dili İngilizce ise EN, değilse TR.
+      if (saved === 'tr' || saved === 'en' || saved === 'de') { return saved; }
+      // İlk ziyaret: tarayıcı diline göre EN / DE, değilse TR.
       const nav = (navigator?.language || 'tr').toLowerCase();
-      return nav.startsWith('en') ? 'en' : 'tr';
+      if (nav.startsWith('de')) { return 'de'; }
+      if (nav.startsWith('en')) { return 'en'; }
+      return 'tr';
     } catch {
       return 'tr';
     }
