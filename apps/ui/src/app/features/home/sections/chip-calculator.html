@@ -98,7 +98,6 @@
         <span class="cm__brand-pill">{{ brandName() }}</span>
         <h3 id="cm-title" class="cm__title">{{ brandName() }} {{ modelName() }} · {{ seriesName() }}</h3>
         <p class="cm__engine-line">
-          <span class="cm__engine-code">{{ r.engineCode }}</span>
           {{ r.displacementCc ? (r.displacementCc | number) + ' cc · ' : '' }}{{ r.fuelLabel }}
         </p>
       </div>
@@ -107,33 +106,37 @@
       </button>
     </div>
 
-    <!-- Engine Specs Row -->
-    <div class="cm__specs">
+    <!-- Engine Specs Row — locked for guests (no real data rendered) -->
+    <div class="cm__specs cm__specs--locked">
       <div class="cm__spec">
         <span class="cm__spec-k">{{ 'chip.engineCode' | t }}</span>
-        <span class="cm__spec-v cm__spec-v--code">{{ r.engineCode }}</span>
+        <span class="cm__spec-v cm__spec-v--blur" aria-hidden="true">••••••</span>
       </div>
       <div class="cm__spec">
         <span class="cm__spec-k">{{ 'chip.displacement' | t }}</span>
-        <span class="cm__spec-v">{{ r.displacementCc ? (r.displacementCc | number) + ' cc' : '—' }}</span>
+        <span class="cm__spec-v cm__spec-v--blur" aria-hidden="true">••••••</span>
       </div>
       <div class="cm__spec">
         <span class="cm__spec-k">{{ 'chip.boreStroke' | t }}</span>
-        <span class="cm__spec-v">{{ r.bore || '—' }}</span>
+        <span class="cm__spec-v cm__spec-v--blur" aria-hidden="true">••••••</span>
       </div>
       <div class="cm__spec">
         <span class="cm__spec-k">{{ 'chip.compression' | t }}</span>
-        <span class="cm__spec-v">{{ r.compressionRatio || '—' }}</span>
+        <span class="cm__spec-v cm__spec-v--blur" aria-hidden="true">•••••</span>
       </div>
       <div class="cm__spec">
         <span class="cm__spec-k">ECU</span>
-        <span class="cm__spec-v">{{ r.ecu || '—' }}</span>
+        <span class="cm__spec-v cm__spec-v--blur" aria-hidden="true">•••••••</span>
       </div>
       <div class="cm__spec">
         <span class="cm__spec-k">{{ 'chip.fuel' | t }}</span>
-        <span class="cm__spec-v">
-          <span class="cm__fuel cm__fuel--{{ r.fuelClass }}">{{ r.fuelLabel }}</span>
-        </span>
+        <span class="cm__spec-v cm__spec-v--blur" aria-hidden="true">•••••</span>
+      </div>
+      <!-- Lock overlay -->
+      <div class="cm__specs-lock">
+        <i class="pi pi-lock"></i>
+        <span>{{ 'chip.specsLocked' | t }}</span>
+        <a routerLink="/login" class="cm__specs-lock-link" (click)="closeModal()">{{ 'chip.signin' | t }}</a>
       </div>
     </div>
 
@@ -180,18 +183,89 @@
         </div>
       }
 
-      <!-- Stage 3 -->
-      @if (r.stage3; as s3) {
-        <div class="cm__stage-row cm__stage-row--s3">
-          <span class="cm__stage-name">
-            <span class="cm__stage-badge cm__stage-badge--purple">Stage 3</span>
-          </span>
-          <span class="cm__stage-val cm__stage-val--lit">{{ s3.hp }}</span>
-          <span class="cm__stage-val cm__stage-val--lit">{{ s3.tq }}</span>
-          <span class="cm__stage-delta cm__stage-delta--green">+{{ s3.hp - r.stockHp }}</span>
-          <span class="cm__stage-delta cm__stage-delta--green">+{{ s3.tq - r.stockTq }}</span>
+    </div>
+
+    <!-- Dyno Charts — HP + Torque -->
+    <div class="cm__charts">
+      <!-- HP CHART -->
+      <div class="cm-lc">
+        <div class="cm-lc__head">
+          <h4 class="cm-lc__title">{{ 'chip.hpChart' | t }}</h4>
+          <div class="cm-lc__legend">
+            <span class="cm-lc__dot cm-lc__dot--grey"></span><span>{{ 'chip.stock' | t }}</span>
+            <span class="cm-lc__dot cm-lc__dot--red"></span><span>{{ tuneLabel() }}</span>
+          </div>
         </div>
-      }
+        @if (hpChart(); as c) {
+          <svg [attr.viewBox]="'0 0 ' + c.W + ' ' + c.H" class="cm-lc__svg" aria-hidden="true" preserveAspectRatio="xMidYMid meet">
+            <defs>
+              <linearGradient id="cmHpTunedGrad" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stop-color="#e63946" stop-opacity="0.3"></stop>
+                <stop offset="100%" stop-color="#e63946" stop-opacity="0.02"></stop>
+              </linearGradient>
+              <linearGradient id="cmHpStockGrad" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stop-color="#ffffff" stop-opacity="0.07"></stop>
+                <stop offset="100%" stop-color="#ffffff" stop-opacity="0.01"></stop>
+              </linearGradient>
+            </defs>
+            @for (g of c.gridY; track g.y) {
+              <line [attr.x1]="c.padX" [attr.y1]="g.y" [attr.x2]="c.W - 8" [attr.y2]="g.y" stroke="rgba(255,255,255,0.06)" stroke-width="1"></line>
+              <text [attr.x]="c.padX - 6" [attr.y]="g.y + 4" text-anchor="end" fill="rgba(255,255,255,0.3)" font-size="10">{{ g.label }}</text>
+            }
+            @for (xl of c.xLabels; track xl.label) {
+              <text [attr.x]="xl.x" [attr.y]="c.H - 4" text-anchor="middle" fill="rgba(255,255,255,0.3)" font-size="10">{{ xl.label }}</text>
+            }
+            <path [attr.d]="c.stockArea" fill="url(#cmHpStockGrad)"></path>
+            <path [attr.d]="c.tunedArea" fill="url(#cmHpTunedGrad)"></path>
+            <path [attr.d]="c.stockPath" fill="none" stroke="rgba(255,255,255,0.3)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path>
+            <path [attr.d]="c.tunedPath" fill="none" stroke="#e63946" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"></path>
+            <circle [attr.cx]="c.stockPeak.x" [attr.cy]="c.stockPeak.y" r="4" fill="#fff" fill-opacity="0.5"></circle>
+            <circle [attr.cx]="c.tunedPeak.x" [attr.cy]="c.tunedPeak.y" r="4.5" fill="#e63946"></circle>
+            <text [attr.x]="c.tunedPeak.x - 6" [attr.y]="c.tunedPeak.y - 10" text-anchor="end" fill="#e63946" font-size="11" font-weight="700">{{ tunedHp() }} HP</text>
+            <text [attr.x]="c.stockPeak.x - 6" [attr.y]="c.stockPeak.y - 8" text-anchor="end" fill="rgba(255,255,255,0.55)" font-size="10">{{ r.stockHp }} HP</text>
+          </svg>
+        }
+      </div>
+
+      <!-- TORQUE CHART -->
+      <div class="cm-lc">
+        <div class="cm-lc__head">
+          <h4 class="cm-lc__title">{{ 'chip.tqChart' | t }}</h4>
+          <div class="cm-lc__legend">
+            <span class="cm-lc__dot cm-lc__dot--grey"></span><span>{{ 'chip.stock' | t }}</span>
+            <span class="cm-lc__dot cm-lc__dot--blue"></span><span>{{ tuneLabel() }}</span>
+          </div>
+        </div>
+        @if (torqueChart(); as c) {
+          <svg [attr.viewBox]="'0 0 ' + c.W + ' ' + c.H" class="cm-lc__svg" aria-hidden="true" preserveAspectRatio="xMidYMid meet">
+            <defs>
+              <linearGradient id="cmTqTunedGrad" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stop-color="#60a5fa" stop-opacity="0.3"></stop>
+                <stop offset="100%" stop-color="#60a5fa" stop-opacity="0.02"></stop>
+              </linearGradient>
+              <linearGradient id="cmTqStockGrad" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stop-color="#ffffff" stop-opacity="0.07"></stop>
+                <stop offset="100%" stop-color="#ffffff" stop-opacity="0.01"></stop>
+              </linearGradient>
+            </defs>
+            @for (g of c.gridY; track g.y) {
+              <line [attr.x1]="c.padX" [attr.y1]="g.y" [attr.x2]="c.W - 8" [attr.y2]="g.y" stroke="rgba(255,255,255,0.06)" stroke-width="1"></line>
+              <text [attr.x]="c.padX - 6" [attr.y]="g.y + 4" text-anchor="end" fill="rgba(255,255,255,0.3)" font-size="10">{{ g.label }}</text>
+            }
+            @for (xl of c.xLabels; track xl.label) {
+              <text [attr.x]="xl.x" [attr.y]="c.H - 4" text-anchor="middle" fill="rgba(255,255,255,0.3)" font-size="10">{{ xl.label }}</text>
+            }
+            <path [attr.d]="c.stockArea" fill="url(#cmTqStockGrad)"></path>
+            <path [attr.d]="c.tunedArea" fill="url(#cmTqTunedGrad)"></path>
+            <path [attr.d]="c.stockPath" fill="none" stroke="rgba(255,255,255,0.3)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path>
+            <path [attr.d]="c.tunedPath" fill="none" stroke="#60a5fa" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"></path>
+            <circle [attr.cx]="c.stockPeak.x" [attr.cy]="c.stockPeak.y" r="4" fill="#fff" fill-opacity="0.5"></circle>
+            <circle [attr.cx]="c.tunedPeak.x" [attr.cy]="c.tunedPeak.y" r="4.5" fill="#60a5fa"></circle>
+            <text [attr.x]="c.tunedPeak.x - 6" [attr.y]="c.tunedPeak.y - 10" text-anchor="end" fill="#60a5fa" font-size="11" font-weight="700">{{ tunedTq() }} Nm</text>
+            <text [attr.x]="c.stockPeak.x - 6" [attr.y]="c.stockPeak.y - 8" text-anchor="end" fill="rgba(255,255,255,0.55)" font-size="10">{{ r.stockTq }} Nm</text>
+          </svg>
+        }
+      </div>
     </div>
 
     <!-- CTA Footer -->

@@ -1,7 +1,8 @@
-import { Controller, Get, Query } from '@nestjs/common';
+import { Controller, Get, Query, UseGuards } from '@nestjs/common';
 import { ApiOperation, ApiQuery, ApiTags } from '@nestjs/swagger';
 import { CatalogService } from './catalog.service';
 import { RateLimit } from '../common/rate-limit';
+import { AuthGuard } from '../auth/auth.guard';
 
 /**
  * Araç & servis kataloğu — herkese açık okuma (auth gerekmez).
@@ -35,9 +36,17 @@ export class CatalogController {
   }
 
   @Get('engines')
-  @ApiOperation({ summary: 'Nesle ait motorları (güç değerleriyle) listele' })
+  @ApiOperation({ summary: 'Nesle ait motorları listele (kısıtlı — herkese açık)' })
   @ApiQuery({ name: 'seriesId', required: true })
   engines(@Query('seriesId') seriesId: string) {
+    return this.catalog.listEnginesPublic(seriesId);
+  }
+
+  @Get('engines/details')
+  @UseGuards(AuthGuard)
+  @ApiOperation({ summary: 'Nesle ait motorları tam detaylarıyla listele (oturum gerekli)' })
+  @ApiQuery({ name: 'seriesId', required: true })
+  enginesDetails(@Query('seriesId') seriesId: string) {
     return this.catalog.listEngines(seriesId);
   }
 

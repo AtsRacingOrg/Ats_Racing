@@ -38,6 +38,19 @@ export interface PowerPoint {
   hp: number;
   torque: number;
 }
+
+/** Herkese açık endpoint'ten gelen kısıtlı motor verisi. */
+export interface EnginePublic {
+  id: string;
+  label: string;
+  fuel: FuelType;
+  displacementCc: number | null;
+  stock: PowerPoint;
+  stage1: PowerPoint;
+  stage2: PowerPoint | null;
+}
+
+/** Oturum açmış kullanıcılar için tam motor verisi (/catalog/engines/details). */
 export interface Engine {
   id: string;
   label: string;
@@ -94,9 +107,15 @@ export class CatalogService {
     );
   }
 
-  listEngines(seriesId: string): Promise<Engine[]> {
+  listEngines(seriesId: string): Promise<EnginePublic[]> {
     return firstValueFrom(
-      this.http.get<Engine[]>(`${this.api}/catalog/engines`, { params: { seriesId } }),
+      this.http.get<EnginePublic[]>(`${this.api}/catalog/engines`, { params: { seriesId } }),
+    );
+  }
+
+  listEnginesDetailed(seriesId: string): Promise<Engine[]> {
+    return firstValueFrom(
+      this.http.get<Engine[]>(`${this.api}/catalog/engines/details`, { params: { seriesId } }),
     );
   }
 

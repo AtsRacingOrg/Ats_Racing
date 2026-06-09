@@ -7,6 +7,7 @@ import { SupabaseService } from '../supabase/supabase.service';
 import {
   BrandRow,
   BrandView,
+  EnginePublicView,
   EngineRow,
   EngineView,
   ModelRow,
@@ -19,6 +20,7 @@ import {
   ServiceView,
   TuningPriceRow,
   TuningPriceView,
+  toEnginePublicView,
   toEngineView,
   toServiceView,
   toTuningPriceView,
@@ -78,6 +80,25 @@ export class CatalogService {
     }));
   }
 
+  /** Herkese açık: teknik detaylar (kod, ECU, bore, sıkıştırma) dahil edilmez. */
+  async listEnginesPublic(seriesId: string): Promise<EnginePublicView[]> {
+    type PublicRow = Pick<EngineRow, 'id' | 'label' | 'fuel' | 'displacement_cc' | 'stock_hp' | 'stock_torque' | 'stage1_hp' | 'stage1_torque' | 'stage2_hp' | 'stage2_torque'>;
+    const { data, error } = await this.supabase.admin
+      .from('engines')
+      .select(
+        'id, label, fuel, displacement_cc, ' +
+          'stock_hp, stock_torque, stage1_hp, stage1_torque, ' +
+          'stage2_hp, stage2_torque',
+      )
+      .eq('series_id', seriesId)
+      .eq('is_active', true)
+      .order('stock_hp', { ascending: true })
+      .returns<PublicRow[]>();
+    this.guard(error, 'Motorlar getirilemedi.');
+    return (data ?? []).map(toEnginePublicView);
+  }
+
+  /** Kimliği doğrulanmış kullanıcılar için tam motor verisi. */
   async listEngines(seriesId: string): Promise<EngineView[]> {
     const { data, error } = await this.supabase.admin
       .from('engines')

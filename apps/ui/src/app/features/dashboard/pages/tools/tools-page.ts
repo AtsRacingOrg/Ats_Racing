@@ -1799,7 +1799,7 @@ export class ToolsPage implements OnInit {
     this.clearAfterEcu();
     this.selTune.set('stage1');
     if (id) {
-      try { this.enginesList.set(await this.catalogApi.listEngines(id)); }
+      try { this.enginesList.set(await this.catalogApi.listEnginesDetailed(id)); }
       catch { this.catalogError.set(this.i18n.t('tl.err.engines')); }
       finally { this.cdr.markForCheck(); }
     }

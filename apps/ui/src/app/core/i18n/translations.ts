@@ -153,6 +153,10 @@ export const DICT: Record<Lang, Record<string, string>> = {
     'chip.signin': 'Giriş Yap',
     'chip.register': 'Ücretsiz Kayıt Ol',
     'chip.recalculate': 'Yeniden Hesapla',
+    'chip.specsLocked': 'Tam motor detaylarını görmek için giriş yapın',
+    'chip.dynoTitle': 'Dyno Eğrisi',
+    'chip.hpChart': 'Beygir (HP)',
+    'chip.tqChart': 'Tork (Nm)',
 
     /* ---- Auth / Giriş ---- */
     'auth.welcome': 'Tekrar hoş geldin',
@@ -749,6 +753,10 @@ export const DICT: Record<Lang, Record<string, string>> = {
     'chip.signin': 'Sign In',
     'chip.register': 'Sign Up Free',
     'chip.recalculate': 'Recalculate',
+    'chip.specsLocked': 'Sign in to view full engine details',
+    'chip.dynoTitle': 'Dyno Curve',
+    'chip.hpChart': 'Power (HP)',
+    'chip.tqChart': 'Torque (Nm)',
 
     /* ---- Auth ---- */
     'auth.welcome': 'Welcome back',
