@@ -9,7 +9,9 @@ type DebtStatus = 'accruing' | 'due' | 'paid' | 'overdue';
 
 interface DebtOrder { id: string; date: string; vehicle: string; service: string; amount: number; cancelled: boolean; }
 interface MonthlyStatement {
-  id: string; periodYear: number; periodMonth: number; dueDate: string; status: DebtStatus;
+  id: string;        // statementNo (aç/kapa takibi)
+  dbId: string;      // gerçek UUID (ödeme API'si)
+  periodYear: number; periodMonth: number; dueDate: string; status: DebtStatus;
   orders: DebtOrder[]; paidAt?: string;
 }
 
@@ -23,6 +25,7 @@ const STATUS_KEY: Record<DebtStatus, string> = {
 function mapStatement(s: Statement): MonthlyStatement {
   return {
     id: s.statementNo,
+    dbId: s.id,
     periodYear: s.periodYear,
     periodMonth: s.periodMonth,
     dueDate: formatTrDate(s.dueDate),
@@ -127,9 +130,9 @@ function mapStatement(s: Statement): MonthlyStatement {
                     {{ 'pay.dueNote' | t:{ date: st.dueDate } }}
                   </p>
                   @if (!readonly) {
-                    <button class="pay-btn" type="button" [disabled]="paying() === st.id" (click)="payStatement(st.id)">
-                      <i class="pi" [class.pi-credit-card]="paying() !== st.id" [class.pi-spin]="paying() === st.id" [class.pi-spinner]="paying() === st.id"></i>
-                      {{ paying() === st.id ? ('tl.sending' | t) : ('pay.pay' | t) }} ₺{{ totalOf(st) | number }}
+                    <button class="pay-btn" type="button" [disabled]="paying() === st.dbId" (click)="payStatement(st.dbId)">
+                      <i class="pi" [class.pi-credit-card]="paying() !== st.dbId" [class.pi-spin]="paying() === st.dbId" [class.pi-spinner]="paying() === st.dbId"></i>
+                      {{ paying() === st.dbId ? ('tl.sending' | t) : ('pay.pay' | t) }} ₺{{ totalOf(st) | number }}
                     </button>
                   }
                 </div>
@@ -275,7 +278,7 @@ export class StatementsPanel {
   }
   async payStatement(id: string): Promise<void> {
     if (this.paying()) { return; }
-    const st = this._rows().find(s => s.id === id);
+    const st = this._rows().find(s => s.dbId === id);
     this.paying.set(id);
     try {
       await this.paymentsApi.payStatement(id);
