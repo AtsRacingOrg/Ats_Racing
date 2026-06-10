@@ -7,6 +7,7 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { SupabaseService } from '../supabase/supabase.service';
+import { PaytrService } from '../payments/paytr.service';
 import { CreateOrderDto } from './dto/create-order.dto';
 import {
   OrderRow,
@@ -34,7 +35,10 @@ const ORDER_SELECT =
 export class OrdersService {
   private readonly logger = new Logger(OrdersService.name);
 
-  constructor(private readonly supabase: SupabaseService) {}
+  constructor(
+    private readonly supabase: SupabaseService,
+    private readonly paytr: PaytrService,
+  ) {}
 
   /**
    * Tamamlanmamış (pending/processing) siparişler için 1-bazlı kuyruk sırasını hesaplar.
@@ -203,6 +207,12 @@ export class OrdersService {
       actor_role: 'admin',
       actor_id: adminId,
     });
+
+    // İptalde normal müşterinin peşin ödemesini iade et (PayTR).
+    if (status === 'cancelled') {
+      await this.refundOrderPayment(id, adminId);
+    }
+
     // Güncel kaydı admin select ile döndür
     const { data: full } = await this.supabase.admin
       .from('orders')
@@ -210,6 +220,67 @@ export class OrdersService {
       .eq('id', id)
       .single<OrderRow>();
     return this.enrichOne(toOrderView(full as OrderRow));
+  }
+
+  /**
+   * Sipariş iptalinde normal müşterinin (kart) ödemesini iade eder.
+   *  • Bayilerde sipariş ödemesi yoktur (ekstre/cari) — kayıt bulunmaz, atlanır.
+   *  • succeeded → PayTR iadesi yapılır, status='refunded' + refunded_at/refund_ref.
+   *  • pending  → henüz tahsil edilmemiş; status='failed' (para alınmadı).
+   *  • refunded → zaten iade edilmiş, idempotent atlanır.
+   * İade başarısız olursa sipariş yine iptal kalır; ödeme dokunulmaz, hata loglanır
+   * (admin manuel iade edebilir) — iptali bloklamamak için throw edilmez.
+   */
+  private async refundOrderPayment(orderId: string, adminId: string): Promise<void> {
+    const { data: pay } = await this.supabase.admin
+      .from('payments')
+      .select('id, amount, status, provider_ref')
+      .eq('order_id', orderId)
+      .maybeSingle<{ id: string; amount: number; status: string; provider_ref: string | null }>();
+
+    if (!pay || pay.status === 'refunded' || pay.status === 'failed') {
+      return; // bayi (kayıt yok) veya zaten kapanmış ödeme
+    }
+
+    // Henüz tahsil edilmemiş ödeme: iade gerekmez, sadece kapat.
+    if (pay.status === 'pending') {
+      await this.supabase.admin.from('payments')
+        .update({ status: 'failed' }).eq('id', pay.id);
+      return;
+    }
+
+    // status === 'succeeded' → gerçek iade.
+    try {
+      const res = await this.paytr.refund({
+        paymentId: pay.id,
+        providerRef: pay.provider_ref,
+        amount: Number(pay.amount),
+      });
+      if (!res.ok) { throw new Error('PayTR iade reddetti'); }
+
+      await this.supabase.admin.from('payments').update({
+        status: 'refunded',
+        refunded_at: new Date().toISOString(),
+        refund_ref: res.refundRef,
+      }).eq('id', pay.id);
+
+      await this.supabase.admin.from('order_events').insert({
+        order_id: orderId,
+        event: `Ödeme iade edildi (₺${Number(pay.amount).toLocaleString('tr-TR')})`,
+        actor_role: 'admin',
+        actor_id: adminId,
+      });
+    } catch (err) {
+      this.logger.error(
+        `refund failed for order ${orderId} (payment ${pay.id}): ${(err as Error).message}`,
+      );
+      await this.supabase.admin.from('order_events').insert({
+        order_id: orderId,
+        event: 'Ödeme iadesi başarısız — manuel iade gerekiyor',
+        actor_role: 'admin',
+        actor_id: adminId,
+      });
+    }
   }
 
   /** Admin: hazırlanan dosyayı müşteriye teslim eder (Storage + tuning_files + event + completed). */
