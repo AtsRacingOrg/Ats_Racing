@@ -1,6 +1,6 @@
-import { ChangeDetectionStrategy, Component, Input, computed, inject, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, EventEmitter, Input, Output, computed, inject, signal } from '@angular/core';
 import { DecimalPipe } from '@angular/common';
-import { Statement } from '../core/payments/payments.service';
+import { PaymentsService, Statement } from '../core/payments/payments.service';
 import { stageLabel, formatTrDate } from '../core/orders/order-format';
 import { TranslatePipe } from '../core/i18n/translate.pipe';
 import { I18nService } from '../core/i18n/i18n.service';
@@ -127,8 +127,9 @@ function mapStatement(s: Statement): MonthlyStatement {
                     {{ 'pay.dueNote' | t:{ date: st.dueDate } }}
                   </p>
                   @if (!readonly) {
-                    <button class="pay-btn" type="button" (click)="payStatement(st.id)">
-                      <i class="pi pi-credit-card"></i> {{ 'pay.pay' | t }} ₺{{ totalOf(st) | number }}
+                    <button class="pay-btn" type="button" [disabled]="paying() === st.id" (click)="payStatement(st.id)">
+                      <i class="pi" [class.pi-credit-card]="paying() !== st.id" [class.pi-spin]="paying() === st.id" [class.pi-spinner]="paying() === st.id"></i>
+                      {{ paying() === st.id ? ('tl.sending' | t) : ('pay.pay' | t) }} ₺{{ totalOf(st) | number }}
                     </button>
                   }
                 </div>
@@ -219,9 +220,16 @@ function mapStatement(s: Statement): MonthlyStatement {
 })
 export class StatementsPanel {
   private readonly i18n = inject(I18nService);
+  private readonly paymentsApi = inject(PaymentsService);
 
   /** Admin görünümünde "Öde" butonu gizlenir. */
   @Input() readonly = false;
+
+  /** Ödeme başarılı olunca ebeveyn listeyi tazelesin. */
+  @Output() paid = new EventEmitter<string>();
+
+  /** Ödeme yapılan ekstrenin id'si (buton spinner'ı için). */
+  protected readonly paying = signal<string | null>(null);
 
   @Input() set statements(v: Statement[]) {
     this._rows.set((v ?? []).map(mapStatement));
@@ -265,8 +273,18 @@ export class StatementsPanel {
     if (s.has(id)) { s.delete(id); } else { s.add(id); }
     this._open.set(s);
   }
-  payStatement(id: string): void {
+  async payStatement(id: string): Promise<void> {
+    if (this.paying()) { return; }
     const st = this._rows().find(s => s.id === id);
-    if (st) { this.paidMsg.set(this.i18n.t('pay.toast', { period: this.periodLabel(st) })); }
+    this.paying.set(id);
+    try {
+      await this.paymentsApi.payStatement(id);
+      if (st) { this.paidMsg.set(this.i18n.t('pay.toast', { period: this.periodLabel(st) })); }
+      this.paid.emit(id); // ebeveyn listeyi tazeler
+    } catch {
+      this.paidMsg.set(this.i18n.t('pr.saveFailed'));
+    } finally {
+      this.paying.set(null);
+    }
   }
 }

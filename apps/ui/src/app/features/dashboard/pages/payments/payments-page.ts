@@ -35,7 +35,7 @@ import { TranslatePipe } from '../../../../core/i18n/translate.pipe';
     </div>
   </div>
 
-  <app-statements-panel [statements]="statements()" />
+  <app-statements-panel [statements]="statements()" (paid)="reload()" />
 
   }
 </div>
@@ -65,6 +65,11 @@ export class PaymentsPage implements OnInit {
   protected readonly loading = signal(true);
 
   ngOnInit(): void {
+    this.reload();
+  }
+
+  /** Ödeme sonrası (panel `paid` event'i) listeyi tazeler. */
+  protected reload(): void {
     if (!this.isDealer()) { this.loading.set(false); return; }
     const cached = this.paymentsApi.peekStatements();
     if (cached) { this.statements.set(cached); this.loading.set(false); }

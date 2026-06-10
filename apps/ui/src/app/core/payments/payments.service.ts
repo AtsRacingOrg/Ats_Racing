@@ -42,4 +42,13 @@ export class PaymentsService {
       () => firstValueFrom(this.http.get<Statement[]>(`${this.api}/payments/statements`)),
     );
   }
+
+  /** Ekstreyi öder (mock tahsilat). Başarılı olursa cache temizlenir. */
+  async payStatement(id: string): Promise<Statement> {
+    const updated = await firstValueFrom(
+      this.http.post<Statement>(`${this.api}/payments/statements/${id}/pay`, {}),
+    );
+    this._statements.clear();
+    return updated;
+  }
 }

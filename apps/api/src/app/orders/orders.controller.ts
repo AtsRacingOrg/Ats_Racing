@@ -80,4 +80,11 @@ export class OrdersController {
     }
     return this.orders.listStatements(req.accessToken);
   }
+
+  @Post('payments/statements/:id/pay')
+  @RateLimit({ limit: 10, window: 60, hard: 40, block: 900, name: 'statement-pay' })
+  @ApiOperation({ summary: 'Bayi ekstresini öder (mock tahsilat)' })
+  payStatement(@Param('id', ParseUUIDPipe) id: string, @Req() req: AuthedReq) {
+    return this.orders.payStatement(req.user.id, id);
+  }
 }

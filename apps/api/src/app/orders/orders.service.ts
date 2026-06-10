@@ -404,4 +404,56 @@ export class OrdersService {
     }
     return (data ?? []).map(toStatementView);
   }
+
+  /**
+   * Bayi ekstresini öder (MOCK gateway — gerçek tahsilat yok).
+   *  • Sahiplik doğrulanır; yalnızca 'due'/'overdue' ekstre ödenebilir.
+   *  • Ekstre 'paid' + paid_at olur, succeeded bir payments kaydı atılır.
+   * PayTR gerçek olunca yalnızca buradaki tahsilat adımı değişecek.
+   */
+  async payStatement(userId: string, statementId: string): Promise<StatementView> {
+    const { data: st } = await this.supabase.admin
+      .from('dealer_statements')
+      .select('id, dealer_id, status, total')
+      .eq('id', statementId)
+      .maybeSingle<{ id: string; dealer_id: string; status: string; total: number }>();
+
+    if (!st || st.dealer_id !== userId) {
+      throw new NotFoundException('Ekstre bulunamadı.');
+    }
+    if (st.status === 'paid') {
+      throw new BadRequestException('Bu ekstre zaten ödendi.');
+    }
+    if (st.status !== 'due' && st.status !== 'overdue') {
+      throw new BadRequestException('Bu dönem henüz ödemeye kapanmadı.');
+    }
+
+    const paidAt = new Date().toISOString();
+    const { error: upErr } = await this.supabase.admin
+      .from('dealer_statements')
+      .update({ status: 'paid', paid_at: paidAt })
+      .eq('id', statementId);
+    if (upErr) {
+      this.logger.error(`payStatement update failed: ${upErr.message}`);
+      throw new InternalServerErrorException('Ödeme kaydedilemedi.');
+    }
+
+    // MOCK tahsilat kaydı (PayTR gelince provider_ref gerçek referans olur).
+    await this.supabase.admin.from('payments').insert({
+      user_id: userId,
+      statement_id: statementId,
+      amount: st.total,
+      method: 'card',
+      status: 'succeeded',
+      paid_at: paidAt,
+      provider_ref: `MOCK-${Date.now()}`,
+    });
+
+    const { data: full } = await this.supabase.admin
+      .from('dealer_statements')
+      .select('*, orders(order_no,created_at,make,model,stage,total_price,status)')
+      .eq('id', statementId)
+      .single<StatementRow>();
+    return toStatementView(full as StatementRow);
+  }
 }
