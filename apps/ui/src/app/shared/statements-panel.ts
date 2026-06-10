@@ -1,13 +1,19 @@
 import { ChangeDetectionStrategy, Component, EventEmitter, Input, Output, computed, inject, signal } from '@angular/core';
 import { DecimalPipe } from '@angular/common';
 import { PaymentsService, Statement } from '../core/payments/payments.service';
-import { stageLabel, formatTrDate } from '../core/orders/order-format';
+import { stageLabel, formatTrDate, paymentStatusLabel } from '../core/orders/order-format';
 import { TranslatePipe } from '../core/i18n/translate.pipe';
 import { I18nService } from '../core/i18n/i18n.service';
 
 type DebtStatus = 'accruing' | 'due' | 'paid' | 'overdue';
+type OrderPayStatus = 'unpaid' | 'paid' | 'refunded';
 
-interface DebtOrder { id: string; date: string; vehicle: string; service: string; amount: number; cancelled: boolean; }
+interface DebtOrder {
+  id: string; date: string; vehicle: string; service: string; amount: number;
+  cancelled: boolean;
+  orderStatus: string;       // completed / pending / cancelled
+  paymentStatus: OrderPayStatus;
+}
 interface MonthlyStatement {
   id: string;        // statementNo (aç/kapa takibi)
   dbId: string;      // gerçek UUID (ödeme API'si)
@@ -38,6 +44,9 @@ function mapStatement(s: Statement): MonthlyStatement {
       service: stageLabel(o.stage),
       amount: o.amount,
       cancelled: o.status === 'cancelled',
+      orderStatus: o.status,
+      // Bayi ekstresinde ödeme durumu: iptal → iade, ekstre ödendi → ödendi, değilse bekliyor.
+      paymentStatus: o.status === 'cancelled' ? 'refunded' : (s.status === 'paid' ? 'paid' : 'unpaid'),
     })),
   };
 }
@@ -100,7 +109,7 @@ function mapStatement(s: Statement): MonthlyStatement {
           @if (isOpen(st.id)) {
             <div class="stmt__body">
               <table class="stmt__table">
-                <thead><tr><th>{{ 'pay.th.order' | t }}</th><th>{{ 'common.vehicle' | t }}</th><th>{{ 'pay.th.service' | t }}</th><th>{{ 'pay.th.date' | t }}</th><th class="ta-r">{{ 'pay.th.amount' | t }}</th></tr></thead>
+                <thead><tr><th>{{ 'pay.th.order' | t }}</th><th>{{ 'common.vehicle' | t }}</th><th>{{ 'pay.th.service' | t }}</th><th>{{ 'pay.th.date' | t }}</th><th>{{ 'pay.th.orderStatus' | t }}</th><th>{{ 'pay.th.payStatus' | t }}</th><th class="ta-r">{{ 'pay.th.amount' | t }}</th></tr></thead>
                 <tbody>
                   @for (o of st.orders; track o.id) {
                     <tr [class.stmt__row--cancelled]="o.cancelled">
@@ -108,18 +117,14 @@ function mapStatement(s: Statement): MonthlyStatement {
                       <td>{{ o.vehicle }}</td>
                       <td class="muted">{{ o.service }}</td>
                       <td class="muted">{{ o.date }}</td>
-                      <td class="ta-r price">
-                        @if (o.cancelled) {
-                          <span class="stmt__refund">{{ 'pay.refunded' | t }}</span>
-                        } @else {
-                          ₺{{ o.amount | number }}
-                        }
-                      </td>
+                      <td><span class="st-chip st-chip--ord-{{ o.orderStatus }}"><span class="st-dot"></span>{{ orderStatusLabel(o.orderStatus) }}</span></td>
+                      <td><span class="st-chip st-chip--pay-{{ o.paymentStatus }}"><span class="st-dot"></span>{{ payStatusLabel(o.paymentStatus) }}</span></td>
+                      <td class="ta-r price" [class.stmt__amount--struck]="o.cancelled">₺{{ o.amount | number }}</td>
                     </tr>
                   }
                 </tbody>
                 <tfoot>
-                  <tr><td colspan="4" class="ta-r foot-lbl">{{ 'pay.periodTotal' | t }}</td><td class="ta-r foot-val">₺{{ totalOf(st) | number }}</td></tr>
+                  <tr><td colspan="6" class="ta-r foot-lbl">{{ 'pay.periodTotal' | t }}</td><td class="ta-r foot-val">₺{{ totalOf(st) | number }}</td></tr>
                 </tfoot>
               </table>
 
@@ -192,6 +197,13 @@ function mapStatement(s: Statement): MonthlyStatement {
     .st-chip--due      { background: rgba(251,191,36,0.12); color: #fbbf24; }
     .st-chip--paid     { background: rgba(74,222,128,0.12); color: #4ade80; }
     .st-chip--overdue  { background: rgba(248,113,113,0.12); color: #f87171; }
+    .st-chip--ord-completed  { background: rgba(74,222,128,0.12); color: #4ade80; }
+    .st-chip--ord-pending    { background: rgba(96,165,250,0.12); color: #60a5fa; }
+    .st-chip--ord-processing { background: rgba(96,165,250,0.12); color: #60a5fa; }
+    .st-chip--ord-cancelled  { background: rgba(255,255,255,0.06); color: rgba(255,255,255,0.4); }
+    .st-chip--pay-unpaid   { background: rgba(245,158,11,0.12); color: #f59e0b; }
+    .st-chip--pay-paid     { background: rgba(74,222,128,0.12); color: #4ade80; }
+    .st-chip--pay-refunded { background: rgba(168,85,247,0.14); color: #a855f7; }
     .stmt__body { padding: 0 1.4rem 1.4rem; border-top: 1px solid rgba(255,255,255,0.05); }
     .stmt__table { width: 100%; border-collapse: collapse; margin-top: 0.5rem;
       th { padding: 0.7rem 0.6rem; font-size: 0.68rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; color: rgba(255,255,255,0.35); text-align: left; border-bottom: 1px solid rgba(255,255,255,0.06); }
@@ -201,8 +213,9 @@ function mapStatement(s: Statement): MonthlyStatement {
     .mono { font-family: monospace; color: rgba(255,255,255,0.6) !important; }
     .muted { color: rgba(255,255,255,0.45) !important; }
     .price { font-weight: 700; color: #fff !important; }
-    .stmt__row--cancelled td:not(.ta-r) { text-decoration: line-through; opacity: 0.5; }
-    .stmt__refund { font-size: 0.72rem; font-weight: 700; color: #f59e0b; }
+    .stmt__row--cancelled .mono, .stmt__row--cancelled .muted,
+    .stmt__row--cancelled td:nth-child(2) { opacity: 0.45; }
+    .stmt__amount--struck { text-decoration: line-through; opacity: 0.55; }
     .foot-lbl { font-size: 0.75rem; color: rgba(255,255,255,0.4) !important; font-weight: 600; padding-top: 0.85rem !important; }
     .foot-val { font-size: 0.95rem; font-weight: 800; color: #fff !important; padding-top: 0.85rem !important; }
     .stmt__actions { display: flex; align-items: center; justify-content: space-between; gap: 1rem; flex-wrap: wrap; margin-top: 1rem; }
@@ -270,6 +283,14 @@ export class StatementsPanel {
     return `${this.i18n.t(`monL.${st.periodMonth - 1}`)} ${st.periodYear}`;
   }
   statusLabel(s: DebtStatus): string { return this.i18n.t(STATUS_KEY[s]); }
+  orderStatusLabel(s: string): string {
+    const key: Record<string, string> = {
+      completed: 'status.completed', pending: 'status.pending',
+      processing: 'status.processing', cancelled: 'status.cancelled',
+    };
+    return key[s] ? this.i18n.t(key[s]) : s;
+  }
+  payStatusLabel(s: string): string { return paymentStatusLabel(s); }
   isOpen(id: string): boolean { return this._open().has(id); }
   toggle(id: string): void {
     const s = new Set(this._open());
