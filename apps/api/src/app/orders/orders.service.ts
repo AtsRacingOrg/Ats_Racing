@@ -29,7 +29,8 @@ export interface UploadedFileLike {
 const ORDER_SELECT =
   '*, items:order_items(label,unit_price), pcodes:order_pcodes(pcode,note), ' +
   'events:order_events(event,actor_role,created_at), ' +
-  'files:tuning_files(kind,file_name,status,is_downloadable,notes)';
+  'files:tuning_files(kind,file_name,status,is_downloadable,notes), ' +
+  'payment:payments(status,refunded_at), statement:dealer_statements(status)';
 
 @Injectable()
 export class OrdersService {

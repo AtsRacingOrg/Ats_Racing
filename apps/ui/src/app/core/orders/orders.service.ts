@@ -5,6 +5,7 @@ import { environment } from '../../../environments/environment';
 import { Swr } from '../../shared/swr';
 
 export type OrderStatus = 'pending' | 'processing' | 'completed' | 'cancelled';
+export type PaymentStatus = 'unpaid' | 'paid' | 'refunded' | 'failed';
 
 /** Araçlar ekranından gönderilen sipariş yükü (fiyat server'da hesaplanır). */
 export interface CreateOrderPayload {
@@ -61,6 +62,7 @@ export interface Order {
   dyno: boolean;
   modifiedParts: string[];
   status: OrderStatus;
+  paymentStatus: PaymentStatus;
   notes: string | null;
   cancellationReason: string | null;
   basePrice: number;

@@ -5,9 +5,10 @@ import { FormsModule } from '@angular/forms';
 import { DecimalPipe } from '@angular/common';
 import { Order, OrdersService } from '../../../../core/orders/orders.service';
 import { AuthService } from '../../../../core/auth/auth.service';
-import { fuelLabelTr, stageLabel, formatTrDateTime, isoDateOnly, formatTl, triggerDownload } from '../../../../core/orders/order-format';
+import { fuelLabelTr, stageLabel, formatTrDateTime, isoDateOnly, formatTl, triggerDownload, paymentStatusLabel } from '../../../../core/orders/order-format';
 
 type OrderStatus = 'pending' | 'processing' | 'completed' | 'cancelled';
+type PaymentStatus = 'unpaid' | 'paid' | 'refunded' | 'failed';
 
 interface ColFilters {
   arac: string; yil: string; motor: string; ecu: string; sanziman: string;
@@ -25,6 +26,7 @@ interface UserOrder {
   extraServices: string[];
   price: string; basePrice: string;
   status: OrderStatus;
+  paymentStatus: PaymentStatus;
   notes?: string;
   pcodes: { pcode: string | null; note: string | null }[];
   modifiedParts: string[];
@@ -68,6 +70,7 @@ function mapOrder(o: Order): UserOrder {
     price: formatTl(o.totalPrice),
     basePrice: formatTl(o.basePrice),
     status: o.status,
+    paymentStatus: o.paymentStatus,
     notes: o.notes ?? undefined,
     pcodes: o.pcodes ?? [],
     modifiedParts: o.modifiedParts ?? [],
@@ -120,7 +123,7 @@ const STATUS_LABEL: Record<OrderStatus, string> = {
       <thead>
         <tr>
           <th>Araç</th><th>Yıl</th><th>Motor</th><th>ECU</th><th>Şanzıman</th><th>Plaka</th>
-          <th>Servis</th><th>Tarih</th><th>Tutar</th><th>Durum</th><th>Dosya</th><th></th>
+          <th>Servis</th><th>Tarih</th><th>Tutar</th><th>Durum</th><th>Ödeme</th><th>Dosya</th><th></th>
         </tr>
         <tr class="op__fltr-row">
           <th><input class="op__fltr" placeholder="Ara" [ngModel]="cf('arac')" (ngModelChange)="setColF('arac', $event)"></th>
@@ -141,6 +144,15 @@ const STATUS_LABEL: Record<OrderStatus, string> = {
             </select>
           </th>
           <th>
+            <select class="op__fltr op__fltr--sel" [ngModel]="payFilter()" (ngModelChange)="payFilter.set($event)">
+              <option value="all">Tümü</option>
+              <option value="unpaid">Ödeme Bekliyor</option>
+              <option value="paid">Ödendi</option>
+              <option value="refunded">İade Edildi</option>
+              <option value="failed">Başarısız</option>
+            </select>
+          </th>
+          <th>
             <select class="op__fltr op__fltr--sel" [ngModel]="cf('dosya')" (ngModelChange)="setColF('dosya', $event)">
               <option value="">Tümü</option>
               <option value="var">Var</option>
@@ -152,7 +164,7 @@ const STATUS_LABEL: Record<OrderStatus, string> = {
       </thead>
       <tbody>
         @if (filtered().length === 0) {
-          <tr><td colspan="12" class="op__empty"><i class="pi pi-inbox"></i><span>Sipariş bulunamadı</span></td></tr>
+          <tr><td colspan="13" class="op__empty"><i class="pi pi-inbox"></i><span>Sipariş bulunamadı</span></td></tr>
         }
         @for (o of paged(); track o.id) {
           <tr class="op__row" (click)="openDetail(o)">
@@ -192,6 +204,9 @@ const STATUS_LABEL: Record<OrderStatus, string> = {
                   </span>
                 }
               </div>
+            </td>
+            <td>
+              <span class="st-chip st-chip--pay-{{o.paymentStatus}}"><span class="st-dot"></span>{{ payLabel(o.paymentStatus) }}</span>
             </td>
             <td>
               @if (o.fileAvailable) {
@@ -651,6 +666,10 @@ const STATUS_LABEL: Record<OrderStatus, string> = {
     .st-chip--processing { background: rgba(96,165,250,0.12);  color: #60a5fa; }
     .st-chip--completed  { background: rgba(74,222,128,0.12);  color: #4ade80; }
     .st-chip--cancelled  { background: rgba(255,255,255,0.06); color: rgba(255,255,255,0.4); }
+    .st-chip--pay-unpaid   { background: rgba(245,158,11,0.12); color: #f59e0b; }
+    .st-chip--pay-paid     { background: rgba(74,222,128,0.12); color: #4ade80; }
+    .st-chip--pay-refunded { background: rgba(168,85,247,0.14); color: #a855f7; }
+    .st-chip--pay-failed   { background: rgba(239,68,68,0.12);  color: #ef4444; }
     .op__status-cell { display: inline-flex; flex-direction: column; align-items: flex-start; gap: 4px; }
     .op__queue { display: inline-flex; align-items: center; gap: 4px; padding: 3px 8px; border-radius: 20px; font-size: 0.66rem; font-weight: 700; background: rgba(168,85,247,0.12); color: #c084fc; white-space: nowrap; i { font-size: 0.7rem; } }
     .od__queue-card { display: flex; gap: 0.85rem; padding: 1rem 1.1rem; border-radius: 14px; background: linear-gradient(135deg, rgba(168,85,247,0.14), rgba(168,85,247,0.05)); border: 1px solid rgba(168,85,247,0.3); margin-bottom: 1rem; }
@@ -882,6 +901,7 @@ export class OrdersPage implements OnInit {
   protected readonly selectedOrder = signal<UserOrder | null>(null);
   protected readonly currentView   = signal<'list' | 'detail'>('list');
   protected readonly activeFilter  = signal<string>('all');
+  protected readonly payFilter     = signal<string>('all');
   protected readonly search        = signal('');
   /** Kolon bazlı filtreler. */
   protected readonly colF = signal<ColFilters>({
@@ -944,6 +964,7 @@ export class OrdersPage implements OnInit {
   protected readonly filtered = computed(() => {
     const q = this.search().toLowerCase();
     const f = this.activeFilter();
+    const pf = this.payFilter();
     const c = this.colF();
     const has = (val: string, needle: string) => !needle || val.toLowerCase().includes(needle.toLowerCase());
     return this.orders().filter(o => {
@@ -951,6 +972,7 @@ export class OrdersPage implements OnInit {
       const matchF = f === 'all'
         || (f === 'pending' && (o.status === 'pending' || o.status === 'processing'))
         || o.status === f;
+      const matchPay = pf === 'all' || o.paymentStatus === pf;
       const matchCols =
         has(`${o.make} ${o.model} ${o.id}`, c.arac) &&
         has(String(o.year ?? ''), c.yil) &&
@@ -962,7 +984,7 @@ export class OrdersPage implements OnInit {
         (!c.tarih || o.dateIso === c.tarih) &&
         has(o.price, c.tutar) &&
         (!c.dosya || (c.dosya === 'var' ? o.fileAvailable : !o.fileAvailable));
-      return matchQ && matchF && matchCols;
+      return matchQ && matchF && matchPay && matchCols;
     });
   });
 
@@ -975,7 +997,7 @@ export class OrdersPage implements OnInit {
   });
   private readonly _resetPage = effect(() => {
     // Filtre veya arama değiştiğinde 1. sayfaya dön.
-    this.search(); this.activeFilter(); this.colF();
+    this.search(); this.activeFilter(); this.payFilter(); this.colF();
     this.page.set(1);
   });
 
@@ -990,6 +1012,7 @@ export class OrdersPage implements OnInit {
   extrasTotal(): number { return this.selectedOrder()?.extrasTotalValue ?? 0; }
 
   statusLabel(s: OrderStatus): string { return STATUS_LABEL[s]; }
+  payLabel(s: PaymentStatus): string { return paymentStatusLabel(s); }
   stageKey(s: string): string { return s === 'Stage 1' ? 's1' : s === 'Stage 2' ? 's2' : 's3'; }
   progressRank(s: OrderStatus): number { return { pending: 1, processing: 1, completed: 3, cancelled: 0 }[s]; }
 

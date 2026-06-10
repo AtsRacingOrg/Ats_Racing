@@ -15,6 +15,14 @@ export function stageLabel(stage: string): string {
   return map[stage] ?? stage;
 }
 
+/** Ödeme durumu → TR etiket (sipariş durumundan ayrı sütun). */
+export function paymentStatusLabel(ps: string): string {
+  const map: Record<string, string> = {
+    unpaid: 'Ödeme Bekliyor', paid: 'Ödendi', refunded: 'İade Edildi', failed: 'Başarısız',
+  };
+  return map[ps] ?? ps;
+}
+
 const TR_MONTHS_LONG = ['Ocak', 'Şubat', 'Mart', 'Nisan', 'Mayıs', 'Haziran', 'Temmuz', 'Ağustos', 'Eylül', 'Ekim', 'Kasım', 'Aralık'];
 
 const pad2 = (n: number): string => n.toString().padStart(2, '0');

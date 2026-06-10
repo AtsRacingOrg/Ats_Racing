@@ -11,6 +11,11 @@ export interface TuningFileRow {
   notes?: string | null;
 }
 export interface ProfileLite { full_name: string | null; email: string | null; phone: string | null; role?: string | null; }
+export interface OrderPaymentRow { status: string; refunded_at?: string | null; }
+export interface OrderStatementRow { status: string; }
+
+/** Tabloda gösterilen ödeme durumu (sipariş durumundan ayrı). */
+export type PaymentStatusView = 'unpaid' | 'paid' | 'refunded' | 'failed';
 
 export interface OrderRow {
   id: string;
@@ -45,6 +50,8 @@ export interface OrderRow {
   events?: OrderEventRow[];
   files?: TuningFileRow[];
   customer?: ProfileLite | null;
+  payment?: OrderPaymentRow[] | null;
+  statement?: OrderStatementRow | null;
 }
 
 export interface OrderItemView { label: string; unitPrice: number; }
@@ -78,6 +85,8 @@ export interface OrderView {
   dyno: boolean;
   modifiedParts: string[];
   status: string;
+  /** Ödeme durumu — sipariş durumundan bağımsız (Ödendi / İade / Bekliyor). */
+  paymentStatus: PaymentStatusView;
   notes: string | null;
   cancellationReason: string | null;
   basePrice: number;
@@ -88,6 +97,27 @@ export interface OrderView {
   events: OrderEventView[];
   files: TuningFileView[];
   customer?: { fullName: string | null; email: string | null; phone: string | null; role: string | null } | null;
+}
+
+/**
+ * Ödeme durumunu türetir (sipariş durumundan ayrı):
+ *  • Normal müşteri: order_id'li payments kaydından (succeeded→paid, refunded→refunded…).
+ *  • Bayi: ödeme ekstreyi izler (statement 'paid' → paid). İptal → iade.
+ */
+export function derivePaymentStatus(r: OrderRow): PaymentStatusView {
+  const pay = r.payment?.[0];
+  if (pay) {
+    if (pay.status === 'refunded') { return 'refunded'; }
+    if (pay.status === 'succeeded') { return 'paid'; }
+    if (pay.status === 'failed') { return 'failed'; }
+    return 'unpaid'; // pending
+  }
+  if (r.statement) {
+    if (r.status === 'cancelled') { return 'refunded'; }
+    return r.statement.status === 'paid' ? 'paid' : 'unpaid';
+  }
+  if (r.status === 'cancelled') { return 'refunded'; }
+  return 'unpaid';
 }
 
 export function toOrderView(r: OrderRow): OrderView {
@@ -116,6 +146,7 @@ export function toOrderView(r: OrderRow): OrderView {
     dyno: r.dyno,
     modifiedParts: r.modified_parts ?? [],
     status: r.status,
+    paymentStatus: derivePaymentStatus(r),
     notes: r.notes,
     cancellationReason: r.cancellation_reason ?? null,
     basePrice: Number(r.base_price),
