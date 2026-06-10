@@ -18,7 +18,8 @@ export function stageLabel(stage: string): string {
 /** Ödeme durumu → TR etiket (sipariş durumundan ayrı sütun). */
 export function paymentStatusLabel(ps: string): string {
   const map: Record<string, string> = {
-    unpaid: 'Ödeme Bekliyor', paid: 'Ödendi', refunded: 'İade Edildi', failed: 'Başarısız',
+    unpaid: 'Ödeme Bekliyor', paid: 'Ödendi', refunded: 'İade Edildi',
+    voided: 'Tahsil Edilmedi', failed: 'Başarısız',
   };
   return map[ps] ?? ps;
 }

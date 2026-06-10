@@ -8,7 +8,7 @@ import { Order, OrdersService } from '../../../../core/orders/orders.service';
 import { fuelLabelTr, stageLabel, formatTrDate, formatTrDateTime, isoDateOnly, formatTl, triggerDownload, paymentStatusLabel } from '../../../../core/orders/order-format';
 
 type OrderStatus = 'pending' | 'processing' | 'completed' | 'cancelled';
-type PaymentStatus = 'unpaid' | 'paid' | 'refunded' | 'failed';
+type PaymentStatus = 'unpaid' | 'paid' | 'refunded' | 'voided' | 'failed';
 
 interface ColFilters {
   arac: string; yil: string; motor: string; ecu: string; sanziman: string;
@@ -853,6 +853,7 @@ const STATUS_LABEL: Record<OrderStatus, string> = {
     .st-chip--pay-unpaid   { background: rgba(245,158,11,0.12); color: #f59e0b; }
     .st-chip--pay-paid     { background: rgba(74,222,128,0.12); color: #4ade80; }
     .st-chip--pay-refunded { background: rgba(168,85,247,0.14); color: #a855f7; }
+    .st-chip--pay-voided   { background: rgba(148,163,184,0.12); color: #94a3b8; }
     .st-chip--pay-failed   { background: rgba(239,68,68,0.12);  color: #ef4444; }
     .op__queue { display: inline-flex; align-items: center; gap: 4px; padding: 3px 8px; border-radius: 20px; font-size: 0.66rem; font-weight: 700; background: rgba(168,85,247,0.12); color: #c084fc; white-space: nowrap; i { font-size: 0.7rem; } }
 

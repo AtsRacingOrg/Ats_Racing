@@ -14,8 +14,9 @@ export interface ProfileLite { full_name: string | null; email: string | null; p
 export interface OrderPaymentRow { status: string; refunded_at?: string | null; }
 export interface OrderStatementRow { status: string; }
 
-/** Tabloda gösterilen ödeme durumu (sipariş durumundan ayrı). */
-export type PaymentStatusView = 'unpaid' | 'paid' | 'refunded' | 'failed';
+/** Tabloda gösterilen ödeme durumu (sipariş durumundan ayrı).
+ *  voided = iptal edildi ama hiç tahsil edilmedi (iade ile karışmasın). */
+export type PaymentStatusView = 'unpaid' | 'paid' | 'refunded' | 'voided' | 'failed';
 
 export interface OrderRow {
   id: string;
@@ -109,14 +110,16 @@ export function derivePaymentStatus(r: OrderRow): PaymentStatusView {
   if (pay) {
     if (pay.status === 'refunded') { return 'refunded'; }
     if (pay.status === 'succeeded') { return 'paid'; }
-    if (pay.status === 'failed') { return 'failed'; }
+    // 'failed': iptalden geldiyse tahsil edilmedi, değilse gerçek başarısızlık.
+    if (pay.status === 'failed') { return r.status === 'cancelled' ? 'voided' : 'failed'; }
     return 'unpaid'; // pending
   }
   if (r.statement) {
-    if (r.status === 'cancelled') { return 'refunded'; }
+    // İptal: ekstre ödendiyse iade, değilse hiç tahsil edilmedi.
+    if (r.status === 'cancelled') { return r.statement.status === 'paid' ? 'refunded' : 'voided'; }
     return r.statement.status === 'paid' ? 'paid' : 'unpaid';
   }
-  if (r.status === 'cancelled') { return 'refunded'; }
+  if (r.status === 'cancelled') { return 'voided'; }
   return 'unpaid';
 }
 

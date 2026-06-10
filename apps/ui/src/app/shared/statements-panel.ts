@@ -6,7 +6,7 @@ import { TranslatePipe } from '../core/i18n/translate.pipe';
 import { I18nService } from '../core/i18n/i18n.service';
 
 type DebtStatus = 'accruing' | 'due' | 'paid' | 'overdue';
-type OrderPayStatus = 'unpaid' | 'paid' | 'refunded';
+type OrderPayStatus = 'unpaid' | 'paid' | 'refunded' | 'voided';
 
 interface DebtOrder {
   id: string; date: string; vehicle: string; service: string; amount: number;
@@ -45,8 +45,11 @@ function mapStatement(s: Statement): MonthlyStatement {
       amount: o.amount,
       cancelled: o.status === 'cancelled',
       orderStatus: o.status,
-      // Bayi ekstresinde ödeme durumu: iptal → iade, ekstre ödendi → ödendi, değilse bekliyor.
-      paymentStatus: o.status === 'cancelled' ? 'refunded' : (s.status === 'paid' ? 'paid' : 'unpaid'),
+      // İptal: ekstre ödendiyse gerçek iade, değilse hiç tahsil edilmedi (sadece düşüldü).
+      // İptal değil: ekstre ödendiyse ödendi, değilse ödeme bekliyor.
+      paymentStatus: o.status === 'cancelled'
+        ? (s.status === 'paid' ? 'refunded' : 'voided')
+        : (s.status === 'paid' ? 'paid' : 'unpaid'),
     })),
   };
 }
@@ -204,6 +207,7 @@ function mapStatement(s: Statement): MonthlyStatement {
     .st-chip--pay-unpaid   { background: rgba(245,158,11,0.12); color: #f59e0b; }
     .st-chip--pay-paid     { background: rgba(74,222,128,0.12); color: #4ade80; }
     .st-chip--pay-refunded { background: rgba(168,85,247,0.14); color: #a855f7; }
+    .st-chip--pay-voided   { background: rgba(148,163,184,0.12); color: #94a3b8; }
     .stmt__body { padding: 0 1.4rem 1.4rem; border-top: 1px solid rgba(255,255,255,0.05); }
     .stmt__table { width: 100%; border-collapse: collapse; margin-top: 0.5rem;
       th { padding: 0.7rem 0.6rem; font-size: 0.68rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; color: rgba(255,255,255,0.35); text-align: left; border-bottom: 1px solid rgba(255,255,255,0.06); }
