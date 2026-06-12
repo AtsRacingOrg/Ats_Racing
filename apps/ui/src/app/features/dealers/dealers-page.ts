@@ -11,7 +11,7 @@ import { SectionHeading } from '../../shared/ui/section-heading/section-heading'
 import { TranslatePipe } from '../../core/i18n/translate.pipe';
 import { MapRegion, TR_REGIONS } from '../../shared/data/turkey-map';
 import { DE_REGIONS } from '../../shared/data/germany-map';
-import { DEALERS, Dealer, DealerCountry } from '../../shared/data/dealers';
+import { DEALERS, Dealer, DealerCountry, mapsUrl } from '../../shared/data/dealers';
 
 @Component({
   selector: 'app-dealers-page',
@@ -62,6 +62,8 @@ export default class DealersPage {
   }
 
   protected clearFilter(): void { this.selected.set(null); }
+
+  protected mapsUrl(d: Dealer): string { return mapsUrl(d); }
 
   /** Tüm path'lerin sınır kutusundan viewBox üretir (relative path'ler için güvenli). */
   private measure(): void {

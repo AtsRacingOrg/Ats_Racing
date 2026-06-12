@@ -60,9 +60,13 @@
               <span class="dl-card__city"><i class="pi pi-map-marker"></i> {{ d.city }}</span>
             </div>
             <div class="dl-card__rows">
+              <span class="dl-card__row dl-card__row--addr"><i class="pi pi-map"></i> {{ d.address }}</span>
               <a class="dl-card__row" [href]="'tel:' + d.phone"><i class="pi pi-phone"></i> {{ d.phone }}</a>
               <a class="dl-card__row" [href]="'mailto:' + d.contact"><i class="pi pi-envelope"></i> {{ d.contact }}</a>
             </div>
+            <a class="dl-card__map" [href]="mapsUrl(d)" target="_blank" rel="noopener">
+              <i class="pi pi-map-marker"></i> {{ 'dealers.location' | t }}
+            </a>
           </article>
         } @empty {
           <p class="dl-empty">{{ 'dealers.empty' | t }}</p>

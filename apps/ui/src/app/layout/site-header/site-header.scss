@@ -13,6 +13,7 @@
   transition: background-color 300ms ease, box-shadow 300ms ease;
 
   &.is-scrolled,
+  &.is-solid,
   &.is-open {
     background: rgba($color-bg, 0.92);
     backdrop-filter: blur(10px);

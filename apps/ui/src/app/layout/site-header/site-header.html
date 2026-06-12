@@ -1,6 +1,7 @@
 <header
   class="site-header"
   [class.is-scrolled]="scrolled()"
+  [class.is-solid]="solid()"
   [class.is-open]="mobileOpen()"
 >
   <div class="site-header__bar">
@@ -30,13 +31,6 @@
 
     <div class="site-header__actions">
       <app-lang-switcher />
-      <a
-        routerLink="/login"
-        class="icon-btn icon-btn--accent"
-        [attr.aria-label]="'common.account' | t"
-      >
-        <i class="pi pi-user" aria-hidden="true"></i>
-      </a>
 
       <button
         type="button"
@@ -63,9 +57,6 @@
             >{{ item.key | t }}</a>
           </li>
         }
-        <li>
-          <a routerLink="/login" (click)="closeMobile()">{{ 'common.login' | t }}</a>
-        </li>
       </ul>
     </nav>
   }
