@@ -31,6 +31,11 @@ export const appRoutes: Route[] = [
         data: { title: 'Hakkımızda' },
       },
       {
+        path: 'dealers',
+        loadComponent: () => import('./features/dealers/dealers-page'),
+        data: { title: 'Bayilerimiz' },
+      },
+      {
         path: 'contact',
         loadComponent: () => import('./features/contact/contact-page'),
         data: { title: 'İletişim' },

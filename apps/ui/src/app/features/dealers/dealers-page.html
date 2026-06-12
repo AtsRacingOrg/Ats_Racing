@@ -1,0 +1,73 @@
+<section class="dealers section">
+  <div class="container-page">
+    <app-section-heading
+      align="center"
+      [eyebrow]="'dealers.eyebrow' | t"
+      [title]="'dealers.title' | t"
+    ></app-section-heading>
+    <p class="dl-lead">{{ 'dealers.lead' | t }}</p>
+
+    <!-- Ülke seçimi -->
+    <div class="dl-tabs" role="tablist">
+      <button type="button" role="tab" class="dl-tab" [class.is-active]="country() === 'TR'"
+              [attr.aria-selected]="country() === 'TR'" (click)="setCountry('TR')">
+        <span class="dl-tab__flag">🇹🇷</span> {{ 'dealers.tr' | t }}
+      </button>
+      <button type="button" role="tab" class="dl-tab" [class.is-active]="country() === 'DE'"
+              [attr.aria-selected]="country() === 'DE'" (click)="setCountry('DE')">
+        <span class="dl-tab__flag">🇩🇪</span> {{ 'dealers.de' | t }}
+      </button>
+    </div>
+
+    <div class="dl-grid">
+      <!-- HARİTA -->
+      <div class="dl-map">
+        <svg #mapSvg [attr.viewBox]="viewBox()" preserveAspectRatio="xMidYMid meet"
+             class="dl-map__svg" role="img" [attr.aria-label]="'dealers.title' | t">
+          @for (r of regions(); track r.name) {
+            <path
+              [attr.d]="r.path"
+              class="dl-region"
+              [class.dl-region--active]="hasDealer(r.name)"
+              [class.dl-region--selected]="selected() === r.name"
+              (click)="onRegionClick(r.name)"
+            >
+              <title>{{ r.name }}</title>
+            </path>
+          }
+        </svg>
+        <div class="dl-legend">
+          <span class="dl-legend__item"><span class="dl-legend__dot dl-legend__dot--active"></span> {{ 'dealers.legendActive' | t }}</span>
+          <span class="dl-legend__item"><span class="dl-legend__dot"></span> {{ 'dealers.legendNone' | t }}</span>
+        </div>
+      </div>
+
+      <!-- LİSTE -->
+      <div class="dl-list">
+        <div class="dl-list__head">
+          <span class="dl-list__count">{{ count() }} {{ 'dealers.count' | t }}</span>
+          @if (selected()) {
+            <button type="button" class="dl-chip" (click)="clearFilter()">
+              {{ selected() }} <i class="pi pi-times"></i>
+            </button>
+          }
+        </div>
+
+        @for (d of visibleDealers(); track d.name) {
+          <article class="dl-card">
+            <div class="dl-card__head">
+              <span class="dl-card__name">{{ d.name }}</span>
+              <span class="dl-card__city"><i class="pi pi-map-marker"></i> {{ d.city }}</span>
+            </div>
+            <div class="dl-card__rows">
+              <a class="dl-card__row" [href]="'tel:' + d.phone"><i class="pi pi-phone"></i> {{ d.phone }}</a>
+              <a class="dl-card__row" [href]="'mailto:' + d.contact"><i class="pi pi-envelope"></i> {{ d.contact }}</a>
+            </div>
+          </article>
+        } @empty {
+          <p class="dl-empty">{{ 'dealers.empty' | t }}</p>
+        }
+      </div>
+    </div>
+  </div>
+</section>

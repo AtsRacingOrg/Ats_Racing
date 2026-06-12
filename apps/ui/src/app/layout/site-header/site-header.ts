@@ -20,6 +20,7 @@ export class SiteHeader {
   protected readonly nav: readonly NavItem[] = [
     { key: 'nav.home', path: '/' },
     { key: 'nav.about', path: '/about' },
+    { key: 'nav.dealers', path: '/dealers' },
     { key: 'nav.contact', path: '/contact' },
   ];
 

@@ -1,0 +1,151 @@
+.dealers {
+  background:
+    radial-gradient(1000px 460px at 50% -8%, rgba(234,10,11,0.06), transparent 70%),
+    #ffffff;
+}
+
+.dl-lead {
+  max-width: 680px;
+  margin: 0.75rem auto 0;
+  text-align: center;
+  color: #6b6760;
+  font-size: 1rem;
+  line-height: 1.6;
+}
+
+/* ── Ülke sekmeleri ── */
+.dl-tabs {
+  display: flex;
+  gap: 0.5rem;
+  justify-content: center;
+  margin: 1.75rem auto 2rem;
+}
+.dl-tab {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  border: 1px solid #e2e2e2;
+  background: #fff;
+  color: #18171a;
+  font-family: 'DM Sans', sans-serif;
+  font-weight: 700;
+  font-size: 0.9rem;
+  padding: 0.6rem 1.25rem;
+  border-radius: 999px;
+  cursor: pointer;
+  transition: all 180ms ease;
+  &__flag { font-size: 1.1rem; line-height: 1; }
+  &:hover { border-color: #c9c9c9; }
+  &.is-active {
+    background: #ea0a0b; border-color: #ea0a0b; color: #fff;
+    box-shadow: 0 10px 26px -12px rgba(234,10,11,0.6);
+  }
+}
+
+/* ── Harita + liste düzeni ── */
+.dl-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.35fr) minmax(0, 1fr);
+  gap: 2rem;
+  align-items: start;
+  @media (max-width: 900px) { grid-template-columns: 1fr; }
+}
+
+/* ── Harita ── */
+.dl-map {
+  background: linear-gradient(180deg, #fafafa, #fff);
+  border: 1px solid #eee;
+  border-radius: 18px;
+  padding: 1.25rem;
+}
+.dl-map__svg {
+  width: 100%;
+  height: auto;
+  max-height: 480px;
+  display: block;
+}
+
+.dl-region {
+  fill: #e7e7ea;
+  stroke: #ffffff;
+  stroke-width: 0.6;
+  transition: fill 160ms ease, transform 160ms ease;
+  transform-box: fill-box;
+  transform-origin: center;
+
+  &--active {
+    fill: #ef4444;
+    cursor: pointer;
+    &:hover { fill: #c1121f; }
+  }
+  &--selected { fill: #8b0a0a; }
+  &:not(.dl-region--active):hover { fill: #dcdce0; }
+}
+
+.dl-legend {
+  display: flex;
+  gap: 1.25rem;
+  justify-content: center;
+  margin-top: 1rem;
+  font-size: 0.78rem;
+  color: #6b6760;
+  &__item { display: inline-flex; align-items: center; gap: 0.4rem; }
+  &__dot {
+    width: 12px; height: 12px; border-radius: 3px; background: #e7e7ea;
+    &--active { background: #ef4444; }
+  }
+}
+
+/* ── Liste ── */
+.dl-list { display: flex; flex-direction: column; gap: 0.75rem; }
+.dl-list__head {
+  display: flex; align-items: center; justify-content: space-between; gap: 0.75rem;
+  margin-bottom: 0.25rem;
+}
+.dl-list__count {
+  font-family: 'DM Sans', sans-serif; font-weight: 700; font-size: 0.85rem;
+  text-transform: uppercase; letter-spacing: 0.05em; color: #949087;
+}
+.dl-chip {
+  display: inline-flex; align-items: center; gap: 0.4rem;
+  background: rgba(234,10,11,0.1); color: #c1121f; border: 1px solid rgba(234,10,11,0.25);
+  border-radius: 999px; padding: 4px 12px; cursor: pointer;
+  font-weight: 700; font-size: 0.78rem;
+  i { font-size: 0.7rem; }
+  &:hover { background: rgba(234,10,11,0.16); }
+}
+
+.dl-card {
+  border: 1px solid #ececec;
+  border-radius: 14px;
+  padding: 1rem 1.15rem;
+  background: #fff;
+  transition: transform 180ms ease, box-shadow 180ms ease, border-color 180ms ease;
+  &:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 18px 36px -22px rgba(20,20,25,0.4);
+    border-color: rgba(234,10,11,0.3);
+  }
+
+  &__head {
+    display: flex; align-items: baseline; justify-content: space-between; gap: 0.5rem;
+    flex-wrap: wrap; margin-bottom: 0.6rem;
+  }
+  &__name {
+    font-family: 'DM Sans', sans-serif; font-weight: 700; color: #18171a; font-size: 1.02rem;
+  }
+  &__city {
+    display: inline-flex; align-items: center; gap: 0.3rem;
+    font-size: 0.8rem; color: #ea0a0b; font-weight: 600;
+    i { font-size: 0.8rem; }
+  }
+  &__rows { display: flex; flex-direction: column; gap: 0.3rem; }
+  &__row {
+    display: inline-flex; align-items: center; gap: 0.5rem;
+    color: #4a4843; font-size: 0.9rem; text-decoration: none;
+    i { color: #949087; font-size: 0.85rem; width: 16px; }
+    &:hover { color: #ea0a0b; i { color: #ea0a0b; } }
+  }
+}
+
+.dl-empty { color: #949087; font-size: 0.9rem; padding: 1rem 0; }
