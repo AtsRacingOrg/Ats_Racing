@@ -8,13 +8,14 @@ import { NotificationsService } from '../../../core/notifications/notifications.
 import { NotificationBell } from '../../../shared/notification-bell';
 import { TranslatePipe } from '../../../core/i18n/translate.pipe';
 import { LangSwitcher } from '../../../shared/ui/lang-switcher/lang-switcher';
+import { ProfileMenu } from '../../../shared/ui/profile-menu/profile-menu';
 
 interface NavItem { labelKey: string; icon: string; route: string; badge?: string; }
 
 @Component({
   selector: 'app-admin-layout',
   standalone: true,
-  imports: [RouterOutlet, RouterLink, RouterLinkActive, NotificationBell, TranslatePipe, LangSwitcher],
+  imports: [RouterOutlet, RouterLink, RouterLinkActive, NotificationBell, TranslatePipe, LangSwitcher, ProfileMenu],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
 <div class="adm-shell" [class.adm-shell--collapsed]="collapsed()">
@@ -67,7 +68,12 @@ interface NavItem { labelKey: string; icon: string; route: string; badge?: strin
       <div class="adm-topbar__right">
         <app-lang-switcher />
         <app-notification-bell />
-        <div class="adm-user__avatar adm-user__avatar--sm">{{ auth.currentUser()?.avatar }}</div>
+        <app-profile-menu
+          [name]="auth.currentUser()?.name || ''"
+          [avatar]="auth.currentUser()?.avatar || ''"
+          profileLink="/admin/profile"
+          (logout)="logout()"
+        />
       </div>
     </header>
     <main class="adm-content">

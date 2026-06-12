@@ -32,14 +32,15 @@ export class SiteHeader {
   protected readonly mobileOpen = signal(false);
   protected readonly cartCount = signal(0);
 
-  /** Anasayfa dışındaki sayfalarda zemin açık → header her zaman katı (koyu) olmalı. */
-  private readonly isHome = signal(this.router.url === '/' || this.router.url === '');
-  protected readonly solid = computed(() => this.scrolled() || this.mobileOpen() || !this.isHome());
+  /** Yalnızca Bayilerimiz sayfasında header her zaman katı (koyu). Diğerlerinde
+   *  en üstte şeffaf, kaydırınca koyu. */
+  private readonly isDealers = signal(this.router.url.startsWith('/dealers'));
+  protected readonly solid = computed(() => this.scrolled() || this.mobileOpen() || this.isDealers());
 
   constructor() {
     this.router.events
       .pipe(filter((e): e is NavigationEnd => e instanceof NavigationEnd), takeUntilDestroyed())
-      .subscribe(e => this.isHome.set(e.urlAfterRedirects === '/'));
+      .subscribe(e => this.isDealers.set(e.urlAfterRedirects.startsWith('/dealers')));
   }
 
   @HostListener('window:scroll')

@@ -3,6 +3,7 @@ import { toSignal } from '@angular/core/rxjs-interop';
 import { RouterLink, RouterLinkActive, RouterOutlet, Router, NavigationEnd } from '@angular/router';
 import { filter, map, startWith } from 'rxjs/operators';
 import { AuthService } from '../../../core/auth/auth.service';
+import { ProfileMenu } from '../../../shared/ui/profile-menu/profile-menu';
 import { PrivacyService } from '../../../core/privacy.service';
 import { NotificationsService } from '../../../core/notifications/notifications.service';
 import { AccountService } from '../../../core/account/account.service';
@@ -21,7 +22,7 @@ interface NavItem {
 @Component({
   selector: 'app-dashboard-layout',
   standalone: true,
-  imports: [RouterOutlet, RouterLink, RouterLinkActive, NotificationBell, TranslatePipe, LangSwitcher],
+  imports: [RouterOutlet, RouterLink, RouterLinkActive, NotificationBell, TranslatePipe, LangSwitcher, ProfileMenu],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div class="dash-shell" [class.sidebar-collapsed]="collapsed()">
@@ -100,9 +101,12 @@ interface NavItem {
             }
             <app-lang-switcher />
             <app-notification-bell />
-            <div class="dash-user dash-user--sm">
-              <div class="dash-user__avatar">{{ initials() }}</div>
-            </div>
+            <app-profile-menu
+              [name]="userName"
+              [avatar]="initials()"
+              profileLink="/dashboard/profile"
+              (logout)="logout()"
+            />
           </div>
         </header>
 
