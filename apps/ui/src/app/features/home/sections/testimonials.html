@@ -6,6 +6,28 @@
       [title]="'testi.title' | t"
     ></app-section-heading>
 
+    <!-- Ortalama puan rozeti -->
+    <div class="rating-hero">
+      <div class="rating-hero__score">
+        <span class="rating-hero__num">{{ average() }}</span>
+        <span class="rating-hero__max">/ 5</span>
+      </div>
+      <div class="rating-hero__right">
+        <div class="rating-hero__stars" [attr.aria-label]="average() + ' / 5'">
+          <div class="rating-hero__stars-base">
+            @for (s of stars; track s) { <i class="pi pi-star-fill"></i> }
+          </div>
+          <div class="rating-hero__stars-fill" [style.width.%]="avgFillPct()">
+            @for (s of stars; track s) { <i class="pi pi-star-fill"></i> }
+          </div>
+        </div>
+        <p class="rating-hero__label">
+          <i class="pi pi-verified"></i>
+          {{ 'testi.avgLabel' | t }}
+        </p>
+      </div>
+    </div>
+
     <p-carousel
       [value]="testimonials"
       [numVisible]="3"
@@ -16,18 +38,28 @@
       styleClass="mt-12"
     >
       <ng-template #item let-t>
-        <article class="quote-card">
-          <span class="quote-card__mark" aria-hidden="true">“</span>
-          <p class="quote-card__text">{{ t.quoteKey | t }}</p>
-          <footer class="quote-card__meta">
-            <span class="quote-card__name">{{ t.name }}</span>
-            <span class="quote-card__car">{{ t.car }}</span>
-          </footer>
-          <div class="quote-card__rating" [attr.aria-label]="t.rating + ' ' + ('testi.stars' | t)">
-            @for (_ of [].constructor(t.rating); track $index) {
-              <i class="pi pi-star-fill"></i>
+        <article class="quote-card" [style.--accent]="t.accent">
+          <div class="quote-card__top">
+            <div class="quote-card__avatar">{{ initials(t.name) }}</div>
+            <div class="quote-card__id">
+              <span class="quote-card__name">{{ t.name }} <span class="quote-card__flag" aria-hidden="true">{{ t.flag }}</span></span>
+              <span class="quote-card__car">{{ t.car }}</span>
+            </div>
+            <span class="quote-card__mark" aria-hidden="true">”</span>
+          </div>
+
+          <div class="quote-card__stars" [attr.aria-label]="t.rating + ' / 5'">
+            @for (s of stars; track s) {
+              <i class="pi" [class.pi-star-fill]="s < t.rating" [class.pi-star]="s >= t.rating"></i>
             }
           </div>
+
+          <p class="quote-card__text">{{ t.quote }}</p>
+
+          <footer class="quote-card__foot">
+            <span class="quote-card__service">{{ t.serviceKey | t }}</span>
+            <span class="quote-card__verified"><i class="pi pi-check-circle"></i> {{ 'testi.verified' | t }}</span>
+          </footer>
         </article>
       </ng-template>
     </p-carousel>
